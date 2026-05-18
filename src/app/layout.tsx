@@ -4,7 +4,7 @@ import { Map, UserRound } from "lucide-react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "DiscRoute Strategy Map",
+  title: "LocalRoute Strategy Map",
   description: "Community shot-line strategy maps for disc golf courses."
 };
 
@@ -22,7 +22,7 @@ export default function RootLayout({
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-canopy-700 text-white">
                 <Map size={20} aria-hidden />
               </span>
-              <span className="truncate text-lg font-bold text-ink">DiscRoute</span>
+              <span className="truncate text-lg font-bold text-ink">LocalRoute</span>
             </Link>
             <nav className="flex items-center gap-2 text-sm font-semibold text-ink/75">
               <Link
