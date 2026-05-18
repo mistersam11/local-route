@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Map, UserRound } from "lucide-react";
+import { CirclePlus, Map, UserRound } from "lucide-react";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -30,6 +30,13 @@ export default function RootLayout({
                 className="rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"
               >
                 Courses
+              </Link>
+              <Link
+                href="/courses/new"
+                className="flex items-center gap-2 rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"
+              >
+                <CirclePlus size={16} aria-hidden />
+                Submit
               </Link>
               <Link
                 href="/profiles/1"

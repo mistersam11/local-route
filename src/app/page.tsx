@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, MapPin, MessageSquare, Search, Star } from "lucide-react";
+import { ArrowRight, CirclePlus, MapPin, MessageSquare, Search, Star } from "lucide-react";
 import { Stars } from "@/components/Stars";
 import { prisma } from "@/lib/db";
 
@@ -12,14 +12,17 @@ type HomeProps = {
 export default async function Home({ searchParams }: HomeProps) {
   const query = searchParams?.q?.trim() ?? "";
   const courses = await prisma.course.findMany({
-    where: query
-      ? {
-          OR: [
-            { name: { contains: query } },
-            { locationName: { contains: query } }
-          ]
-        }
-      : undefined,
+    where: {
+      status: { not: "rejected" },
+      ...(query
+        ? {
+            OR: [
+              { name: { contains: query } },
+              { locationName: { contains: query } }
+            ]
+          }
+        : {})
+    },
     include: {
       reviews: { select: { rating: true } },
       holes: {
@@ -43,26 +46,35 @@ export default async function Home({ searchParams }: HomeProps) {
             Course and hole reviews, plus voted lines for disc golf
           </h1>
         </div>
-        <form
-          action="/"
-          className="flex min-h-14 overflow-hidden rounded-full border border-canopy-900/10 bg-white shadow-panel"
-        >
-          <label className="flex flex-1 items-center gap-3 px-5">
-            <Search size={20} className="shrink-0 text-canopy-700" aria-hidden />
-            <input
-              className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-ink/45"
-              defaultValue={query}
-              name="q"
-              placeholder="Search courses or cities"
-            />
-          </label>
-          <button
-            className="m-1 inline-flex items-center justify-center rounded-full bg-ink px-5 text-sm font-bold text-white transition hover:bg-canopy-700"
-            type="submit"
+        <div className="grid gap-3">
+          <form
+            action="/"
+            className="flex min-h-14 overflow-hidden rounded-full border border-canopy-900/10 bg-white shadow-panel"
           >
-            Search
-          </button>
-        </form>
+            <label className="flex flex-1 items-center gap-3 px-5">
+              <Search size={20} className="shrink-0 text-canopy-700" aria-hidden />
+              <input
+                className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-ink/45"
+                defaultValue={query}
+                name="q"
+                placeholder="Search courses or cities"
+              />
+            </label>
+            <button
+              className="m-1 inline-flex items-center justify-center rounded-full bg-ink px-5 text-sm font-bold text-white transition hover:bg-canopy-700"
+              type="submit"
+            >
+              Search
+            </button>
+          </form>
+          <Link
+            className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-full bg-canopy-700 px-5 text-sm font-black text-white shadow-sm transition hover:bg-canopy-900"
+            href="/courses/new"
+          >
+            <CirclePlus size={16} aria-hidden />
+            Submit a course
+          </Link>
+        </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -102,6 +114,11 @@ export default async function Home({ searchParams }: HomeProps) {
                 <span className="absolute bottom-3 left-3 rounded-full bg-[#fffdf7]/90 px-3 py-1 text-sm font-bold text-ink">
                   {course.holes.length} holes
                 </span>
+                {course.status === "pending" ? (
+                  <span className="absolute right-3 top-3 rounded-full bg-clay-100 px-3 py-1 text-xs font-black uppercase text-clay-700">
+                    Pending
+                  </span>
+                ) : null}
               </div>
               <div className="flex flex-1 flex-col justify-between p-5">
                 <div>

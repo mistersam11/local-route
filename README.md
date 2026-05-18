@@ -10,9 +10,11 @@ LocalRoute is a Letterboxd-style MVP for disc golf. Players can rate courses and
 - Course pages with cover photos, reviews, review form, hole list, and recent hole reviews
 - Hole pages with from-the-tee photo, 1-5 star reviews, optional photo attachments, and voted line suggestions
 - A "Best Line" per hole determined by community voting
+- Course submission form with dynamic hole setup and photo attachments
+- Pending/approved/rejected course moderation status
 - User profiles with course reviews, suggested lines, and following list
 - Follow/unfollow users
-- Prisma schema for users, courses, holes, course reviews, hole reviews, lines, line votes, and follows
+- Prisma schema for users, courses, course status, holes, course reviews, hole reviews, lines, line votes, and follows
 
 ## Stack
 
@@ -107,14 +109,18 @@ The seed creates:
 - Follow relationships
 - Course reviews with 1-5 star ratings
 - Hole reviews with ratings and optional photos
+- Submitted courses with pending approval status
 - Suggested lines with difficulty, risk, disc suggestions, tags, and votes
 
 The UI uses user `dana` as the demo signed-in player.
+Dana is also the demo admin for approving or rejecting submitted courses.
 
 ## API Routes
 
 - `GET /api/courses`
+- `POST /api/courses`
 - `GET /api/courses/:courseId`
+- `PATCH /api/courses/:courseId`
 - `POST /api/courses/:courseId/reviews`
 - `GET /api/holes/:holeId`
 - `POST /api/holes/:holeId/reviews`

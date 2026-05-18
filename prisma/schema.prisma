@@ -30,33 +30,47 @@ enum VoteValue {
   down
 }
 
+enum CourseStatus {
+  pending
+  approved
+  rejected
+}
+
 model User {
   id              Int             @id @default(autoincrement())
   username        String          @unique
   email           String          @unique
   passwordHash    String
   profileImageUrl String?
+  isAdmin         Boolean         @default(false)
   createdAt       DateTime        @default(now())
 
   courseReviews   CourseReview[]
   holeReviews     HoleReview[]
   lines           Line[]
+  submittedCourses Course[]       @relation("SubmittedCourses")
   following       Follow[]        @relation("Follower")
   followers       Follow[]        @relation("Following")
   lineVotes       LineVote[]
 }
 
 model Course {
-  id           Int            @id @default(autoincrement())
-  name         String
-  locationName String
-  latitude     Float
-  longitude    Float
+  id            Int            @id @default(autoincrement())
+  name          String
+  locationName  String
+  latitude      Float?
+  longitude     Float?
   coverPhotoUrl String?
-  createdAt    DateTime       @default(now())
+  status        CourseStatus   @default(pending)
+  submittedById Int?
+  createdAt     DateTime       @default(now())
 
-  holes        Hole[]
-  reviews      CourseReview[]
+  holes         Hole[]
+  reviews       CourseReview[]
+  submittedBy   User?          @relation("SubmittedCourses", fields: [submittedById], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([submittedById])
 }
 
 model Hole {

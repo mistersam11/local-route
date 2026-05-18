@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { CourseReviewForm } from "@/components/CourseReviewForm";
+import { CourseStatusControls } from "@/components/CourseStatusControls";
 import { Stars } from "@/components/Stars";
 import { DEMO_USER_ID } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
@@ -28,7 +29,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
     notFound();
   }
 
-  const [course, recentActivity] = await Promise.all([
+  const [course, recentActivity, currentUser] = await Promise.all([
     prisma.course.findUnique({
       where: { id: courseId },
       include: {
@@ -50,6 +51,9 @@ export default async function CoursePage({ params }: CoursePageProps) {
             reviews: { select: { rating: true } }
           },
           orderBy: { holeNumber: "asc" }
+        },
+        submittedBy: {
+          select: { id: true, username: true, profileImageUrl: true }
         }
       }
     }),
@@ -61,6 +65,10 @@ export default async function CoursePage({ params }: CoursePageProps) {
       },
       orderBy: { createdAt: "desc" },
       take: 5
+    }),
+    prisma.user.findUnique({
+      where: { id: DEMO_USER_ID },
+      select: { isAdmin: true }
     })
   ]);
 
@@ -110,6 +118,11 @@ export default async function CoursePage({ params }: CoursePageProps) {
                 <MapPin size={16} aria-hidden />
                 {course.locationName}
               </p>
+              {course.status !== "approved" ? (
+                <span className="mt-3 inline-flex rounded-full bg-clay-100 px-3 py-1 text-xs font-black uppercase text-clay-700">
+                  {course.status === "pending" ? "Pending review" : "Rejected"}
+                </span>
+              ) : null}
               <h1 className="mt-3 text-4xl font-black leading-tight sm:text-5xl">
                 {course.name}
               </h1>
@@ -135,6 +148,14 @@ export default async function CoursePage({ params }: CoursePageProps) {
             <p className="mt-1 text-2xl font-black">{totalHoleReviews}</p>
           </div>
         </div>
+
+        {currentUser?.isAdmin ? (
+          <CourseStatusControls
+            courseId={course.id}
+            currentUserId={DEMO_USER_ID}
+            initialStatus={course.status}
+          />
+        ) : null}
 
         <CourseReviewForm courseId={course.id} currentUserId={DEMO_USER_ID} />
 

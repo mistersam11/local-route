@@ -12,12 +12,13 @@ async function main() {
   await prisma.course.deleteMany();
   await prisma.user.deleteMany();
 
-  const [dana, nate, maya, ellis] = await Promise.all([
+  const [sam, nate, maya, ellis] = await Promise.all([
     prisma.user.create({
       data: {
-        username: "dana",
-        email: "dana@example.com",
+        username: "sam",
+        email: "sam@example.com",
         passwordHash: "demo-password-hash",
+        isAdmin: true,
         profileImageUrl: "https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=240&q=80"
       }
     }),
@@ -49,8 +50,8 @@ async function main() {
 
   await prisma.follow.createMany({
     data: [
-      { followerId: dana.id, followingId: nate.id },
-      { followerId: dana.id, followingId: maya.id },
+      { followerId: sam.id, followingId: nate.id },
+      { followerId: sam.id, followingId: maya.id },
       { followerId: nate.id, followingId: maya.id },
       { followerId: ellis.id, followingId: nate.id }
     ]
@@ -62,6 +63,8 @@ async function main() {
       locationName: "Burlington, VT",
       latitude: 44.47602,
       longitude: -73.21246,
+      status: "approved",
+      submittedById: sam.id,
       coverPhotoUrl: "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1400&q=80",
       holes: {
         create: [
@@ -121,6 +124,8 @@ async function main() {
       locationName: "Asheville, NC",
       latitude: 35.59671,
       longitude: -82.55512,
+      status: "approved",
+      submittedById: maya.id,
       coverPhotoUrl: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1400&q=80",
       holes: {
         create: [
