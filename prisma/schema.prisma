@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Difficulty {
+  beginner
+  intermediate
+  advanced
+}
+
+enum RiskLevel {
+  low
+  medium
+  high
+}
+
+enum RouteTag {
+  safe
+  aggressive
+  scramble
+}
+
+enum VoteValue {
+  up
+  down
+}
+
+model User {
+  id              Int         @id @default(autoincrement())
+  username        String      @unique
+  email           String      @unique
+  passwordHash    String
+  profileImageUrl String?
+  createdAt       DateTime    @default(now())
+
+  routes          Route[]
+  following       Follow[]    @relation("Follower")
+  followers       Follow[]    @relation("Following")
+  votes           RouteVote[]
+}
+
+model Course {
+  id           Int      @id @default(autoincrement())
+  name         String
+  locationName String
+  latitude     Float
+  longitude    Float
+  createdAt    DateTime @default(now())
+
+  holes        Hole[]
+}
+
+model Hole {
+  id          Int      @id @default(autoincrement())
+  courseId    Int
+  holeNumber  Int
+  par         Int?
+  description String?
+  teeLat      Float
+  teeLng      Float
+  basketLat   Float
+  basketLng   Float
+  createdAt   DateTime @default(now())
+
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  routes      Route[]
+
+  @@unique([courseId, holeNumber])
+  @@index([courseId])
+}
+
+model Route {
+  id             Int        @id @default(autoincrement())
+  holeId         Int
+  userId         Int
+  name           String
+  description    String?
+  difficulty     Difficulty
+  riskLevel      RiskLevel
+  tag            RouteTag   @default(safe)
+  polyline       Json
+  discSuggestion String?
+  upvotes        Int        @default(0)
+  downvotes      Int        @default(0)
+  createdAt      DateTime   @default(now())
+
+  hole           Hole       @relation(fields: [holeId], references: [id], onDelete: Cascade)
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  votes          RouteVote[]
+
+  @@index([holeId, createdAt])
+  @@index([userId])
+}
+
+model RouteVote {
+  id        Int       @id @default(autoincrement())
+  routeId   Int
+  userId    Int
+  value     VoteValue
+  createdAt DateTime  @default(now())
+
+  route     Route     @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([routeId, userId])
+  @@index([userId])
+}
+
+model Follow {
+  id          Int      @id @default(autoincrement())
+  followerId  Int
+  followingId Int
+  createdAt   DateTime @default(now())
+
+  follower    User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+}
