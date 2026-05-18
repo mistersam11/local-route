@@ -1,5 +1,7 @@
 # DiscRoute Strategy Map
 
+For those who throw.
+
 DiscRoute is a production-ready MVP for a community disc golf strategy map. It uses Next.js, Prisma, SQLite, Tailwind CSS, and Mapbox GL JS to let players browse courses, open hole maps, draw shot lines, save routes, vote, and follow other users.
 
 ## What Is Built
