@@ -52,6 +52,53 @@ npm run dev
 
 Open `http://localhost:3000`.
 
+## GitHub
+
+This project is safe to push to GitHub because `.env`, `node_modules`, `.next`, and local database files are ignored.
+
+Create an empty GitHub repository, then connect this local repo:
+
+```bash
+git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+git branch -M main
+git push -u origin main
+```
+
+On another computer:
+
+```bash
+git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+cd YOUR_REPO_NAME
+npm install
+cp .env.example .env
+npm run prisma:generate
+npm run db:push
+npm run db:seed
+npm run dev
+```
+
+## Letting Other People Use It
+
+For quick testing on your home Wi-Fi, run Next on all network interfaces:
+
+```bash
+npm run dev -- -H 0.0.0.0
+```
+
+Then people on the same network can open:
+
+```text
+http://YOUR_COMPUTER_LOCAL_IP:3000
+```
+
+For public access from other networks, deploy it instead of running it from your laptop. Recommended MVP path:
+
+- Vercel for the Next.js app
+- Neon, Supabase, or Railway Postgres for the database
+- Mapbox token configured as an environment variable
+
+Before public launch, replace SQLite with PostgreSQL and replace the demo user header with real authentication.
+
 ## Mapbox
 
 Set `NEXT_PUBLIC_MAPBOX_TOKEN` in `.env` for real satellite map tiles:
