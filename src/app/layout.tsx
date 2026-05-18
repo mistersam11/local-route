@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CirclePlus, Map, UserRound } from "lucide-react";
+import { getDemoUser } from "@/lib/current-user";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -8,11 +9,13 @@ export const metadata: Metadata = {
   description: "Disc golf course and hole reviews, plus voted best lines."
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const demoUser = await getDemoUser();
+
   return (
     <html lang="en">
       <body>
@@ -39,11 +42,11 @@ export default function RootLayout({
                 Submit
               </Link>
               <Link
-                href="/profiles/1"
+                href={`/profiles/${demoUser?.id ?? 1}`}
                 className="flex items-center gap-2 rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"
               >
                 <UserRound size={16} aria-hidden />
-                Dana
+                {demoUser?.username ?? "Profile"}
               </Link>
             </nav>
           </div>

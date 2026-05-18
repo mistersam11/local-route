@@ -32,7 +32,7 @@ export async function POST(request: Request, { params }: Params) {
   const review = await prisma.courseReview.create({
     data: {
       courseId,
-      userId: getRequestUserId(request),
+      userId: await getRequestUserId(request),
       rating,
       title: title || null,
       body: reviewBody,

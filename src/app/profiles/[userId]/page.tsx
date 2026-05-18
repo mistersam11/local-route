@@ -4,7 +4,7 @@ import { ArrowLeft, CalendarDays, Disc3, Flag, MapPin } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { FollowButton } from "@/components/FollowButton";
 import { Stars } from "@/components/Stars";
-import { DEMO_USER_ID, getFollowingIds } from "@/lib/current-user";
+import { getDemoUserId, getFollowingIds } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 import { serializeLine } from "@/lib/social-data";
 
@@ -21,8 +21,9 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     notFound();
   }
 
+  const demoUserId = await getDemoUserId();
   const [followingIds, user] = await Promise.all([
-    getFollowingIds(DEMO_USER_ID),
+    getFollowingIds(demoUserId),
     prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -110,7 +111,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           </div>
         </div>
         <FollowButton
-          currentUserId={DEMO_USER_ID}
+          currentUserId={demoUserId}
           initialIsFollowing={followingIds.has(user.id)}
           targetUserId={user.id}
         />

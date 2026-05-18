@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { serializeCourseReview, serializeHoleReview, serializeLine } from "@/lib/social-data";
 
 export async function GET(request: Request) {
-  const currentUserId = getRequestUserId(request);
+  const currentUserId = await getRequestUserId(request);
   const { searchParams } = new URL(request.url);
   const rawCourseId = searchParams.get("courseId");
   const courseId = rawCourseId ? Number(rawCourseId) : null;

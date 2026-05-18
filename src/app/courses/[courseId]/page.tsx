@@ -13,7 +13,7 @@ import { Avatar } from "@/components/Avatar";
 import { CourseReviewForm } from "@/components/CourseReviewForm";
 import { CourseStatusControls } from "@/components/CourseStatusControls";
 import { Stars } from "@/components/Stars";
-import { DEMO_USER_ID } from "@/lib/current-user";
+import { getDemoUserId } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
 type CoursePageProps = {
@@ -29,6 +29,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
     notFound();
   }
 
+  const demoUserId = await getDemoUserId();
   const [course, recentActivity, currentUser] = await Promise.all([
     prisma.course.findUnique({
       where: { id: courseId },
@@ -67,7 +68,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
       take: 5
     }),
     prisma.user.findUnique({
-      where: { id: DEMO_USER_ID },
+      where: { id: demoUserId },
       select: { isAdmin: true }
     })
   ]);
@@ -152,12 +153,12 @@ export default async function CoursePage({ params }: CoursePageProps) {
         {currentUser?.isAdmin ? (
           <CourseStatusControls
             courseId={course.id}
-            currentUserId={DEMO_USER_ID}
+            currentUserId={demoUserId}
             initialStatus={course.status}
           />
         ) : null}
 
-        <CourseReviewForm courseId={course.id} currentUserId={DEMO_USER_ID} />
+        <CourseReviewForm courseId={course.id} currentUserId={demoUserId} />
 
         <section>
           <h2 className="mb-3 text-2xl font-black text-ink">Reviews</h2>

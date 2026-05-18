@@ -10,7 +10,7 @@ type Params = {
 
 export async function POST(request: Request, { params }: Params) {
   const followingId = Number(params.userId);
-  const followerId = getRequestUserId(request);
+  const followerId = await getRequestUserId(request);
 
   if (!Number.isInteger(followingId)) {
     return NextResponse.json({ error: "Invalid user id" }, { status: 400 });
@@ -31,7 +31,7 @@ export async function POST(request: Request, { params }: Params) {
 
 export async function DELETE(request: Request, { params }: Params) {
   const followingId = Number(params.userId);
-  const followerId = getRequestUserId(request);
+  const followerId = await getRequestUserId(request);
 
   if (!Number.isInteger(followingId)) {
     return NextResponse.json({ error: "Invalid user id" }, { status: 400 });

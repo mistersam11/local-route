@@ -29,7 +29,7 @@ export async function GET(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid hole id" }, { status: 400 });
   }
 
-  const currentUserId = getRequestUserId(request);
+  const currentUserId = await getRequestUserId(request);
   const sort = new URL(request.url).searchParams.get("sort");
   const lines = await getSerializedLinesForHole(holeId, currentUserId, sort);
 
@@ -44,7 +44,7 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const body = (await request.json()) as Record<string, unknown>;
-  const currentUserId = getRequestUserId(request);
+  const currentUserId = await getRequestUserId(request);
   const name = String(body.name ?? "").trim();
 
   if (name.length < 2) {

@@ -177,7 +177,7 @@ async function main() {
     data: [
       {
         courseId: cedar.id,
-        userId: dana.id,
+        userId: sam.id,
         rating: 5,
         title: "Technical without feeling mean",
         body: "Cedar Ridge rewards clean angle control and still gives newer players a smart bailout on most holes. Hole 2 is the separator.",
@@ -233,7 +233,7 @@ async function main() {
       },
       {
         holeId: pineHole(1).id,
-        userId: dana.id,
+        userId: sam.id,
         rating: 4,
         title: "Pretty, but sneaky water",
         body: "Creek is closer than it feels. A slower fairway keeps the skip under control.",

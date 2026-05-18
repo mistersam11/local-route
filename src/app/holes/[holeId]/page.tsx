@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { HoleSocialClient } from "@/components/HoleSocialClient";
-import { DEMO_USER_ID } from "@/lib/current-user";
+import { getDemoUserId } from "@/lib/current-user";
 import { getHoleSocialPayload } from "@/lib/social-data";
 
 type HolePageProps = {
@@ -16,7 +16,7 @@ export default async function HolePage({ params }: HolePageProps) {
     notFound();
   }
 
-  const payload = await getHoleSocialPayload(holeId, DEMO_USER_ID);
+  const payload = await getHoleSocialPayload(holeId, await getDemoUserId());
 
   if (!payload) {
     notFound();

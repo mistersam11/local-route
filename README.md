@@ -112,8 +112,8 @@ The seed creates:
 - Submitted courses with pending approval status
 - Suggested lines with difficulty, risk, disc suggestions, tags, and votes
 
-The UI uses user `dana` as the demo signed-in player.
-Dana is also the demo admin for approving or rejecting submitted courses.
+The UI uses `DEMO_USERNAME`, defaulting to `sam`, as the demo signed-in player.
+Sam is also the demo admin for approving or rejecting submitted courses.
 
 ## API Routes
 

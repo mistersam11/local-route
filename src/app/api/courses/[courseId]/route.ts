@@ -53,7 +53,7 @@ export async function PATCH(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid course id" }, { status: 400 });
   }
 
-  const currentUserId = getRequestUserId(request);
+  const currentUserId = await getRequestUserId(request);
   const currentUser = await prisma.user.findUnique({
     where: { id: currentUserId },
     select: { isAdmin: true }

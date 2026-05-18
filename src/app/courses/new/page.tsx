@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { SubmitCourseForm } from "@/components/SubmitCourseForm";
-import { DEMO_USER_ID } from "@/lib/current-user";
+import { getDemoUserId } from "@/lib/current-user";
 
-export default function NewCoursePage() {
+export default async function NewCoursePage() {
+  const demoUserId = await getDemoUserId();
+
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6 lg:py-10">
       <Link
@@ -21,7 +23,7 @@ export default function NewCoursePage() {
         </h1>
       </section>
 
-      <SubmitCourseForm currentUserId={DEMO_USER_ID} />
+      <SubmitCourseForm currentUserId={demoUserId} />
     </main>
   );
 }

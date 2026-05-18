@@ -16,7 +16,7 @@ export async function GET(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid user id" }, { status: 400 });
   }
 
-  const currentUserId = getRequestUserId(request);
+  const currentUserId = await getRequestUserId(request);
   const followingIds = await getFollowingIds(currentUserId);
   const user = await prisma.user.findUnique({
     where: { id: userId },

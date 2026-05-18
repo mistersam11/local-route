@@ -44,7 +44,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const body = (await request.json()) as Record<string, unknown>;
-  const currentUserId = getRequestUserId(request);
+  const currentUserId = await getRequestUserId(request);
   const name = String(body.name ?? "").trim();
   const locationName = String(body.locationName ?? "").trim();
   const coverPhotoUrl = String(body.coverPhotoUrl ?? "").trim();

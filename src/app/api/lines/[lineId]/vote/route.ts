@@ -21,7 +21,7 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid line id" }, { status: 400 });
   }
 
-  const currentUserId = getRequestUserId(request);
+  const currentUserId = await getRequestUserId(request);
   const body = (await request.json()) as { value?: unknown };
   const value = parseVote(body.value);
   const lineExists = await prisma.line.findUnique({
