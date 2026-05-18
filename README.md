@@ -1,19 +1,18 @@
-# LocalRoute Strategy Map
+# LocalRoute
 
 For those who throw.
 
-LocalRoute is a production-ready MVP for a community disc golf strategy map. It uses Next.js, Prisma, SQLite, Tailwind CSS, and Mapbox GL JS to let players browse courses, open hole maps, draw shot lines, save routes, vote, and follow other users.
+LocalRoute is a Letterboxd-style MVP for disc golf. Players can review courses, discuss specific holes, attach photos to reviews/comments, and vote on each hole's best line. Maps and route drawing are intentionally parked for a later iteration.
 
 ## What Is Built
 
-- Searchable course home page
-- Course overview with hole list, preview map, and recent activity
-- Hole strategy screen with tee marker, basket marker, baseline, route overlays, filters, sorting, voting, and route creation
-- Click-to-add route drawing with double-click finish
-- Community, followed-user, and top-route overlays
-- User profiles with created routes and follow/unfollow
-- Prisma schema for users, courses, holes, routes, follows, and route votes
-- JSON route polylines stored in SQLite through Prisma
+- Searchable course home page with ratings, hole counts, comments, and line counts
+- Course pages with cover photos, reviews, review form, hole list, and recent hole notes
+- Hole pages with from-the-tee photo, comments with optional photo attachments, and voted line suggestions
+- A "Best Line" per hole determined by community voting
+- User profiles with course reviews, suggested lines, and following list
+- Follow/unfollow users
+- Prisma schema for users, courses, holes, course reviews, hole comments, lines, line votes, and follows
 
 ## Stack
 
@@ -22,7 +21,6 @@ LocalRoute is a production-ready MVP for a community disc golf strategy map. It 
 - Tailwind CSS
 - Prisma ORM
 - SQLite for local MVP storage
-- Mapbox GL JS for satellite tiles
 
 ## Setup
 
@@ -46,6 +44,12 @@ npm run db:push
 npm run db:seed
 ```
 
+If you already ran the older map prototype locally, reset the SQLite database for this new schema:
+
+```bash
+npm run db:reset
+```
+
 Start the app:
 
 ```bash
@@ -58,19 +62,11 @@ Open `http://localhost:3000`.
 
 This project is safe to push to GitHub because `.env`, `node_modules`, `.next`, and local database files are ignored.
 
-Create an empty GitHub repository, then connect this local repo:
-
-```bash
-git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
-git branch -M main
-git push -u origin main
-```
-
 On another computer:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
-cd YOUR_REPO_NAME
+git clone https://github.com/mistersam11/local-route.git
+cd local-route
 npm install
 cp .env.example .env
 npm run prisma:generate
@@ -97,29 +93,21 @@ For public access from other networks, deploy it instead of running it from your
 
 - Vercel for the Next.js app
 - Neon, Supabase, or Railway Postgres for the database
-- Mapbox token configured as an environment variable
+- Object storage such as UploadThing, S3, or Cloudinary for durable image uploads
 
-Before public launch, replace SQLite with PostgreSQL and replace the demo user header with real authentication.
-
-## Mapbox
-
-Set `NEXT_PUBLIC_MAPBOX_TOKEN` in `.env` for real satellite map tiles:
-
-```bash
-NEXT_PUBLIC_MAPBOX_TOKEN="pk..."
-```
-
-Without a token, the hole page still renders a local fallback strategy surface so route drawing, saving, filters, and voting remain usable.
+Before public launch, replace SQLite with PostgreSQL, replace the demo user system with real authentication, and move the MVP data-URL photo storage to durable object storage.
 
 ## Demo Data
 
 The seed creates:
 
 - Two courses
-- Seven holes
+- Seven holes with tee photos
 - Four users
 - Follow relationships
-- Community routes with ratings, tags, difficulty, risk, notes, and disc suggestions
+- Course reviews with ratings
+- Hole comments with optional photos
+- Suggested lines with difficulty, risk, disc suggestions, tags, and votes
 
 The UI uses user `dana` as the demo signed-in player.
 
@@ -127,10 +115,12 @@ The UI uses user `dana` as the demo signed-in player.
 
 - `GET /api/courses`
 - `GET /api/courses/:courseId`
+- `POST /api/courses/:courseId/reviews`
 - `GET /api/holes/:holeId`
-- `GET /api/holes/:holeId/routes`
-- `POST /api/holes/:holeId/routes`
-- `POST /api/routes/:routeId/vote`
+- `POST /api/holes/:holeId/comments`
+- `GET /api/holes/:holeId/lines`
+- `POST /api/holes/:holeId/lines`
+- `POST /api/lines/:lineId/vote`
 - `GET /api/users/:userId`
 - `POST /api/users/:userId/follow`
 - `DELETE /api/users/:userId/follow`
@@ -138,9 +128,6 @@ The UI uses user `dana` as the demo signed-in player.
 
 Pass `x-demo-user-id` to API requests to change the acting user.
 
-## Production Notes
+## Future Map Work
 
-- Move from SQLite to PostgreSQL when the app needs concurrent writes, account auth, or deployment across multiple instances.
-- Replace demo user selection with authenticated sessions before opening write endpoints publicly.
-- Mapbox token restrictions should be configured in the Mapbox dashboard.
-- The route geometry is stored as a JSON array of `{ lat, lng }` points, which can be indexed or projected later when migrating to PostGIS.
+Route drawing can come back later as geometry attached to a `Line`, likely through a `polyline Json?` field or a separate `LineGeometry` table once map interactions are ready.

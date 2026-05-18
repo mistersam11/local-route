@@ -19,7 +19,7 @@ enum RiskLevel {
   high
 }
 
-enum RouteTag {
+enum LineTag {
   safe
   aggressive
   scramble
@@ -31,50 +31,91 @@ enum VoteValue {
 }
 
 model User {
-  id              Int         @id @default(autoincrement())
-  username        String      @unique
-  email           String      @unique
+  id              Int             @id @default(autoincrement())
+  username        String          @unique
+  email           String          @unique
   passwordHash    String
   profileImageUrl String?
-  createdAt       DateTime    @default(now())
+  createdAt       DateTime        @default(now())
 
-  routes          Route[]
-  following       Follow[]    @relation("Follower")
-  followers       Follow[]    @relation("Following")
-  votes           RouteVote[]
+  courseReviews   CourseReview[]
+  holeComments    HoleComment[]
+  lines           Line[]
+  following       Follow[]        @relation("Follower")
+  followers       Follow[]        @relation("Following")
+  lineVotes       LineVote[]
 }
 
 model Course {
-  id           Int      @id @default(autoincrement())
+  id           Int            @id @default(autoincrement())
   name         String
   locationName String
   latitude     Float
   longitude    Float
-  createdAt    DateTime @default(now())
+  coverPhotoUrl String?
+  createdAt    DateTime       @default(now())
 
   holes        Hole[]
+  reviews      CourseReview[]
 }
 
 model Hole {
-  id          Int      @id @default(autoincrement())
-  courseId    Int
-  holeNumber  Int
-  par         Int?
-  description String?
-  teeLat      Float
-  teeLng      Float
-  basketLat   Float
-  basketLng   Float
-  createdAt   DateTime @default(now())
+  id             Int           @id @default(autoincrement())
+  courseId       Int
+  holeNumber     Int
+  par            Int?
+  distanceFeet   Int?
+  description    String?
+  teePhotoUrl    String?
+  teeLat         Float?
+  teeLng         Float?
+  basketLat      Float?
+  basketLng      Float?
+  createdAt      DateTime      @default(now())
 
-  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  routes      Route[]
+  course         Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  comments       HoleComment[]
+  lines          Line[]
 
   @@unique([courseId, holeNumber])
   @@index([courseId])
 }
 
-model Route {
+model CourseReview {
+  id          Int      @id @default(autoincrement())
+  courseId    Int
+  userId      Int
+  rating      Int
+  title       String?
+  body        String
+  photoUrl    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([courseId, createdAt])
+  @@index([userId])
+}
+
+model HoleComment {
+  id        Int      @id @default(autoincrement())
+  holeId    Int
+  userId    Int
+  body      String
+  photoUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  hole      Hole     @relation(fields: [holeId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([holeId, createdAt])
+  @@index([userId])
+}
+
+model Line {
   id             Int        @id @default(autoincrement())
   holeId         Int
   userId         Int
@@ -82,8 +123,7 @@ model Route {
   description    String?
   difficulty     Difficulty
   riskLevel      RiskLevel
-  tag            RouteTag   @default(safe)
-  polyline       Json
+  tag            LineTag    @default(safe)
   discSuggestion String?
   upvotes        Int        @default(0)
   downvotes      Int        @default(0)
@@ -91,23 +131,23 @@ model Route {
 
   hole           Hole       @relation(fields: [holeId], references: [id], onDelete: Cascade)
   user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  votes          RouteVote[]
+  votes          LineVote[]
 
   @@index([holeId, createdAt])
   @@index([userId])
 }
 
-model RouteVote {
+model LineVote {
   id        Int       @id @default(autoincrement())
-  routeId   Int
+  lineId    Int
   userId    Int
   value     VoteValue
   createdAt DateTime  @default(now())
 
-  route     Route     @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  line      Line      @relation(fields: [lineId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([routeId, userId])
+  @@unique([lineId, userId])
   @@index([userId])
 }
 

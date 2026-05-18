@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getFollowingIds, getRequestUserId } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
-import { serializeRoute } from "@/lib/route-data";
+import { serializeCourseReview, serializeLine } from "@/lib/social-data";
 
 type Params = {
   params: {
@@ -25,7 +25,7 @@ export async function GET(request: Request, { params }: Params) {
       username: true,
       profileImageUrl: true,
       createdAt: true,
-      routes: {
+      lines: {
         include: {
           user: { select: { id: true, username: true, profileImageUrl: true } },
           hole: {
@@ -34,6 +34,13 @@ export async function GET(request: Request, { params }: Params) {
               course: { select: { id: true, name: true } }
             }
           }
+        },
+        orderBy: { createdAt: "desc" }
+      },
+      courseReviews: {
+        include: {
+          user: { select: { id: true, username: true, profileImageUrl: true } },
+          course: { select: { id: true, name: true } }
         },
         orderBy: { createdAt: "desc" }
       },
@@ -61,10 +68,14 @@ export async function GET(request: Request, { params }: Params) {
       isFollowing: followingIds.has(user.id),
       followerCount: user.followers.length,
       following: user.following.map((follow) => follow.following),
-      routes: user.routes.map((route) => ({
-        route: serializeRoute(route, followingIds),
-        holeNumber: route.hole.holeNumber,
-        course: route.hole.course
+      lines: user.lines.map((line) => ({
+        line: serializeLine(line, followingIds),
+        holeNumber: line.hole.holeNumber,
+        course: line.hole.course
+      })),
+      reviews: user.courseReviews.map((review) => ({
+        review: serializeCourseReview(review),
+        course: review.course
       }))
     }
   });

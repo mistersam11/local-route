@@ -4,8 +4,8 @@ import { Map, UserRound } from "lucide-react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "LocalRoute Strategy Map",
-  description: "Community shot-line strategy maps for disc golf courses."
+  title: "LocalRoute",
+  description: "Disc golf course reviews, hole comments, and voted best lines."
 };
 
 export default function RootLayout({

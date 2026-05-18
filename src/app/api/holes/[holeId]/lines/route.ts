@@ -1,12 +1,12 @@
-import { Difficulty, Prisma, RiskLevel, RouteTag } from "@prisma/client";
+import { Difficulty, LineTag, RiskLevel } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { getFollowingIds, getRequestUserId } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 import {
-  getSerializedRoutesForHole,
-  normalizePolyline,
-  serializeRoute
-} from "@/lib/route-data";
+  getSerializedLinesForHole,
+  includeLineAuthor,
+  serializeLine
+} from "@/lib/social-data";
 
 type Params = {
   params: {
@@ -31,9 +31,9 @@ export async function GET(request: Request, { params }: Params) {
 
   const currentUserId = getRequestUserId(request);
   const sort = new URL(request.url).searchParams.get("sort");
-  const routes = await getSerializedRoutesForHole(holeId, currentUserId, sort);
+  const lines = await getSerializedLinesForHole(holeId, currentUserId, sort);
 
-  return NextResponse.json({ routes });
+  return NextResponse.json({ lines });
 }
 
 export async function POST(request: Request, { params }: Params) {
@@ -46,17 +46,9 @@ export async function POST(request: Request, { params }: Params) {
   const body = (await request.json()) as Record<string, unknown>;
   const currentUserId = getRequestUserId(request);
   const name = String(body.name ?? "").trim();
-  const polyline = normalizePolyline(body.polyline);
 
   if (name.length < 2) {
-    return NextResponse.json({ error: "Route name is required" }, { status: 400 });
-  }
-
-  if (polyline.length < 2) {
-    return NextResponse.json(
-      { error: "Route must include at least tee and basket points" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Line name is required" }, { status: 400 });
   }
 
   const hole = await prisma.hole.findUnique({ where: { id: holeId }, select: { id: true } });
@@ -65,7 +57,7 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Hole not found" }, { status: 404 });
   }
 
-  const route = await prisma.route.create({
+  const line = await prisma.line.create({
     data: {
       holeId,
       userId: currentUserId,
@@ -73,18 +65,13 @@ export async function POST(request: Request, { params }: Params) {
       description: String(body.description ?? "").trim() || null,
       difficulty: enumValue(Difficulty, body.difficulty, Difficulty.intermediate),
       riskLevel: enumValue(RiskLevel, body.riskLevel, RiskLevel.medium),
-      tag: enumValue(RouteTag, body.tag, RouteTag.safe),
-      polyline: polyline as Prisma.InputJsonValue,
+      tag: enumValue(LineTag, body.tag, LineTag.safe),
       discSuggestion: String(body.discSuggestion ?? "").trim() || null
     },
-    include: {
-      user: {
-        select: { id: true, username: true, profileImageUrl: true }
-      }
-    }
+    include: includeLineAuthor
   });
 
   const followingIds = await getFollowingIds(currentUserId);
 
-  return NextResponse.json({ route: serializeRoute(route, followingIds) }, { status: 201 });
+  return NextResponse.json({ line: serializeLine(line, followingIds) }, { status: 201 });
 }

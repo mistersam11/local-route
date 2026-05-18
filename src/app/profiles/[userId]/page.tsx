@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CalendarDays, MapPin, Route } from "lucide-react";
+import { ArrowLeft, CalendarDays, Disc3, MapPin, Star } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { FollowButton } from "@/components/FollowButton";
+import { Stars } from "@/components/Stars";
 import { DEMO_USER_ID, getFollowingIds } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
-import { serializeRoute } from "@/lib/route-data";
+import { serializeLine } from "@/lib/social-data";
 
 type ProfilePageProps = {
   params: {
@@ -29,7 +30,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         username: true,
         profileImageUrl: true,
         createdAt: true,
-        routes: {
+        lines: {
           include: {
             user: { select: { id: true, username: true, profileImageUrl: true } },
             hole: {
@@ -39,6 +40,13 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 course: { select: { id: true, name: true, locationName: true } }
               }
             }
+          },
+          orderBy: { createdAt: "desc" }
+        },
+        courseReviews: {
+          include: {
+            course: { select: { id: true, name: true, locationName: true } },
+            user: { select: { id: true, username: true, profileImageUrl: true } }
           },
           orderBy: { createdAt: "desc" }
         },
@@ -96,44 +104,81 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       </section>
 
       <section className="grid gap-8 lg:grid-cols-[1fr_320px]">
-        <div>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-2xl font-black text-ink">Created Routes</h2>
-            <span className="rounded-full bg-clay-100 px-3 py-1 text-sm font-bold text-clay-700">
-              {user.routes.length}
-            </span>
-          </div>
-          <div className="grid gap-3">
-            {user.routes.map((entry) => {
-              const route = serializeRoute(entry, followingIds);
-
-              return (
+        <div className="grid gap-8">
+          <section>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-2xl font-black text-ink">Reviews</h2>
+              <span className="rounded-full bg-clay-100 px-3 py-1 text-sm font-bold text-clay-700">
+                {user.courseReviews.length}
+              </span>
+            </div>
+            <div className="grid gap-3">
+              {user.courseReviews.map((review) => (
                 <Link
                   className="rounded-lg border border-canopy-900/10 bg-[#fffdf7] p-4 shadow-sm transition hover:shadow-panel"
-                  href={`/holes/${entry.hole.id}`}
-                  key={entry.id}
+                  href={`/courses/${review.course.id}`}
+                  key={review.id}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <h3 className="text-lg font-black text-ink">{route.name}</h3>
-                    <span className="rounded-full bg-canopy-50 px-3 py-1 text-sm font-bold text-canopy-700">
-                      {route.score > 0 ? "+" : ""}
-                      {route.score}
+                    <h3 className="text-lg font-black text-ink">
+                      {review.title ?? review.course.name}
+                    </h3>
+                    <span className="flex items-center gap-2 text-sm font-bold">
+                      <Stars rating={review.rating} />
+                      {review.rating}/10
                     </span>
                   </div>
-                  <p className="mt-2 flex flex-wrap gap-3 text-sm font-semibold text-ink/60">
-                    <span className="flex items-center gap-1">
-                      <MapPin size={15} aria-hidden />
-                      {entry.hole.course.name}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Route size={15} aria-hidden />
-                      Hole {entry.hole.holeNumber}
-                    </span>
+                  <p className="mt-2 flex items-center gap-2 text-sm font-semibold text-ink/60">
+                    <MapPin size={15} aria-hidden />
+                    {review.course.name}
+                  </p>
+                  <p className="mt-3 text-sm font-semibold leading-6 text-ink/65">
+                    {review.body}
                   </p>
                 </Link>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-2xl font-black text-ink">Suggested Lines</h2>
+              <span className="rounded-full bg-water-100 px-3 py-1 text-sm font-bold text-water-700">
+                {user.lines.length}
+              </span>
+            </div>
+            <div className="grid gap-3">
+              {user.lines.map((entry) => {
+                const line = serializeLine(entry, followingIds);
+
+                return (
+                  <Link
+                    className="rounded-lg border border-canopy-900/10 bg-[#fffdf7] p-4 shadow-sm transition hover:shadow-panel"
+                    href={`/holes/${entry.hole.id}`}
+                    key={entry.id}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <h3 className="text-lg font-black text-ink">{line.name}</h3>
+                      <span className="rounded-full bg-canopy-50 px-3 py-1 text-sm font-bold text-canopy-700">
+                        {line.score > 0 ? "+" : ""}
+                        {line.score}
+                      </span>
+                    </div>
+                    <p className="mt-2 flex flex-wrap gap-3 text-sm font-semibold text-ink/60">
+                      <span className="flex items-center gap-1">
+                        <MapPin size={15} aria-hidden />
+                        {entry.hole.course.name}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Disc3 size={15} aria-hidden />
+                        Hole {entry.hole.holeNumber}
+                      </span>
+                    </p>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
         </div>
 
         <aside>

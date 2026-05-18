@@ -2,12 +2,12 @@ import { PrismaClient, Prisma } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const point = (lat: number, lng: number) => ({ lat, lng });
-
 async function main() {
-  await prisma.routeVote.deleteMany();
+  await prisma.lineVote.deleteMany();
   await prisma.follow.deleteMany();
-  await prisma.route.deleteMany();
+  await prisma.line.deleteMany();
+  await prisma.holeComment.deleteMany();
+  await prisma.courseReview.deleteMany();
   await prisma.hole.deleteMany();
   await prisma.course.deleteMany();
   await prisma.user.deleteMany();
@@ -62,12 +62,15 @@ async function main() {
       locationName: "Burlington, VT",
       latitude: 44.47602,
       longitude: -73.21246,
+      coverPhotoUrl: "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1400&q=80",
       holes: {
         create: [
           {
             holeNumber: 1,
             par: 3,
+            distanceFeet: 286,
             description: "Gentle downhill opener with a guarded green and a wider left lane.",
+            teePhotoUrl: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80",
             teeLat: 44.47624,
             teeLng: -73.21327,
             basketLat: 44.47574,
@@ -76,7 +79,9 @@ async function main() {
           {
             holeNumber: 2,
             par: 4,
+            distanceFeet: 526,
             description: "Placement drive to the mouth of the fairway before attacking a tucked pin.",
+            teePhotoUrl: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80",
             teeLat: 44.47571,
             teeLng: -73.21218,
             basketLat: 44.47484,
@@ -85,7 +90,9 @@ async function main() {
           {
             holeNumber: 3,
             par: 3,
+            distanceFeet: 242,
             description: "Short technical lane with a late right finish.",
+            teePhotoUrl: "https://images.unsplash.com/photo-1473448912268-2022ce9509d8?auto=format&fit=crop&w=1200&q=80",
             teeLat: 44.47474,
             teeLng: -73.21318,
             basketLat: 44.47418,
@@ -94,7 +101,9 @@ async function main() {
           {
             holeNumber: 4,
             par: 5,
+            distanceFeet: 812,
             description: "Long wooded par five with a scoring gap near the second landing zone.",
+            teePhotoUrl: "https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?auto=format&fit=crop&w=1200&q=80",
             teeLat: 44.47414,
             teeLng: -73.21234,
             basketLat: 44.47522,
@@ -112,12 +121,15 @@ async function main() {
       locationName: "Asheville, NC",
       latitude: 35.59671,
       longitude: -82.55512,
+      coverPhotoUrl: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1400&q=80",
       holes: {
         create: [
           {
             holeNumber: 1,
             par: 3,
+            distanceFeet: 318,
             description: "Open tee shot that tightens near a creek-side basket.",
+            teePhotoUrl: "https://images.unsplash.com/photo-1439853949127-fa647821eba0?auto=format&fit=crop&w=1200&q=80",
             teeLat: 35.59692,
             teeLng: -82.55619,
             basketLat: 35.59624,
@@ -126,7 +138,9 @@ async function main() {
           {
             holeNumber: 2,
             par: 4,
+            distanceFeet: 604,
             description: "Ridge carry with a conservative right landing zone.",
+            teePhotoUrl: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=1200&q=80",
             teeLat: 35.59633,
             teeLng: -82.55472,
             basketLat: 35.59542,
@@ -135,7 +149,9 @@ async function main() {
           {
             holeNumber: 3,
             par: 3,
+            distanceFeet: 221,
             description: "Low ceiling tunnel with a sloped green.",
+            teePhotoUrl: "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1200&q=80",
             teeLat: 35.59535,
             teeLng: -82.55552,
             basketLat: 35.59478,
@@ -152,7 +168,69 @@ async function main() {
   const pineHole = (holeNumber: number) =>
     pine.holes.find((hole) => hole.holeNumber === holeNumber)!;
 
-  const routeData: Prisma.RouteCreateManyInput[] = [
+  await prisma.courseReview.createMany({
+    data: [
+      {
+        courseId: cedar.id,
+        userId: dana.id,
+        rating: 9,
+        title: "Technical without feeling mean",
+        body: "Cedar Ridge rewards clean angle control and still gives newer players a smart bailout on most holes. Hole 2 is the separator.",
+        photoUrl: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=900&q=80",
+        createdAt: new Date("2026-05-03T12:30:00.000Z")
+      },
+      {
+        courseId: cedar.id,
+        userId: nate.id,
+        rating: 8,
+        title: "Bring fairways and patience",
+        body: "The lines are honest. You can score if you land in the right zones, but the rough makes lazy drives expensive.",
+        createdAt: new Date("2026-05-07T19:45:00.000Z")
+      },
+      {
+        courseId: pine.id,
+        userId: maya.id,
+        rating: 9,
+        title: "Beautiful shot shaping",
+        body: "Pine Hollow has a great mix of open pressure and wooded touch shots. The tee photos do not capture how much the wind matters.",
+        photoUrl: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=900&q=80",
+        createdAt: new Date("2026-05-10T16:15:00.000Z")
+      }
+    ]
+  });
+
+  await prisma.holeComment.createMany({
+    data: [
+      {
+        holeId: cedarHole(1).id,
+        userId: maya.id,
+        body: "The left gap looks wider from the tee than it plays. Aim at the last dark trunk and let the disc fade.",
+        photoUrl: "https://images.unsplash.com/photo-1498429089284-41f8cf3ffd39?auto=format&fit=crop&w=900&q=80",
+        createdAt: new Date("2026-05-11T13:20:00.000Z")
+      },
+      {
+        holeId: cedarHole(1).id,
+        userId: ellis.id,
+        body: "Short is fine here. Long right is where the awkward comebacker lives.",
+        createdAt: new Date("2026-05-12T10:05:00.000Z")
+      },
+      {
+        holeId: cedarHole(2).id,
+        userId: nate.id,
+        body: "Do not chase the pin from the tee unless you have the power to clear the corner clean. The landing zone is the play.",
+        createdAt: new Date("2026-05-13T18:40:00.000Z")
+      },
+      {
+        holeId: pineHole(1).id,
+        userId: dana.id,
+        body: "Creek is closer than it feels. A slower fairway keeps the skip under control.",
+        photoUrl: "https://images.unsplash.com/photo-1473773508845-188df298d2d1?auto=format&fit=crop&w=900&q=80",
+        createdAt: new Date("2026-05-14T14:30:00.000Z")
+      }
+    ]
+  });
+
+  const lineData: Prisma.LineCreateManyInput[] = [
     {
       holeId: cedarHole(1).id,
       userId: nate.id,
@@ -161,12 +239,6 @@ async function main() {
       difficulty: "beginner",
       riskLevel: "low",
       tag: "safe",
-      polyline: [
-        point(44.47624, -73.21327),
-        point(44.47608, -73.21278),
-        point(44.47591, -73.21225),
-        point(44.47574, -73.21192)
-      ],
       discSuggestion: "Stable fairway driver",
       upvotes: 18,
       downvotes: 2,
@@ -180,12 +252,6 @@ async function main() {
       difficulty: "intermediate",
       riskLevel: "medium",
       tag: "aggressive",
-      polyline: [
-        point(44.47624, -73.21327),
-        point(44.47601, -73.21291),
-        point(44.47568, -73.21237),
-        point(44.47574, -73.21192)
-      ],
       discSuggestion: "Overstable control driver",
       upvotes: 11,
       downvotes: 3,
@@ -199,12 +265,6 @@ async function main() {
       difficulty: "beginner",
       riskLevel: "low",
       tag: "safe",
-      polyline: [
-        point(44.47571, -73.21218),
-        point(44.47531, -73.21249),
-        point(44.47505, -73.21278),
-        point(44.47484, -73.21305)
-      ],
       discSuggestion: "Neutral midrange, then putter",
       upvotes: 15,
       downvotes: 1,
@@ -218,12 +278,6 @@ async function main() {
       difficulty: "advanced",
       riskLevel: "high",
       tag: "aggressive",
-      polyline: [
-        point(44.47571, -73.21218),
-        point(44.47546, -73.21289),
-        point(44.47506, -73.21331),
-        point(44.47484, -73.21305)
-      ],
       discSuggestion: "Fast overstable distance driver",
       upvotes: 9,
       downvotes: 4,
@@ -237,12 +291,6 @@ async function main() {
       difficulty: "intermediate",
       riskLevel: "medium",
       tag: "scramble",
-      polyline: [
-        point(44.47474, -73.21318),
-        point(44.47455, -73.21282),
-        point(44.47432, -73.21232),
-        point(44.47418, -73.21197)
-      ],
       discSuggestion: "Understable putter or midrange",
       upvotes: 14,
       downvotes: 2,
@@ -256,12 +304,6 @@ async function main() {
       difficulty: "intermediate",
       riskLevel: "medium",
       tag: "safe",
-      polyline: [
-        point(35.59692, -82.55619),
-        point(35.59667, -82.55573),
-        point(35.59643, -82.55523),
-        point(35.59624, -82.55491)
-      ],
       discSuggestion: "Glidey fairway driver",
       upvotes: 12,
       downvotes: 1,
@@ -269,7 +311,7 @@ async function main() {
     }
   ];
 
-  await prisma.route.createMany({ data: routeData });
+  await prisma.line.createMany({ data: lineData });
 }
 
 main()

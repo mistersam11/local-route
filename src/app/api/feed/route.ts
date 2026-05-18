@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getRequestUserId } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
-import { serializeRoute } from "@/lib/route-data";
+import { serializeCourseReview, serializeHoleComment, serializeLine } from "@/lib/social-data";
 
 export async function GET(request: Request) {
   const currentUserId = getRequestUserId(request);
@@ -16,33 +16,89 @@ export async function GET(request: Request) {
   });
   const followingIds = new Set(following.map((follow) => follow.followingId));
 
-  const routes = await prisma.route.findMany({
-    where: {
-      ...(courseId && Number.isInteger(courseId)
-        ? { hole: { courseId } }
-        : {}),
-      ...(followedOnly ? { userId: { in: [...followingIds] } } : {})
-    },
-    include: {
-      user: {
-        select: { id: true, username: true, profileImageUrl: true }
+  const [lines, reviews, comments] = await Promise.all([
+    prisma.line.findMany({
+      where: {
+        ...(courseId && Number.isInteger(courseId)
+          ? { hole: { courseId } }
+          : {}),
+        ...(followedOnly ? { userId: { in: [...followingIds] } } : {})
       },
-      hole: {
-        select: {
-          holeNumber: true,
-          course: { select: { id: true, name: true } }
+      include: {
+        user: {
+          select: { id: true, username: true, profileImageUrl: true }
+        },
+        hole: {
+          select: {
+            holeNumber: true,
+            course: { select: { id: true, name: true } }
+          }
         }
-      }
-    },
-    orderBy: { createdAt: "desc" },
-    take: 30
-  });
+      },
+      orderBy: { createdAt: "desc" },
+      take: 15
+    }),
+    prisma.courseReview.findMany({
+      where: {
+        ...(courseId && Number.isInteger(courseId) ? { courseId } : {}),
+        ...(followedOnly ? { userId: { in: [...followingIds] } } : {})
+      },
+      include: {
+        user: {
+          select: { id: true, username: true, profileImageUrl: true }
+        },
+        course: { select: { id: true, name: true } }
+      },
+      orderBy: { createdAt: "desc" },
+      take: 15
+    }),
+    prisma.holeComment.findMany({
+      where: {
+        ...(courseId && Number.isInteger(courseId)
+          ? { hole: { courseId } }
+          : {}),
+        ...(followedOnly ? { userId: { in: [...followingIds] } } : {})
+      },
+      include: {
+        user: {
+          select: { id: true, username: true, profileImageUrl: true }
+        },
+        hole: {
+          select: {
+            holeNumber: true,
+            course: { select: { id: true, name: true } }
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" },
+      take: 15
+    })
+  ]);
 
-  const feed = routes.map((route) => ({
-    route: serializeRoute(route, followingIds),
-    holeNumber: route.hole.holeNumber,
-    course: route.hole.course
-  }));
+  const feed = [
+    ...lines.map((line) => ({
+      type: "line" as const,
+      createdAt: line.createdAt.toISOString(),
+      line: serializeLine(line, followingIds),
+      holeNumber: line.hole.holeNumber,
+      course: line.hole.course
+    })),
+    ...reviews.map((review) => ({
+      type: "review" as const,
+      createdAt: review.createdAt.toISOString(),
+      review: serializeCourseReview(review),
+      course: review.course
+    })),
+    ...comments.map((comment) => ({
+      type: "comment" as const,
+      createdAt: comment.createdAt.toISOString(),
+      comment: serializeHoleComment(comment),
+      holeNumber: comment.hole.holeNumber,
+      course: comment.hole.course
+    }))
+  ]
+    .sort((first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime())
+    .slice(0, 30);
 
   return NextResponse.json({ feed });
 }

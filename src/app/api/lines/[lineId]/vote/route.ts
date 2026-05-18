@@ -1,12 +1,12 @@
-import { NextResponse } from "next/server";
 import { VoteValue } from "@prisma/client";
+import { NextResponse } from "next/server";
 import { getFollowingIds, getRequestUserId } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
-import { serializeRoute } from "@/lib/route-data";
+import { includeLineAuthor, serializeLine } from "@/lib/social-data";
 
 type Params = {
   params: {
-    routeId: string;
+    lineId: string;
   };
 };
 
@@ -15,26 +15,26 @@ function parseVote(value: unknown) {
 }
 
 export async function POST(request: Request, { params }: Params) {
-  const routeId = Number(params.routeId);
+  const lineId = Number(params.lineId);
 
-  if (!Number.isInteger(routeId)) {
-    return NextResponse.json({ error: "Invalid route id" }, { status: 400 });
+  if (!Number.isInteger(lineId)) {
+    return NextResponse.json({ error: "Invalid line id" }, { status: 400 });
   }
 
   const currentUserId = getRequestUserId(request);
   const body = (await request.json()) as { value?: unknown };
   const value = parseVote(body.value);
-  const routeExists = await prisma.route.findUnique({
-    where: { id: routeId },
+  const lineExists = await prisma.line.findUnique({
+    where: { id: lineId },
     select: { id: true }
   });
 
-  if (!routeExists) {
-    return NextResponse.json({ error: "Route not found" }, { status: 404 });
+  if (!lineExists) {
+    return NextResponse.json({ error: "Line not found" }, { status: 404 });
   }
 
-  const existing = await prisma.routeVote.findUnique({
-    where: { routeId_userId: { routeId, userId: currentUserId } }
+  const existing = await prisma.lineVote.findUnique({
+    where: { lineId_userId: { lineId, userId: currentUserId } }
   });
 
   let upDelta = 0;
@@ -51,42 +51,36 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   if (!existing) {
-    await prisma.routeVote.create({
-      data: { routeId, userId: currentUserId, value }
+    await prisma.lineVote.create({
+      data: { lineId, userId: currentUserId, value }
     });
   } else if (existing.value !== value) {
-    await prisma.routeVote.update({
+    await prisma.lineVote.update({
       where: { id: existing.id },
       data: { value }
     });
   }
 
-  const include = {
-    user: {
-      select: { id: true, username: true, profileImageUrl: true }
-    }
-  };
-
-  const route =
+  const line =
     upDelta !== 0 || downDelta !== 0
-      ? await prisma.route.update({
-          where: { id: routeId },
+      ? await prisma.line.update({
+          where: { id: lineId },
           data: {
             ...(upDelta !== 0 ? { upvotes: { increment: upDelta } } : {}),
             ...(downDelta !== 0 ? { downvotes: { increment: downDelta } } : {})
           },
-          include
+          include: includeLineAuthor
         })
-      : await prisma.route.findUnique({
-          where: { id: routeId },
-          include
+      : await prisma.line.findUnique({
+          where: { id: lineId },
+          include: includeLineAuthor
         });
 
-  if (!route) {
-    return NextResponse.json({ error: "Route not found" }, { status: 404 });
+  if (!line) {
+    return NextResponse.json({ error: "Line not found" }, { status: 404 });
   }
 
   const followingIds = await getFollowingIds(currentUserId);
 
-  return NextResponse.json({ route: serializeRoute(route, followingIds) });
+  return NextResponse.json({ line: serializeLine(line, followingIds) });
 }

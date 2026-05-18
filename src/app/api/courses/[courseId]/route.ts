@@ -20,10 +20,16 @@ export async function GET(_request: Request, { params }: Params) {
       holes: {
         include: {
           _count: {
-            select: { routes: true }
+            select: { lines: true, comments: true }
           }
         },
         orderBy: { holeNumber: "asc" }
+      },
+      reviews: {
+        include: {
+          user: { select: { id: true, username: true, profileImageUrl: true } }
+        },
+        orderBy: { createdAt: "desc" }
       }
     }
   });
