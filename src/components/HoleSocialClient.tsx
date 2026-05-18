@@ -13,10 +13,11 @@ import {
   Trophy
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
+import { Stars } from "@/components/Stars";
 import type {
   BestLine,
   Difficulty,
-  HoleCommentCard,
+  HoleReviewCard,
   HoleSocialPayload,
   LineTag,
   RiskLevel
@@ -49,21 +50,23 @@ const emptyLineForm: LineForm = {
 export function HoleSocialClient({ initialPayload }: { initialPayload: HoleSocialPayload }) {
   const { course, hole, currentUser } = initialPayload;
   const currentUserId = currentUser?.id ?? 1;
-  const [comments, setComments] = useState(initialPayload.comments);
+  const [reviews, setReviews] = useState(initialPayload.reviews);
   const [lines, setLines] = useState(initialPayload.lines);
-  const [commentBody, setCommentBody] = useState("");
-  const [commentPhotoUrl, setCommentPhotoUrl] = useState("");
+  const [reviewRating, setReviewRating] = useState(4);
+  const [reviewTitle, setReviewTitle] = useState("");
+  const [reviewBody, setReviewBody] = useState("");
+  const [reviewPhotoUrl, setReviewPhotoUrl] = useState("");
   const [lineForm, setLineForm] = useState<LineForm>(emptyLineForm);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  function attachCommentPhoto(file: File | undefined) {
+  function attachReviewPhoto(file: File | undefined) {
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === "string") {
-        setCommentPhotoUrl(reader.result);
+        setReviewPhotoUrl(reader.result);
       }
     };
     reader.readAsDataURL(file);
@@ -73,32 +76,45 @@ export function HoleSocialClient({ initialPayload }: { initialPayload: HoleSocia
     () => [...lines].sort((first, second) => second.score - first.score)[0] ?? null,
     [lines]
   );
+  const averageRating = useMemo(
+    () =>
+      reviews.length
+        ? reviews.reduce((total, review) => total + review.rating, 0) / reviews.length
+        : 0,
+    [reviews]
+  );
 
-  function postComment() {
+  function postReview() {
     setSaving(true);
     setError(null);
 
     void (async () => {
       try {
-        const response = await fetch(`/api/holes/${hole.id}/comments`, {
+        const response = await fetch(`/api/holes/${hole.id}/reviews`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             "x-demo-user-id": String(currentUserId)
           },
-          body: JSON.stringify({ body: commentBody, photoUrl: commentPhotoUrl })
+          body: JSON.stringify({
+            rating: reviewRating,
+            title: reviewTitle,
+            body: reviewBody,
+            photoUrl: reviewPhotoUrl
+          })
         });
 
         if (!response.ok) {
           const payload = (await response.json()) as { error?: string };
-          setError(payload.error ?? "Comment could not be saved");
+          setError(payload.error ?? "Review could not be saved");
           return;
         }
 
-        const payload = (await response.json()) as { comment: HoleCommentCard };
-        setComments((current) => [payload.comment, ...current]);
-        setCommentBody("");
-        setCommentPhotoUrl("");
+        const payload = (await response.json()) as { review: HoleReviewCard };
+        setReviews((current) => [payload.review, ...current]);
+        setReviewTitle("");
+        setReviewBody("");
+        setReviewPhotoUrl("");
       } finally {
         setSaving(false);
       }
@@ -192,6 +208,12 @@ export function HoleSocialClient({ initialPayload }: { initialPayload: HoleSocia
                 <span>Par {hole.par ?? "-"}</span>
                 {hole.distanceFeet ? <span>{hole.distanceFeet} ft</span> : null}
                 <span>{course.locationName}</span>
+                {reviews.length ? (
+                  <span className="flex items-center gap-2">
+                    <Stars rating={averageRating} />
+                    {averageRating.toFixed(1)}
+                  </span>
+                ) : null}
               </p>
             </div>
           </div>
@@ -204,41 +226,61 @@ export function HoleSocialClient({ initialPayload }: { initialPayload: HoleSocia
 
         <section className="grid gap-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-black text-ink">Comments</h2>
+            <h2 className="text-2xl font-black text-ink">Hole Reviews</h2>
             <span className="rounded-full bg-water-100 px-3 py-1 text-sm font-bold text-water-700">
-              {comments.length}
+              {reviews.length}
             </span>
           </div>
           <div className="grid gap-3 rounded-lg border border-canopy-900/10 bg-white p-4 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="text-lg font-black text-ink">Review this hole</h3>
+              <label className="flex items-center gap-2 text-sm font-bold text-ink/65">
+                {reviewRating}/5
+                <input
+                  className="accent-canopy-700"
+                  max={5}
+                  min={1}
+                  onChange={(event) => setReviewRating(Number(event.target.value))}
+                  type="range"
+                  value={reviewRating}
+                />
+              </label>
+            </div>
+            <input
+              className="h-11 rounded-lg border border-canopy-900/10 px-3 font-semibold outline-none"
+              onChange={(event) => setReviewTitle(event.target.value)}
+              placeholder="Review title"
+              value={reviewTitle}
+            />
             <textarea
               className="min-h-28 resize-none rounded-lg border border-canopy-900/10 p-3 font-semibold leading-6 outline-none"
-              onChange={(event) => setCommentBody(event.target.value)}
-              placeholder="Add a note about the tee view, landing zone, footing, wind, or pin position..."
-              value={commentBody}
+              onChange={(event) => setReviewBody(event.target.value)}
+              placeholder="Rate the tee view, shot shape, fun factor, footing, wind, or pin position..."
+              value={reviewBody}
             />
             <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-canopy-900/10 px-3 text-sm font-semibold text-ink/60 transition hover:bg-canopy-50">
               <Camera size={16} aria-hidden />
               <input
                 accept="image/*"
                 className="sr-only"
-                onChange={(event) => attachCommentPhoto(event.target.files?.[0])}
+                onChange={(event) => attachReviewPhoto(event.target.files?.[0])}
                 type="file"
               />
-              {commentPhotoUrl ? "Photo attached" : "Attach a photo"}
+              {reviewPhotoUrl ? "Photo attached" : "Attach a photo"}
             </label>
             {error ? <p className="text-sm font-bold text-clay-700">{error}</p> : null}
             <button
               className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-ink px-4 text-sm font-black text-white transition hover:bg-canopy-700 disabled:bg-ink/35"
               disabled={saving}
-              onClick={postComment}
+              onClick={postReview}
               type="button"
             >
               <Send size={16} aria-hidden />
-              Post comment
+              Post review
             </button>
           </div>
-          {comments.map((comment) => (
-            <CommentCard comment={comment} key={comment.id} />
+          {reviews.map((review) => (
+            <ReviewCard review={review} key={review.id} />
           ))}
         </section>
       </section>
@@ -340,25 +382,31 @@ export function HoleSocialClient({ initialPayload }: { initialPayload: HoleSocia
   );
 }
 
-function CommentCard({ comment }: { comment: HoleCommentCard }) {
+function ReviewCard({ review }: { review: HoleReviewCard }) {
   return (
     <article className="rounded-lg border border-canopy-900/10 bg-[#fffdf7] p-4 shadow-sm">
-      <div className="mb-3 flex items-center gap-3">
-        <Avatar
-          name={comment.author.username}
-          size="sm"
-          src={comment.author.profileImageUrl}
-        />
-        <Link className="font-black hover:text-canopy-700" href={`/profiles/${comment.author.id}`}>
-          @{comment.author.username}
-        </Link>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <Avatar
+            name={review.author.username}
+            size="sm"
+            src={review.author.profileImageUrl}
+          />
+          <Link className="font-black hover:text-canopy-700" href={`/profiles/${review.author.id}`}>
+            @{review.author.username}
+          </Link>
+        </div>
+        <span className="text-sm font-bold">
+          <Stars rating={review.rating} /> {review.rating}/5
+        </span>
       </div>
-      <p className="text-sm font-semibold leading-6 text-ink/70">{comment.body}</p>
-      {comment.photoUrl ? (
+      {review.title ? <h3 className="mb-2 text-lg font-black text-ink">{review.title}</h3> : null}
+      <p className="text-sm font-semibold leading-6 text-ink/70">{review.body}</p>
+      {review.photoUrl ? (
         <img
           alt=""
           className="mt-4 max-h-96 w-full rounded-lg object-cover"
-          src={comment.photoUrl}
+          src={review.photoUrl}
         />
       ) : null}
     </article>

@@ -2,17 +2,17 @@
 
 For those who throw.
 
-LocalRoute is a Letterboxd-style MVP for disc golf. Players can review courses, discuss specific holes, attach photos to reviews/comments, and vote on each hole's best line. Maps and route drawing are intentionally parked for a later iteration.
+LocalRoute is a Letterboxd-style MVP for disc golf. Players can rate courses and holes from 1-5 stars, attach photos to reviews, and vote on each hole's best line. Maps and route drawing are intentionally parked for a later iteration.
 
 ## What Is Built
 
-- Searchable course home page with ratings, hole counts, comments, and line counts
-- Course pages with cover photos, reviews, review form, hole list, and recent hole notes
-- Hole pages with from-the-tee photo, comments with optional photo attachments, and voted line suggestions
+- Searchable course home page with course ratings, hole review counts, and line counts
+- Course pages with cover photos, reviews, review form, hole list, and recent hole reviews
+- Hole pages with from-the-tee photo, 1-5 star reviews, optional photo attachments, and voted line suggestions
 - A "Best Line" per hole determined by community voting
 - User profiles with course reviews, suggested lines, and following list
 - Follow/unfollow users
-- Prisma schema for users, courses, holes, course reviews, hole comments, lines, line votes, and follows
+- Prisma schema for users, courses, holes, course reviews, hole reviews, lines, line votes, and follows
 
 ## Stack
 
@@ -105,8 +105,8 @@ The seed creates:
 - Seven holes with tee photos
 - Four users
 - Follow relationships
-- Course reviews with ratings
-- Hole comments with optional photos
+- Course reviews with 1-5 star ratings
+- Hole reviews with ratings and optional photos
 - Suggested lines with difficulty, risk, disc suggestions, tags, and votes
 
 The UI uses user `dana` as the demo signed-in player.
@@ -117,7 +117,7 @@ The UI uses user `dana` as the demo signed-in player.
 - `GET /api/courses/:courseId`
 - `POST /api/courses/:courseId/reviews`
 - `GET /api/holes/:holeId`
-- `POST /api/holes/:holeId/comments`
+- `POST /api/holes/:holeId/reviews`
 - `GET /api/holes/:holeId/lines`
 - `POST /api/holes/:holeId/lines`
 - `POST /api/lines/:lineId/vote`

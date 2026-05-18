@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getFollowingIds, getRequestUserId } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
-import { serializeCourseReview, serializeLine } from "@/lib/social-data";
+import { serializeCourseReview, serializeHoleReview, serializeLine } from "@/lib/social-data";
 
 type Params = {
   params: {
@@ -44,6 +44,19 @@ export async function GET(request: Request, { params }: Params) {
         },
         orderBy: { createdAt: "desc" }
       },
+      holeReviews: {
+        include: {
+          user: { select: { id: true, username: true, profileImageUrl: true } },
+          hole: {
+            select: {
+              id: true,
+              holeNumber: true,
+              course: { select: { id: true, name: true } }
+            }
+          }
+        },
+        orderBy: { createdAt: "desc" }
+      },
       following: {
         include: {
           following: {
@@ -76,6 +89,11 @@ export async function GET(request: Request, { params }: Params) {
       reviews: user.courseReviews.map((review) => ({
         review: serializeCourseReview(review),
         course: review.course
+      })),
+      holeReviews: user.holeReviews.map((review) => ({
+        review: serializeHoleReview(review),
+        holeNumber: review.hole.holeNumber,
+        course: review.hole.course
       }))
     }
   });

@@ -6,7 +6,7 @@ async function main() {
   await prisma.lineVote.deleteMany();
   await prisma.follow.deleteMany();
   await prisma.line.deleteMany();
-  await prisma.holeComment.deleteMany();
+  await prisma.holeReview.deleteMany();
   await prisma.courseReview.deleteMany();
   await prisma.hole.deleteMany();
   await prisma.course.deleteMany();
@@ -173,7 +173,7 @@ async function main() {
       {
         courseId: cedar.id,
         userId: dana.id,
-        rating: 9,
+        rating: 5,
         title: "Technical without feeling mean",
         body: "Cedar Ridge rewards clean angle control and still gives newer players a smart bailout on most holes. Hole 2 is the separator.",
         photoUrl: "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=900&q=80",
@@ -182,7 +182,7 @@ async function main() {
       {
         courseId: cedar.id,
         userId: nate.id,
-        rating: 8,
+        rating: 4,
         title: "Bring fairways and patience",
         body: "The lines are honest. You can score if you land in the right zones, but the rough makes lazy drives expensive.",
         createdAt: new Date("2026-05-07T19:45:00.000Z")
@@ -190,7 +190,7 @@ async function main() {
       {
         courseId: pine.id,
         userId: maya.id,
-        rating: 9,
+        rating: 5,
         title: "Beautiful shot shaping",
         body: "Pine Hollow has a great mix of open pressure and wooded touch shots. The tee photos do not capture how much the wind matters.",
         photoUrl: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=900&q=80",
@@ -199,11 +199,13 @@ async function main() {
     ]
   });
 
-  await prisma.holeComment.createMany({
+  await prisma.holeReview.createMany({
     data: [
       {
         holeId: cedarHole(1).id,
         userId: maya.id,
+        rating: 4,
+        title: "Friendly opener, touchy miss",
         body: "The left gap looks wider from the tee than it plays. Aim at the last dark trunk and let the disc fade.",
         photoUrl: "https://images.unsplash.com/photo-1498429089284-41f8cf3ffd39?auto=format&fit=crop&w=900&q=80",
         createdAt: new Date("2026-05-11T13:20:00.000Z")
@@ -211,18 +213,24 @@ async function main() {
       {
         holeId: cedarHole(1).id,
         userId: ellis.id,
+        rating: 4,
+        title: "Good scoring chance",
         body: "Short is fine here. Long right is where the awkward comebacker lives.",
         createdAt: new Date("2026-05-12T10:05:00.000Z")
       },
       {
         holeId: cedarHole(2).id,
         userId: nate.id,
+        rating: 5,
+        title: "Best hole on the course",
         body: "Do not chase the pin from the tee unless you have the power to clear the corner clean. The landing zone is the play.",
         createdAt: new Date("2026-05-13T18:40:00.000Z")
       },
       {
         holeId: pineHole(1).id,
         userId: dana.id,
+        rating: 4,
+        title: "Pretty, but sneaky water",
         body: "Creek is closer than it feels. A slower fairway keeps the skip under control.",
         photoUrl: "https://images.unsplash.com/photo-1473773508845-188df298d2d1?auto=format&fit=crop&w=900&q=80",
         createdAt: new Date("2026-05-14T14:30:00.000Z")

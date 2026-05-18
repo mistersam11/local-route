@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getRequestUserId } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
-import { includeHoleCommentAuthor, serializeHoleComment } from "@/lib/social-data";
+import { includeHoleReviewAuthor, serializeHoleReview } from "@/lib/social-data";
 
 type Params = {
   params: {
@@ -17,22 +17,29 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const body = (await request.json()) as Record<string, unknown>;
+  const rating = Math.max(1, Math.min(5, Number(body.rating) || 0));
+  const title = String(body.title ?? "").trim();
   const text = String(body.body ?? "").trim();
   const photoUrl = String(body.photoUrl ?? "").trim();
 
-  if (text.length < 2) {
-    return NextResponse.json({ error: "Comment is required" }, { status: 400 });
+  if (!rating || text.length < 2) {
+    return NextResponse.json(
+      { error: "Rating and review are required" },
+      { status: 400 }
+    );
   }
 
-  const comment = await prisma.holeComment.create({
+  const review = await prisma.holeReview.create({
     data: {
       holeId,
       userId: getRequestUserId(request),
+      rating,
+      title: title || null,
       body: text,
       photoUrl: photoUrl || null
     },
-    include: includeHoleCommentAuthor
+    include: includeHoleReviewAuthor
   });
 
-  return NextResponse.json({ comment: serializeHoleComment(comment) }, { status: 201 });
+  return NextResponse.json({ review: serializeHoleReview(review) }, { status: 201 });
 }

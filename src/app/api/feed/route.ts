@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getRequestUserId } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
-import { serializeCourseReview, serializeHoleComment, serializeLine } from "@/lib/social-data";
+import { serializeCourseReview, serializeHoleReview, serializeLine } from "@/lib/social-data";
 
 export async function GET(request: Request) {
   const currentUserId = getRequestUserId(request);
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   });
   const followingIds = new Set(following.map((follow) => follow.followingId));
 
-  const [lines, reviews, comments] = await Promise.all([
+  const [lines, reviews, holeReviews] = await Promise.all([
     prisma.line.findMany({
       where: {
         ...(courseId && Number.isInteger(courseId)
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
       orderBy: { createdAt: "desc" },
       take: 15
     }),
-    prisma.holeComment.findMany({
+    prisma.holeReview.findMany({
       where: {
         ...(courseId && Number.isInteger(courseId)
           ? { hole: { courseId } }
@@ -89,12 +89,12 @@ export async function GET(request: Request) {
       review: serializeCourseReview(review),
       course: review.course
     })),
-    ...comments.map((comment) => ({
-      type: "comment" as const,
-      createdAt: comment.createdAt.toISOString(),
-      comment: serializeHoleComment(comment),
-      holeNumber: comment.hole.holeNumber,
-      course: comment.hole.course
+    ...holeReviews.map((review) => ({
+      type: "hole-review" as const,
+      createdAt: review.createdAt.toISOString(),
+      review: serializeHoleReview(review),
+      holeNumber: review.hole.holeNumber,
+      course: review.hole.course
     }))
   ]
     .sort((first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime())

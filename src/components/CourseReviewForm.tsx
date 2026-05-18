@@ -15,7 +15,7 @@ export function CourseReviewForm({
   currentUserId,
   onCreated
 }: CourseReviewFormProps) {
-  const [rating, setRating] = useState(8);
+  const [rating, setRating] = useState(4);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
@@ -71,10 +71,10 @@ export function CourseReviewForm({
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-lg font-black text-ink">Review this course</h3>
         <label className="flex items-center gap-2 text-sm font-bold text-ink/65">
-          {rating}/10
+          {rating}/5
           <input
             className="accent-canopy-700"
-            max={10}
+            max={5}
             min={1}
             onChange={(event) => setRating(Number(event.target.value))}
             type="range"

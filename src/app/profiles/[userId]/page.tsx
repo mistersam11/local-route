@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CalendarDays, Disc3, MapPin, Star } from "lucide-react";
+import { ArrowLeft, CalendarDays, Disc3, Flag, MapPin } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { FollowButton } from "@/components/FollowButton";
 import { Stars } from "@/components/Stars";
@@ -46,6 +46,19 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         courseReviews: {
           include: {
             course: { select: { id: true, name: true, locationName: true } },
+            user: { select: { id: true, username: true, profileImageUrl: true } }
+          },
+          orderBy: { createdAt: "desc" }
+        },
+        holeReviews: {
+          include: {
+            hole: {
+              select: {
+                id: true,
+                holeNumber: true,
+                course: { select: { id: true, name: true, locationName: true } }
+              }
+            },
             user: { select: { id: true, username: true, profileImageUrl: true } }
           },
           orderBy: { createdAt: "desc" }
@@ -107,7 +120,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         <div className="grid gap-8">
           <section>
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-2xl font-black text-ink">Reviews</h2>
+              <h2 className="text-2xl font-black text-ink">Course Reviews</h2>
               <span className="rounded-full bg-clay-100 px-3 py-1 text-sm font-bold text-clay-700">
                 {user.courseReviews.length}
               </span>
@@ -125,12 +138,53 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                     </h3>
                     <span className="flex items-center gap-2 text-sm font-bold">
                       <Stars rating={review.rating} />
-                      {review.rating}/10
+                      {review.rating}/5
                     </span>
                   </div>
                   <p className="mt-2 flex items-center gap-2 text-sm font-semibold text-ink/60">
                     <MapPin size={15} aria-hidden />
                     {review.course.name}
+                  </p>
+                  <p className="mt-3 text-sm font-semibold leading-6 text-ink/65">
+                    {review.body}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-2xl font-black text-ink">Hole Reviews</h2>
+              <span className="rounded-full bg-clay-100 px-3 py-1 text-sm font-bold text-clay-700">
+                {user.holeReviews.length}
+              </span>
+            </div>
+            <div className="grid gap-3">
+              {user.holeReviews.map((review) => (
+                <Link
+                  className="rounded-lg border border-canopy-900/10 bg-[#fffdf7] p-4 shadow-sm transition hover:shadow-panel"
+                  href={`/holes/${review.hole.id}`}
+                  key={review.id}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <h3 className="text-lg font-black text-ink">
+                      {review.title ?? `Hole ${review.hole.holeNumber}`}
+                    </h3>
+                    <span className="flex items-center gap-2 text-sm font-bold">
+                      <Stars rating={review.rating} />
+                      {review.rating}/5
+                    </span>
+                  </div>
+                  <p className="mt-2 flex flex-wrap gap-3 text-sm font-semibold text-ink/60">
+                    <span className="flex items-center gap-1">
+                      <MapPin size={15} aria-hidden />
+                      {review.hole.course.name}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Flag size={15} aria-hidden />
+                      Hole {review.hole.holeNumber}
+                    </span>
                   </p>
                   <p className="mt-3 text-sm font-semibold leading-6 text-ink/65">
                     {review.body}

@@ -4,7 +4,7 @@ import { getCurrentUser, getFollowingIds } from "@/lib/current-user";
 import type {
   BestLine,
   CourseReviewCard,
-  HoleCommentCard,
+  HoleReviewCard,
   HoleSocialPayload
 } from "@/lib/types";
 
@@ -32,7 +32,7 @@ const courseReviewWithAuthor = Prisma.validator<Prisma.CourseReviewDefaultArgs>(
   }
 });
 
-const holeCommentWithAuthor = Prisma.validator<Prisma.HoleCommentDefaultArgs>()({
+const holeReviewWithAuthor = Prisma.validator<Prisma.HoleReviewDefaultArgs>()({
   include: {
     user: {
       select: {
@@ -48,8 +48,8 @@ export type LineWithAuthor = Prisma.LineGetPayload<typeof lineWithAuthor>;
 export type CourseReviewWithAuthor = Prisma.CourseReviewGetPayload<
   typeof courseReviewWithAuthor
 >;
-export type HoleCommentWithAuthor = Prisma.HoleCommentGetPayload<
-  typeof holeCommentWithAuthor
+export type HoleReviewWithAuthor = Prisma.HoleReviewGetPayload<
+  typeof holeReviewWithAuthor
 >;
 
 export function serializeLine(
@@ -96,18 +96,20 @@ export function serializeCourseReview(
   };
 }
 
-export function serializeHoleComment(
-  comment: HoleCommentWithAuthor
-): HoleCommentCard {
+export function serializeHoleReview(
+  review: HoleReviewWithAuthor
+): HoleReviewCard {
   return {
-    id: comment.id,
-    body: comment.body,
-    photoUrl: comment.photoUrl,
-    createdAt: comment.createdAt.toISOString(),
+    id: review.id,
+    rating: review.rating,
+    title: review.title,
+    body: review.body,
+    photoUrl: review.photoUrl,
+    createdAt: review.createdAt.toISOString(),
     author: {
-      id: comment.user.id,
-      username: comment.user.username,
-      profileImageUrl: comment.user.profileImageUrl
+      id: review.user.id,
+      username: review.user.username,
+      profileImageUrl: review.user.profileImageUrl
     }
   };
 }
@@ -139,8 +141,8 @@ export async function getHoleSocialPayload(
       where: { id: holeId },
       include: {
         course: true,
-        comments: {
-          include: holeCommentWithAuthor.include,
+        reviews: {
+          include: holeReviewWithAuthor.include,
           orderBy: { createdAt: "desc" }
         },
         lines: {
@@ -173,7 +175,7 @@ export async function getHoleSocialPayload(
       description: hole.description,
       teePhotoUrl: hole.teePhotoUrl
     },
-    comments: hole.comments.map(serializeHoleComment),
+    reviews: hole.reviews.map(serializeHoleReview),
     lines
   };
 }
@@ -199,4 +201,4 @@ export async function getSerializedLinesForHole(
 
 export const includeLineAuthor = lineWithAuthor.include;
 export const includeCourseReviewAuthor = courseReviewWithAuthor.include;
-export const includeHoleCommentAuthor = holeCommentWithAuthor.include;
+export const includeHoleReviewAuthor = holeReviewWithAuthor.include;

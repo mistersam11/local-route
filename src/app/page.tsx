@@ -26,7 +26,7 @@ export default async function Home({ searchParams }: HomeProps) {
         select: {
           id: true,
           _count: {
-            select: { lines: true, comments: true }
+            select: { lines: true, reviews: true }
           }
         }
       }
@@ -40,7 +40,7 @@ export default async function Home({ searchParams }: HomeProps) {
         <div>
           <p className="text-sm font-bold uppercase text-clay-700">Course diary</p>
           <h1 className="mt-3 max-w-2xl text-4xl font-black leading-tight text-ink sm:text-5xl">
-            Reviews, hole notes, and voted lines for disc golf
+            Course and hole reviews, plus voted lines for disc golf
           </h1>
         </div>
         <form
@@ -77,8 +77,8 @@ export default async function Home({ searchParams }: HomeProps) {
             (total, hole) => total + hole._count.lines,
             0
           );
-          const commentCount = course.holes.reduce(
-            (total, hole) => total + hole._count.comments,
+          const holeReviewCount = course.holes.reduce(
+            (total, hole) => total + hole._count.reviews,
             0
           );
 
@@ -124,7 +124,7 @@ export default async function Home({ searchParams }: HomeProps) {
                   </span>
                   <span className="flex items-center gap-2 text-clay-700">
                     <MessageSquare size={16} aria-hidden />
-                    {commentCount}
+                    {holeReviewCount}
                   </span>
                   <span className="flex items-center gap-2 text-canopy-700 transition group-hover:translate-x-1">
                     Open

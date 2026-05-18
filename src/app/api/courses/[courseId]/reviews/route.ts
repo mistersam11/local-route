@@ -17,7 +17,7 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const body = (await request.json()) as Record<string, unknown>;
-  const rating = Math.max(1, Math.min(10, Number(body.rating) || 0));
+  const rating = Math.max(1, Math.min(5, Number(body.rating) || 0));
   const reviewBody = String(body.body ?? "").trim();
   const title = String(body.title ?? "").trim();
   const photoUrl = String(body.photoUrl ?? "").trim();

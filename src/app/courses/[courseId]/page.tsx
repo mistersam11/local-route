@@ -41,18 +41,19 @@ export default async function CoursePage({ params }: CoursePageProps) {
         holes: {
           include: {
             _count: {
-              select: { lines: true, comments: true }
+              select: { lines: true, reviews: true }
             },
             lines: {
               orderBy: [{ upvotes: "desc" }, { downvotes: "asc" }],
               take: 1
-            }
+            },
+            reviews: { select: { rating: true } }
           },
           orderBy: { holeNumber: "asc" }
         }
       }
     }),
-    prisma.holeComment.findMany({
+    prisma.holeReview.findMany({
       where: { hole: { courseId } },
       include: {
         user: { select: { id: true, username: true, profileImageUrl: true } },
@@ -76,8 +77,8 @@ export default async function CoursePage({ params }: CoursePageProps) {
     (total, hole) => total + hole._count.lines,
     0
   );
-  const totalComments = course.holes.reduce(
-    (total, hole) => total + hole._count.comments,
+  const totalHoleReviews = course.holes.reduce(
+    (total, hole) => total + hole._count.reviews,
     0
   );
 
@@ -130,8 +131,8 @@ export default async function CoursePage({ params }: CoursePageProps) {
             <p className="mt-1 text-2xl font-black">{totalLines}</p>
           </div>
           <div className="rounded-lg bg-white p-4 shadow-sm">
-            <p className="text-sm font-semibold text-ink/55">Comments</p>
-            <p className="mt-1 text-2xl font-black">{totalComments}</p>
+            <p className="text-sm font-semibold text-ink/55">Hole reviews</p>
+            <p className="mt-1 text-2xl font-black">{totalHoleReviews}</p>
           </div>
         </div>
 
@@ -158,7 +159,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
                     @{review.user.username}
                   </Link>
                   <span className="rounded-full bg-clay-100 px-3 py-1 text-sm font-black text-clay-700">
-                    {review.rating}/10
+                    {review.rating}/5
                   </span>
                 </div>
                 {review.title ? (
@@ -190,6 +191,11 @@ export default async function CoursePage({ params }: CoursePageProps) {
         <div className="grid gap-3">
           {course.holes.map((hole) => {
             const bestLine = hole.lines[0] ?? null;
+            const averageHoleRating =
+              hole.reviews.length > 0
+                ? hole.reviews.reduce((total, review) => total + review.rating, 0) /
+                  hole.reviews.length
+                : 0;
 
             return (
               <Link
@@ -225,7 +231,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
                       </span>
                       <span className="flex items-center gap-1">
                         <MessageSquare size={15} aria-hidden />
-                        {hole._count.comments}
+                        {hole._count.reviews}
                       </span>
                     </span>
                     <h3 className="mt-2 text-lg font-black text-ink">
@@ -234,6 +240,12 @@ export default async function CoursePage({ params }: CoursePageProps) {
                     {hole.description ? (
                       <p className="mt-1 text-sm leading-6 text-ink/65">
                         {hole.description}
+                      </p>
+                    ) : null}
+                    {hole.reviews.length ? (
+                      <p className="mt-3 flex items-center gap-2 text-sm font-black text-ink/65">
+                        <Stars rating={averageHoleRating} />
+                        {averageHoleRating.toFixed(1)}
                       </p>
                     ) : null}
                     {bestLine ? (
@@ -254,25 +266,25 @@ export default async function CoursePage({ params }: CoursePageProps) {
         </div>
 
         <div className="mt-8">
-          <h2 className="mb-3 text-2xl font-black text-ink">Recent Hole Notes</h2>
+          <h2 className="mb-3 text-2xl font-black text-ink">Recent Hole Reviews</h2>
           <div className="grid gap-3">
-            {recentActivity.map((comment) => (
+            {recentActivity.map((review) => (
               <Link
                 className="flex items-center gap-3 rounded-lg bg-white p-3 shadow-sm transition hover:bg-canopy-50"
-                href={`/holes/${comment.hole.id}`}
-                key={comment.id}
+                href={`/holes/${review.hole.id}`}
+                key={review.id}
               >
                 <Avatar
-                  name={comment.user.username}
+                  name={review.user.username}
                   size="sm"
-                  src={comment.user.profileImageUrl}
+                  src={review.user.profileImageUrl}
                 />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-black text-ink">
-                    Hole {comment.hole.holeNumber}
+                    Hole {review.hole.holeNumber} · {review.rating}/5
                   </span>
                   <span className="block truncate text-sm font-semibold text-ink/55">
-                    {comment.body}
+                    {review.title ?? review.body}
                   </span>
                 </span>
               </Link>

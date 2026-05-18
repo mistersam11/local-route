@@ -39,7 +39,7 @@ model User {
   createdAt       DateTime        @default(now())
 
   courseReviews   CourseReview[]
-  holeComments    HoleComment[]
+  holeReviews     HoleReview[]
   lines           Line[]
   following       Follow[]        @relation("Follower")
   followers       Follow[]        @relation("Following")
@@ -74,7 +74,7 @@ model Hole {
   createdAt      DateTime      @default(now())
 
   course         Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  comments       HoleComment[]
+  reviews        HoleReview[]
   lines          Line[]
 
   @@unique([courseId, holeNumber])
@@ -99,10 +99,12 @@ model CourseReview {
   @@index([userId])
 }
 
-model HoleComment {
+model HoleReview {
   id        Int      @id @default(autoincrement())
   holeId    Int
   userId    Int
+  rating    Int
+  title     String?
   body      String
   photoUrl  String?
   createdAt DateTime @default(now())

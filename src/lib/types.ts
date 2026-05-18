@@ -35,8 +35,10 @@ export type CourseReviewCard = {
   author: UserSummary;
 };
 
-export type HoleCommentCard = {
+export type HoleReviewCard = {
   id: number;
+  rating: number;
+  title: string | null;
   body: string;
   photoUrl: string | null;
   createdAt: string;
@@ -58,6 +60,6 @@ export type HoleSocialPayload = {
     description: string | null;
     teePhotoUrl: string | null;
   };
-  comments: HoleCommentCard[];
+  reviews: HoleReviewCard[];
   lines: BestLine[];
 };

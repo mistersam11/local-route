@@ -5,7 +5,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "LocalRoute",
-  description: "Disc golf course reviews, hole comments, and voted best lines."
+  description: "Disc golf course and hole reviews, plus voted best lines."
 };
 
 export default function RootLayout({

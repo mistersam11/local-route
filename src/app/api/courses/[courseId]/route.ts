@@ -20,7 +20,7 @@ export async function GET(_request: Request, { params }: Params) {
       holes: {
         include: {
           _count: {
-            select: { lines: true, comments: true }
+            select: { lines: true, reviews: true }
           }
         },
         orderBy: { holeNumber: "asc" }
