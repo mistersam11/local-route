@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CalendarDays, Disc3, Flag, MapPin } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarDays,
+  Disc3,
+  Flag,
+  MapPin,
+  Pencil
+} from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { FollowButton } from "@/components/FollowButton";
 import { Stars } from "@/components/Stars";
@@ -32,6 +39,8 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         id: true,
         username: true,
         profileImageUrl: true,
+        bio: true,
+        homeCourseName: true,
         createdAt: true,
         lines: {
           include: {
@@ -86,6 +95,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     month: "short",
     year: "numeric"
   }).format(user.createdAt);
+  const isOwnProfile = currentUser?.id === user.id;
 
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6 lg:py-10">
@@ -110,13 +120,34 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               <span>{user.followers.length} followers</span>
               <span>{user.following.length} following</span>
             </p>
+            {user.homeCourseName ? (
+              <p className="mt-3 flex items-center gap-2 text-sm font-bold text-canopy-700">
+                <MapPin size={16} aria-hidden />
+                {user.homeCourseName}
+              </p>
+            ) : null}
+            {user.bio ? (
+              <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-ink/65">
+                {user.bio}
+              </p>
+            ) : null}
           </div>
         </div>
-        <FollowButton
-          currentUserId={currentUser?.id}
-          initialIsFollowing={followingIds.has(user.id)}
-          targetUserId={user.id}
-        />
+        {isOwnProfile ? (
+          <Link
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-ink px-4 text-sm font-bold text-white transition hover:bg-canopy-700"
+            href="/settings/profile"
+          >
+            <Pencil size={16} aria-hidden />
+            Edit profile
+          </Link>
+        ) : (
+          <FollowButton
+            currentUserId={currentUser?.id}
+            initialIsFollowing={followingIds.has(user.id)}
+            targetUserId={user.id}
+          />
+        )}
       </section>
 
       <section className="grid gap-8 lg:grid-cols-[1fr_320px]">

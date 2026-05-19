@@ -14,6 +14,7 @@ LocalRoute is a Letterboxd-style MVP for disc golf. Players can rate courses and
 - Pending/approved/rejected course moderation status
 - User profiles with course reviews, suggested lines, and following list
 - Real email/username account signup and login
+- Profile editing with avatar upload, bio, and home course
 - Follow/unfollow users
 - Direct image uploads to Cloudinary for course, hole, and review photos
 - Prisma schema for users, courses, course status, holes, course reviews, hole reviews, lines, line votes, and follows
@@ -130,6 +131,7 @@ The seeded demo users use the password `localroute-demo`.
 - `POST /api/auth/signup`
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
+- `PATCH /api/me/profile`
 - `GET /api/courses`
 - `POST /api/courses`
 - `GET /api/courses/:courseId`

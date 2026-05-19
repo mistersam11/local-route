@@ -5,6 +5,7 @@ import {
   LogIn,
   LogOut,
   Map,
+  Settings,
   ShieldCheck,
   UserPlus,
   UserRound
@@ -64,6 +65,13 @@ export default async function RootLayout({
                       Admin
                     </span>
                   ) : null}
+                  <Link
+                    href="/settings/profile"
+                    className="flex items-center gap-2 rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"
+                  >
+                    <Settings size={16} aria-hidden />
+                    Settings
+                  </Link>
                   <form action="/api/auth/logout" method="post">
                     <button
                       className="flex items-center gap-2 rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"
