@@ -8,6 +8,8 @@ import { getDemoUserId, getFollowingIds } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 import { serializeLine } from "@/lib/social-data";
 
+export const dynamic = "force-dynamic";
+
 type ProfilePageProps = {
   params: {
     userId: string;

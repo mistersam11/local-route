@@ -16,6 +16,8 @@ import { Stars } from "@/components/Stars";
 import { getDemoUserId } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 type CoursePageProps = {
   params: {
     courseId: string;

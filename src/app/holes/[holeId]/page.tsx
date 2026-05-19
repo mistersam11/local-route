@@ -3,6 +3,8 @@ import { HoleSocialClient } from "@/components/HoleSocialClient";
 import { getDemoUserId } from "@/lib/current-user";
 import { getHoleSocialPayload } from "@/lib/social-data";
 
+export const dynamic = "force-dynamic";
+
 type HolePageProps = {
   params: {
     holeId: string;

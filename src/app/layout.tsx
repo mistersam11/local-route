@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CirclePlus, Map, UserRound } from "lucide-react";
-import { getDemoUser } from "@/lib/current-user";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -14,7 +13,8 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const demoUser = await getDemoUser();
+  const demoUserId = Number(process.env.DEMO_USER_ID ?? "1");
+  const demoUsername = process.env.DEMO_USERNAME ?? "sam";
 
   return (
     <html lang="en">
@@ -42,11 +42,11 @@ export default async function RootLayout({
                 Submit
               </Link>
               <Link
-                href={`/profiles/${demoUser?.id ?? 1}`}
+                href={`/profiles/${Number.isInteger(demoUserId) ? demoUserId : 1}`}
                 className="flex items-center gap-2 rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"
               >
                 <UserRound size={16} aria-hidden />
-                {demoUser?.username ?? "Profile"}
+                @{demoUsername}
               </Link>
             </nav>
           </div>

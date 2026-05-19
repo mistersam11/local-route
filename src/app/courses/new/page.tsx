@@ -3,6 +3,8 @@ import { ArrowLeft } from "lucide-react";
 import { SubmitCourseForm } from "@/components/SubmitCourseForm";
 import { getDemoUserId } from "@/lib/current-user";
 
+export const dynamic = "force-dynamic";
+
 export default async function NewCoursePage() {
   const demoUserId = await getDemoUserId();
 

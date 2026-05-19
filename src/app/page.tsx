@@ -3,6 +3,8 @@ import { ArrowRight, CirclePlus, MapPin, MessageSquare, Search, Star } from "luc
 import { Stars } from "@/components/Stars";
 import { prisma } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 type HomeProps = {
   searchParams?: {
     q?: string;
