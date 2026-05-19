@@ -1,10 +1,10 @@
 import { ReportStatus } from "@prisma/client";
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import {
   CirclePlus,
   LogIn,
-  Map,
   Settings,
   ShieldCheck,
   UserPlus,
@@ -16,7 +16,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "LocalRoute",
-  description: "Disc golf course and hole reviews, plus voted best lines."
+  description: "Disc golf course and hole reviews, plus voted best lines.",
+  icons: {
+    icon: "/brand/basket-logo.png",
+    apple: "/brand/basket-logo.png"
+  }
 };
 
 export default async function RootLayout({
@@ -41,11 +45,21 @@ export default async function RootLayout({
       <body>
         <header className="sticky top-0 z-50 border-b border-canopy-900/10 bg-[#fffdf7]/90 backdrop-blur">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
-            <Link href="/" className="flex min-w-0 items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-canopy-700 text-white">
-                <Map size={20} aria-hidden />
+            <Link href="/" className="flex min-w-0 shrink-0 items-center gap-3">
+              <span className="brand-mark" aria-hidden>
+                <Image
+                  alt=""
+                  className="brand-mark-image"
+                  height={46}
+                  priority
+                  src="/brand/basket-logo.png"
+                  width={46}
+                />
               </span>
-              <span className="truncate text-lg font-bold text-ink">LocalRoute</span>
+              <span className="brand-wordmark max-[520px]:hidden" aria-label="LocalRoute">
+                <span className="brand-wordmark-local">Local</span>
+                <span className="brand-wordmark-route">Route</span>
+              </span>
             </Link>
             <nav className="flex items-center gap-2 text-sm font-semibold text-ink/75">
               <Link
