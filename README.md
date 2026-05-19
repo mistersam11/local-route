@@ -22,7 +22,7 @@ LocalRoute is a Letterboxd-style MVP for disc golf. Players can rate courses and
 - React
 - Tailwind CSS
 - Prisma ORM
-- SQLite for local MVP storage
+- PostgreSQL for hosted MVP storage
 
 ## Setup
 
@@ -32,7 +32,7 @@ Install Node.js 20 or newer, then run:
 npm install
 ```
 
-Create a local environment file:
+Create a local environment file and set `DATABASE_URL` to a PostgreSQL connection string:
 
 ```bash
 cp .env.example .env
@@ -46,7 +46,7 @@ npm run db:push
 npm run db:seed
 ```
 
-If you already ran the older map prototype locally, reset the SQLite database for this new schema:
+If you need to wipe and reseed a disposable development database:
 
 ```bash
 npm run db:reset
@@ -94,10 +94,10 @@ http://YOUR_COMPUTER_LOCAL_IP:3000
 For public access from other networks, deploy it instead of running it from your laptop. Recommended MVP path:
 
 - Vercel for the Next.js app
-- Neon, Supabase, or Railway Postgres for the database
+- Prisma Postgres, Neon, Supabase, or Railway Postgres for the database
 - Object storage such as UploadThing, S3, or Cloudinary for durable image uploads
 
-Before public launch, replace SQLite with PostgreSQL, replace the demo user system with real authentication, and move the MVP data-URL photo storage to durable object storage.
+Before public launch, replace the demo user system with real authentication and move the MVP data-URL photo storage to durable object storage.
 
 ## Demo Data
 
