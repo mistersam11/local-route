@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getFollowingIds, getRequestUserId } from "@/lib/current-user";
+import { getFollowingIds, getRequestUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 import { serializeCourseReview, serializeHoleReview, serializeLine } from "@/lib/social-data";
 
@@ -16,8 +16,8 @@ export async function GET(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid user id" }, { status: 400 });
   }
 
-  const currentUserId = await getRequestUserId(request);
-  const followingIds = await getFollowingIds(currentUserId);
+  const currentUser = await getRequestUser(request);
+  const followingIds = await getFollowingIds(currentUser?.id);
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {

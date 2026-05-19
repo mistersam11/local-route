@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { getRequestUserId } from "@/lib/current-user";
+import { getRequestUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
 function optionalNumber(value: unknown) {
@@ -44,7 +44,12 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const body = (await request.json()) as Record<string, unknown>;
-  const currentUserId = await getRequestUserId(request);
+  const currentUser = await getRequestUser(request);
+
+  if (!currentUser) {
+    return NextResponse.json({ error: "Log in to submit a course" }, { status: 401 });
+  }
+
   const name = String(body.name ?? "").trim();
   const locationName = String(body.locationName ?? "").trim();
   const coverPhotoUrl = String(body.coverPhotoUrl ?? "").trim();
@@ -94,7 +99,7 @@ export async function POST(request: Request) {
       longitude,
       coverPhotoUrl: coverPhotoUrl || null,
       status: "pending",
-      submittedById: currentUserId,
+      submittedById: currentUser.id,
       holes: {
         create: holes as Prisma.HoleCreateWithoutCourseInput[]
       }

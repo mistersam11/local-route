@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, LogIn } from "lucide-react";
 import { SubmitCourseForm } from "@/components/SubmitCourseForm";
-import { getDemoUserId } from "@/lib/current-user";
+import { getCurrentUser } from "@/lib/current-user";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewCoursePage() {
-  const demoUserId = await getDemoUserId();
+  const currentUser = await getCurrentUser();
 
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6 lg:py-10">
@@ -25,7 +25,24 @@ export default async function NewCoursePage() {
         </h1>
       </section>
 
-      <SubmitCourseForm currentUserId={demoUserId} />
+      {currentUser ? (
+        <SubmitCourseForm />
+      ) : (
+        <section className="grid gap-4 rounded-lg border border-canopy-900/10 bg-[#fffdf7] p-5 shadow-sm">
+          <h2 className="text-2xl font-black text-ink">Log in to submit a course</h2>
+          <p className="font-semibold leading-7 text-ink/65">
+            Course submissions are tied to an account so we can show who added them
+            and keep moderation sane.
+          </p>
+          <Link
+            className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-full bg-ink px-5 text-sm font-black text-white transition hover:bg-canopy-700"
+            href="/login?redirectTo=/courses/new"
+          >
+            <LogIn size={16} aria-hidden />
+            Log in
+          </Link>
+        </section>
+      )}
     </main>
   );
 }

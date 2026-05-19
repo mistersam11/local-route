@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { UserMinus, UserPlus } from "lucide-react";
 
 type FollowButtonProps = {
   targetUserId: number;
-  currentUserId: number;
+  currentUserId?: number | null;
   initialIsFollowing: boolean;
 };
 
@@ -19,16 +20,13 @@ export function FollowButton({
   const isSelf = targetUserId === currentUserId;
 
   function toggleFollow() {
-    if (isSelf) return;
+    if (isSelf || !currentUserId) return;
 
     setIsPending(true);
     void (async () => {
       try {
         const response = await fetch(`/api/users/${targetUserId}/follow`, {
-          method: isFollowing ? "DELETE" : "POST",
-          headers: {
-            "x-demo-user-id": String(currentUserId)
-          }
+          method: isFollowing ? "DELETE" : "POST"
         });
 
         if (response.ok) {
@@ -41,7 +39,7 @@ export function FollowButton({
     })();
   }
 
-  return (
+  return currentUserId ? (
     <button
       className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-ink px-4 text-sm font-bold text-white transition hover:bg-canopy-700 disabled:cursor-not-allowed disabled:bg-ink/25"
       disabled={isSelf || isPending}
@@ -51,5 +49,13 @@ export function FollowButton({
       {isFollowing ? <UserMinus size={16} aria-hidden /> : <UserPlus size={16} aria-hidden />}
       {isSelf ? "You" : isFollowing ? "Following" : "Follow"}
     </button>
+  ) : (
+    <Link
+      className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-ink px-4 text-sm font-bold text-white transition hover:bg-canopy-700"
+      href="/login"
+    >
+      <UserPlus size={16} aria-hidden />
+      Sign in to follow
+    </Link>
   );
 }

@@ -49,7 +49,7 @@ const emptyLineForm: LineForm = {
 
 export function HoleSocialClient({ initialPayload }: { initialPayload: HoleSocialPayload }) {
   const { course, hole, currentUser } = initialPayload;
-  const currentUserId = currentUser?.id ?? 1;
+  const canVote = Boolean(currentUser);
   const [reviews, setReviews] = useState(initialPayload.reviews);
   const [lines, setLines] = useState(initialPayload.lines);
   const [reviewRating, setReviewRating] = useState(4);
@@ -93,8 +93,7 @@ export function HoleSocialClient({ initialPayload }: { initialPayload: HoleSocia
         const response = await fetch(`/api/holes/${hole.id}/reviews`, {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
-            "x-demo-user-id": String(currentUserId)
+            "Content-Type": "application/json"
           },
           body: JSON.stringify({
             rating: reviewRating,
@@ -130,8 +129,7 @@ export function HoleSocialClient({ initialPayload }: { initialPayload: HoleSocia
         const response = await fetch(`/api/holes/${hole.id}/lines`, {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
-            "x-demo-user-id": String(currentUserId)
+            "Content-Type": "application/json"
           },
           body: JSON.stringify(lineForm)
         });
@@ -157,8 +155,7 @@ export function HoleSocialClient({ initialPayload }: { initialPayload: HoleSocia
     const response = await fetch(`/api/lines/${lineId}/vote`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        "x-demo-user-id": String(currentUserId)
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({ value })
     });
@@ -231,54 +228,63 @@ export function HoleSocialClient({ initialPayload }: { initialPayload: HoleSocia
               {reviews.length}
             </span>
           </div>
-          <div className="grid gap-3 rounded-lg border border-canopy-900/10 bg-white p-4 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h3 className="text-lg font-black text-ink">Review this hole</h3>
-              <label className="flex items-center gap-2 text-sm font-bold text-ink/65">
-                {reviewRating}/5
-                <input
-                  className="accent-canopy-700"
-                  max={5}
-                  min={1}
-                  onChange={(event) => setReviewRating(Number(event.target.value))}
-                  type="range"
-                  value={reviewRating}
-                />
-              </label>
-            </div>
-            <input
-              className="h-11 rounded-lg border border-canopy-900/10 px-3 font-semibold outline-none"
-              onChange={(event) => setReviewTitle(event.target.value)}
-              placeholder="Review title"
-              value={reviewTitle}
-            />
-            <textarea
-              className="min-h-28 resize-none rounded-lg border border-canopy-900/10 p-3 font-semibold leading-6 outline-none"
-              onChange={(event) => setReviewBody(event.target.value)}
-              placeholder="Rate the tee view, shot shape, fun factor, footing, wind, or pin position..."
-              value={reviewBody}
-            />
-            <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-canopy-900/10 px-3 text-sm font-semibold text-ink/60 transition hover:bg-canopy-50">
-              <Camera size={16} aria-hidden />
-              <input
-                accept="image/*"
-                className="sr-only"
-                onChange={(event) => attachReviewPhoto(event.target.files?.[0])}
-                type="file"
-              />
-              {reviewPhotoUrl ? "Photo attached" : "Attach a photo"}
-            </label>
-            {error ? <p className="text-sm font-bold text-clay-700">{error}</p> : null}
-            <button
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-ink px-4 text-sm font-black text-white transition hover:bg-canopy-700 disabled:bg-ink/35"
-              disabled={saving}
-              onClick={postReview}
-              type="button"
+          {!currentUser ? (
+            <Link
+              className="inline-flex h-11 items-center justify-center rounded-full bg-ink px-4 text-sm font-black text-white transition hover:bg-canopy-700"
+              href="/login"
             >
-              <Send size={16} aria-hidden />
-              Post review
-            </button>
-          </div>
+              Log in to review this hole
+            </Link>
+          ) : (
+            <div className="grid gap-3 rounded-lg border border-canopy-900/10 bg-white p-4 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h3 className="text-lg font-black text-ink">Review this hole</h3>
+                <label className="flex items-center gap-2 text-sm font-bold text-ink/65">
+                  {reviewRating}/5
+                  <input
+                    className="accent-canopy-700"
+                    max={5}
+                    min={1}
+                    onChange={(event) => setReviewRating(Number(event.target.value))}
+                    type="range"
+                    value={reviewRating}
+                  />
+                </label>
+              </div>
+              <input
+                className="h-11 rounded-lg border border-canopy-900/10 px-3 font-semibold outline-none"
+                onChange={(event) => setReviewTitle(event.target.value)}
+                placeholder="Review title"
+                value={reviewTitle}
+              />
+              <textarea
+                className="min-h-28 resize-none rounded-lg border border-canopy-900/10 p-3 font-semibold leading-6 outline-none"
+                onChange={(event) => setReviewBody(event.target.value)}
+                placeholder="Rate the tee view, shot shape, fun factor, footing, wind, or pin position..."
+                value={reviewBody}
+              />
+              <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-canopy-900/10 px-3 text-sm font-semibold text-ink/60 transition hover:bg-canopy-50">
+                <Camera size={16} aria-hidden />
+                <input
+                  accept="image/*"
+                  className="sr-only"
+                  onChange={(event) => attachReviewPhoto(event.target.files?.[0])}
+                  type="file"
+                />
+                {reviewPhotoUrl ? "Photo attached" : "Attach a photo"}
+              </label>
+              {error ? <p className="text-sm font-bold text-clay-700">{error}</p> : null}
+              <button
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-ink px-4 text-sm font-black text-white transition hover:bg-canopy-700 disabled:bg-ink/35"
+                disabled={saving}
+                onClick={postReview}
+                type="button"
+              >
+                <Send size={16} aria-hidden />
+                Post review
+              </button>
+            </div>
+          )}
           {reviews.map((review) => (
             <ReviewCard review={review} key={review.id} />
           ))}
@@ -292,85 +298,97 @@ export function HoleSocialClient({ initialPayload }: { initialPayload: HoleSocia
               <Trophy size={16} aria-hidden />
               Best Line
             </p>
-            <LineCard line={bestLine} onVote={vote} top />
+            <LineCard canVote={canVote} line={bestLine} onVote={vote} top />
           </div>
         ) : null}
 
-        <div className="grid gap-3 rounded-lg border border-canopy-900/10 bg-white p-4 shadow-sm">
-          <h2 className="text-xl font-black text-ink">Suggest a line</h2>
-          <input
-            className="h-11 rounded-lg border border-canopy-900/10 px-3 font-semibold outline-none"
-            onChange={(event) => setLineForm({ ...lineForm, name: event.target.value })}
-            placeholder="Safe hyzer, turnover gap, layup zone..."
-            value={lineForm.name}
-          />
-          <textarea
-            className="min-h-24 resize-none rounded-lg border border-canopy-900/10 p-3 font-semibold leading-6 outline-none"
-            onChange={(event) =>
-              setLineForm({ ...lineForm, description: event.target.value })
-            }
-            placeholder="Describe the shape and miss."
-            value={lineForm.description}
-          />
-          <div className="grid grid-cols-2 gap-2">
+        {currentUser ? (
+          <div className="grid gap-3 rounded-lg border border-canopy-900/10 bg-white p-4 shadow-sm">
+            <h2 className="text-xl font-black text-ink">Suggest a line</h2>
+            <input
+              className="h-11 rounded-lg border border-canopy-900/10 px-3 font-semibold outline-none"
+              onChange={(event) =>
+                setLineForm({ ...lineForm, name: event.target.value })
+              }
+              placeholder="Safe hyzer, turnover gap, layup zone..."
+              value={lineForm.name}
+            />
+            <textarea
+              className="min-h-24 resize-none rounded-lg border border-canopy-900/10 p-3 font-semibold leading-6 outline-none"
+              onChange={(event) =>
+                setLineForm({ ...lineForm, description: event.target.value })
+              }
+              placeholder="Describe the shape and miss."
+              value={lineForm.description}
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <select
+                className="h-11 rounded-lg border border-canopy-900/10 px-3 font-semibold outline-none"
+                onChange={(event) =>
+                  setLineForm({ ...lineForm, difficulty: event.target.value as Difficulty })
+                }
+                value={lineForm.difficulty}
+              >
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+              </select>
+              <select
+                className="h-11 rounded-lg border border-canopy-900/10 px-3 font-semibold outline-none"
+                onChange={(event) =>
+                  setLineForm({ ...lineForm, riskLevel: event.target.value as RiskLevel })
+                }
+                value={lineForm.riskLevel}
+              >
+                <option value="low">Low risk</option>
+                <option value="medium">Medium risk</option>
+                <option value="high">High risk</option>
+              </select>
+            </div>
             <select
               className="h-11 rounded-lg border border-canopy-900/10 px-3 font-semibold outline-none"
               onChange={(event) =>
-                setLineForm({ ...lineForm, difficulty: event.target.value as Difficulty })
+                setLineForm({ ...lineForm, tag: event.target.value as LineTag })
               }
-              value={lineForm.difficulty}
+              value={lineForm.tag}
             >
-              <option value="beginner">Beginner</option>
-              <option value="intermediate">Intermediate</option>
-              <option value="advanced">Advanced</option>
+              <option value="safe">Safe</option>
+              <option value="aggressive">Aggressive</option>
+              <option value="scramble">Scramble</option>
             </select>
-            <select
+            <input
               className="h-11 rounded-lg border border-canopy-900/10 px-3 font-semibold outline-none"
               onChange={(event) =>
-                setLineForm({ ...lineForm, riskLevel: event.target.value as RiskLevel })
+                setLineForm({ ...lineForm, discSuggestion: event.target.value })
               }
-              value={lineForm.riskLevel}
+              placeholder="Disc suggestion"
+              value={lineForm.discSuggestion}
+            />
+            <button
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-ink px-4 text-sm font-black text-white transition hover:bg-canopy-700 disabled:bg-ink/35"
+              disabled={saving}
+              onClick={postLine}
+              type="button"
             >
-              <option value="low">Low risk</option>
-              <option value="medium">Medium risk</option>
-              <option value="high">High risk</option>
-            </select>
+              <Disc3 size={16} aria-hidden />
+              Add line
+            </button>
           </div>
-          <select
-            className="h-11 rounded-lg border border-canopy-900/10 px-3 font-semibold outline-none"
-            onChange={(event) =>
-              setLineForm({ ...lineForm, tag: event.target.value as LineTag })
-            }
-            value={lineForm.tag}
+        ) : (
+          <Link
+            className="inline-flex h-11 items-center justify-center rounded-full bg-ink px-4 text-sm font-black text-white transition hover:bg-canopy-700"
+            href="/login"
           >
-            <option value="safe">Safe</option>
-            <option value="aggressive">Aggressive</option>
-            <option value="scramble">Scramble</option>
-          </select>
-          <input
-            className="h-11 rounded-lg border border-canopy-900/10 px-3 font-semibold outline-none"
-            onChange={(event) =>
-              setLineForm({ ...lineForm, discSuggestion: event.target.value })
-            }
-            placeholder="Disc suggestion"
-            value={lineForm.discSuggestion}
-          />
-          <button
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-ink px-4 text-sm font-black text-white transition hover:bg-canopy-700 disabled:bg-ink/35"
-            disabled={saving}
-            onClick={postLine}
-            type="button"
-          >
-            <Disc3 size={16} aria-hidden />
-            Add line
-          </button>
-        </div>
+            Log in to suggest a line
+          </Link>
+        )}
 
         <div className="grid gap-3">
           <h2 className="text-2xl font-black text-ink">All Lines</h2>
           {lines.map((line) => (
             <LineCard
               key={line.id}
+              canVote={canVote}
               line={line}
               onVote={vote}
               top={line.id === bestLine?.id}
@@ -416,11 +434,13 @@ function ReviewCard({ review }: { review: HoleReviewCard }) {
 function LineCard({
   line,
   onVote,
-  top
+  top,
+  canVote
 }: {
   line: BestLine;
   onVote: (lineId: number, value: "up" | "down") => void;
   top?: boolean;
+  canVote: boolean;
 }) {
   return (
     <article className="rounded-lg border border-canopy-900/10 bg-white p-4 shadow-sm">
@@ -462,7 +482,8 @@ function LineCard({
       ) : null}
       <div className="mt-4 grid grid-cols-2 gap-2">
         <button
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-canopy-50 text-sm font-black text-canopy-700 transition hover:bg-canopy-100"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-canopy-50 text-sm font-black text-canopy-700 transition hover:bg-canopy-100 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={!canVote}
           onClick={() => onVote(line.id, "up")}
           type="button"
         >
@@ -470,7 +491,8 @@ function LineCard({
           {line.upvotes}
         </button>
         <button
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-clay-100 text-sm font-black text-clay-700 transition hover:bg-clay-300/45"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-clay-100 text-sm font-black text-clay-700 transition hover:bg-clay-300/45 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={!canVote}
           onClick={() => onVote(line.id, "down")}
           type="button"
         >

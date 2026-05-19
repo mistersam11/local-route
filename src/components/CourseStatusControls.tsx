@@ -8,11 +8,9 @@ type CourseStatus = "pending" | "approved" | "rejected";
 
 export function CourseStatusControls({
   courseId,
-  currentUserId,
   initialStatus
 }: {
   courseId: number;
-  currentUserId: number;
   initialStatus: CourseStatus;
 }) {
   const router = useRouter();
@@ -27,8 +25,7 @@ export function CourseStatusControls({
         const response = await fetch(`/api/courses/${courseId}`, {
           method: "PATCH",
           headers: {
-            "Content-Type": "application/json",
-            "x-demo-user-id": String(currentUserId)
+            "Content-Type": "application/json"
           },
           body: JSON.stringify({ status: nextStatus })
         });

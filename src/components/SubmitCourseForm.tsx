@@ -34,7 +34,7 @@ function readPhoto(file: File | undefined, onLoad: (value: string) => void) {
   reader.readAsDataURL(file);
 }
 
-export function SubmitCourseForm({ currentUserId }: { currentUserId: number }) {
+export function SubmitCourseForm() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [locationName, setLocationName] = useState("");
@@ -85,8 +85,7 @@ export function SubmitCourseForm({ currentUserId }: { currentUserId: number }) {
         const response = await fetch("/api/courses", {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
-            "x-demo-user-id": String(currentUserId)
+            "Content-Type": "application/json"
           },
           body: JSON.stringify({
             name,

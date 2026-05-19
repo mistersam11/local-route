@@ -1,20 +1,16 @@
 import { NextResponse } from "next/server";
-import { getRequestUserId } from "@/lib/current-user";
+import { getFollowingIds, getRequestUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 import { serializeCourseReview, serializeHoleReview, serializeLine } from "@/lib/social-data";
 
 export async function GET(request: Request) {
-  const currentUserId = await getRequestUserId(request);
+  const currentUser = await getRequestUser(request);
   const { searchParams } = new URL(request.url);
   const rawCourseId = searchParams.get("courseId");
   const courseId = rawCourseId ? Number(rawCourseId) : null;
   const followedOnly = searchParams.get("following") === "true";
 
-  const following = await prisma.follow.findMany({
-    where: { followerId: currentUserId },
-    select: { followingId: true }
-  });
-  const followingIds = new Set(following.map((follow) => follow.followingId));
+  const followingIds = await getFollowingIds(currentUser?.id);
 
   const [lines, reviews, holeReviews] = await Promise.all([
     prisma.line.findMany({

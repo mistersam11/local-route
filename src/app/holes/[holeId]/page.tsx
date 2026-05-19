@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { HoleSocialClient } from "@/components/HoleSocialClient";
-import { getDemoUserId } from "@/lib/current-user";
+import { getCurrentUser } from "@/lib/current-user";
 import { getHoleSocialPayload } from "@/lib/social-data";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +18,8 @@ export default async function HolePage({ params }: HolePageProps) {
     notFound();
   }
 
-  const payload = await getHoleSocialPayload(holeId, await getDemoUserId());
+  const currentUser = await getCurrentUser();
+  const payload = await getHoleSocialPayload(holeId, currentUser?.id ?? null);
 
   if (!payload) {
     notFound();

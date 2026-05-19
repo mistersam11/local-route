@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { getCurrentUser, getFollowingIds } from "@/lib/current-user";
+import { getFollowingIds } from "@/lib/current-user";
 import type {
   BestLine,
   CourseReviewCard,
@@ -132,10 +132,15 @@ export function sortLines(lines: BestLine[], sort: string | null) {
 
 export async function getHoleSocialPayload(
   holeId: number,
-  currentUserId = 1
+  currentUserId?: number | null
 ): Promise<HoleSocialPayload | null> {
   const [currentUser, followingIds, hole] = await Promise.all([
-    getCurrentUser(currentUserId),
+    currentUserId
+      ? prisma.user.findUnique({
+          where: { id: currentUserId },
+          select: { id: true, username: true, profileImageUrl: true }
+        })
+      : Promise.resolve(null),
     getFollowingIds(currentUserId),
     prisma.hole.findUnique({
       where: { id: holeId },
@@ -182,7 +187,7 @@ export async function getHoleSocialPayload(
 
 export async function getSerializedLinesForHole(
   holeId: number,
-  currentUserId: number,
+  currentUserId: number | null | undefined,
   sort: string | null
 ) {
   const [followingIds, lines] = await Promise.all([

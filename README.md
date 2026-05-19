@@ -13,6 +13,7 @@ LocalRoute is a Letterboxd-style MVP for disc golf. Players can rate courses and
 - Course submission form with dynamic hole setup and photo attachments
 - Pending/approved/rejected course moderation status
 - User profiles with course reviews, suggested lines, and following list
+- Real email/username account signup and login
 - Follow/unfollow users
 - Prisma schema for users, courses, course status, holes, course reviews, hole reviews, lines, line votes, and follows
 
@@ -97,7 +98,7 @@ For public access from other networks, deploy it instead of running it from your
 - Prisma Postgres, Neon, Supabase, or Railway Postgres for the database
 - Object storage such as UploadThing, S3, or Cloudinary for durable image uploads
 
-Before public launch, replace the demo user system with real authentication and move the MVP data-URL photo storage to durable object storage.
+Before public launch, move the MVP data-URL photo storage to durable object storage.
 
 ## Demo Data
 
@@ -112,11 +113,15 @@ The seed creates:
 - Submitted courses with pending approval status
 - Suggested lines with difficulty, risk, disc suggestions, tags, and votes
 
-The UI uses `DEMO_USERNAME`, defaulting to `sam`, as the demo signed-in player.
-Sam is also the demo admin for approving or rejecting submitted courses.
+All new users sign up with an email, username, and password. Set `ADMIN_EMAILS`
+to a comma-separated list of owner emails to grant admin moderation access.
+The seeded demo users use the password `localroute-demo`.
 
 ## API Routes
 
+- `POST /api/auth/signup`
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
 - `GET /api/courses`
 - `POST /api/courses`
 - `GET /api/courses/:courseId`
@@ -132,7 +137,7 @@ Sam is also the demo admin for approving or rejecting submitted courses.
 - `DELETE /api/users/:userId/follow`
 - `GET /api/feed`
 
-Pass `x-demo-user-id` to API requests to change the acting user.
+Write actions use the signed-in user's secure session cookie.
 
 ## Future Map Work
 

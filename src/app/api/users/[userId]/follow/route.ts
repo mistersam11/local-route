@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getRequestUserId } from "@/lib/current-user";
+import { getRequestUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
 type Params = {
@@ -10,7 +10,13 @@ type Params = {
 
 export async function POST(request: Request, { params }: Params) {
   const followingId = Number(params.userId);
-  const followerId = await getRequestUserId(request);
+  const currentUser = await getRequestUser(request);
+
+  if (!currentUser) {
+    return NextResponse.json({ error: "Log in to follow players" }, { status: 401 });
+  }
+
+  const followerId = currentUser.id;
 
   if (!Number.isInteger(followingId)) {
     return NextResponse.json({ error: "Invalid user id" }, { status: 400 });
@@ -31,7 +37,13 @@ export async function POST(request: Request, { params }: Params) {
 
 export async function DELETE(request: Request, { params }: Params) {
   const followingId = Number(params.userId);
-  const followerId = await getRequestUserId(request);
+  const currentUser = await getRequestUser(request);
+
+  if (!currentUser) {
+    return NextResponse.json({ error: "Log in to follow players" }, { status: 401 });
+  }
+
+  const followerId = currentUser.id;
 
   if (!Number.isInteger(followingId)) {
     return NextResponse.json({ error: "Invalid user id" }, { status: 400 });

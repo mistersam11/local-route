@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CirclePlus, Map, UserRound } from "lucide-react";
+import { CirclePlus, LogIn, LogOut, Map, UserPlus, UserRound } from "lucide-react";
+import { getCurrentUser } from "@/lib/current-user";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,8 +14,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const demoUserId = Number(process.env.DEMO_USER_ID ?? "1");
-  const demoUsername = process.env.DEMO_USERNAME ?? "sam";
+  const currentUser = await getCurrentUser();
 
   return (
     <html lang="en">
@@ -41,13 +41,43 @@ export default async function RootLayout({
                 <CirclePlus size={16} aria-hidden />
                 Submit
               </Link>
-              <Link
-                href={`/profiles/${Number.isInteger(demoUserId) ? demoUserId : 1}`}
-                className="flex items-center gap-2 rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"
-              >
-                <UserRound size={16} aria-hidden />
-                @{demoUsername}
-              </Link>
+              {currentUser ? (
+                <>
+                  <Link
+                    href={`/profiles/${currentUser.id}`}
+                    className="flex items-center gap-2 rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"
+                  >
+                    <UserRound size={16} aria-hidden />
+                    @{currentUser.username}
+                  </Link>
+                  <form action="/api/auth/logout" method="post">
+                    <button
+                      className="flex items-center gap-2 rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"
+                      type="submit"
+                    >
+                      <LogOut size={16} aria-hidden />
+                      Log out
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="flex items-center gap-2 rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"
+                  >
+                    <LogIn size={16} aria-hidden />
+                    Log in
+                  </Link>
+                  <Link
+                    href="/signup"
+                    className="flex items-center gap-2 rounded-full bg-ink px-3 py-2 text-white transition hover:bg-canopy-700"
+                  >
+                    <UserPlus size={16} aria-hidden />
+                    Sign up
+                  </Link>
+                </>
+              )}
             </nav>
           </div>
         </header>

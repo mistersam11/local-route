@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getRequestUserId } from "@/lib/current-user";
+import { getRequestUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 import { includeHoleReviewAuthor, serializeHoleReview } from "@/lib/social-data";
 
@@ -14,6 +14,12 @@ export async function POST(request: Request, { params }: Params) {
 
   if (!Number.isInteger(holeId)) {
     return NextResponse.json({ error: "Invalid hole id" }, { status: 400 });
+  }
+
+  const currentUser = await getRequestUser(request);
+
+  if (!currentUser) {
+    return NextResponse.json({ error: "Log in to review holes" }, { status: 401 });
   }
 
   const body = (await request.json()) as Record<string, unknown>;
@@ -32,7 +38,7 @@ export async function POST(request: Request, { params }: Params) {
   const review = await prisma.holeReview.create({
     data: {
       holeId,
-      userId: await getRequestUserId(request),
+      userId: currentUser.id,
       rating,
       title: title || null,
       body: text,

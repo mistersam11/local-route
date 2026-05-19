@@ -5,6 +5,7 @@ import {
   ArrowRight,
   Disc3,
   Flag,
+  LogIn,
   MapPin,
   MessageSquare,
   Star
@@ -13,7 +14,7 @@ import { Avatar } from "@/components/Avatar";
 import { CourseReviewForm } from "@/components/CourseReviewForm";
 import { CourseStatusControls } from "@/components/CourseStatusControls";
 import { Stars } from "@/components/Stars";
-import { getDemoUserId } from "@/lib/current-user";
+import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -31,8 +32,8 @@ export default async function CoursePage({ params }: CoursePageProps) {
     notFound();
   }
 
-  const demoUserId = await getDemoUserId();
-  const [course, recentActivity, currentUser] = await Promise.all([
+  const [currentUser, course, recentActivity] = await Promise.all([
+    getCurrentUser(),
     prisma.course.findUnique({
       where: { id: courseId },
       include: {
@@ -68,10 +69,6 @@ export default async function CoursePage({ params }: CoursePageProps) {
       },
       orderBy: { createdAt: "desc" },
       take: 5
-    }),
-    prisma.user.findUnique({
-      where: { id: demoUserId },
-      select: { isAdmin: true }
     })
   ]);
 
@@ -155,12 +152,21 @@ export default async function CoursePage({ params }: CoursePageProps) {
         {currentUser?.isAdmin ? (
           <CourseStatusControls
             courseId={course.id}
-            currentUserId={demoUserId}
             initialStatus={course.status}
           />
         ) : null}
 
-        <CourseReviewForm courseId={course.id} currentUserId={demoUserId} />
+        {currentUser ? (
+          <CourseReviewForm courseId={course.id} />
+        ) : (
+          <Link
+            className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-full bg-ink px-5 text-sm font-black text-white transition hover:bg-canopy-700"
+            href={`/login?redirectTo=/courses/${course.id}`}
+          >
+            <LogIn size={16} aria-hidden />
+            Log in to review
+          </Link>
+        )}
 
         <section>
           <h2 className="mb-3 text-2xl font-black text-ink">Reviews</h2>

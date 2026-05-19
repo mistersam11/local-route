@@ -37,77 +37,91 @@ enum CourseStatus {
 }
 
 model User {
-  id              Int             @id @default(autoincrement())
-  username        String          @unique
-  email           String          @unique
+  id              Int      @id @default(autoincrement())
+  username        String   @unique
+  email           String   @unique
   passwordHash    String
   profileImageUrl String?
-  isAdmin         Boolean         @default(false)
-  createdAt       DateTime        @default(now())
+  isAdmin         Boolean  @default(false)
+  createdAt       DateTime @default(now())
 
-  courseReviews   CourseReview[]
-  holeReviews     HoleReview[]
-  lines           Line[]
+  courseReviews    CourseReview[]
+  holeReviews      HoleReview[]
+  lines            Line[]
   submittedCourses Course[]       @relation("SubmittedCourses")
-  following       Follow[]        @relation("Follower")
-  followers       Follow[]        @relation("Following")
-  lineVotes       LineVote[]
+  following        Follow[]       @relation("Follower")
+  followers        Follow[]       @relation("Following")
+  lineVotes        LineVote[]
+  sessions         Session[]
+}
+
+model Session {
+  id        Int      @id @default(autoincrement())
+  tokenHash String   @unique
+  userId    Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Course {
-  id            Int            @id @default(autoincrement())
+  id            Int          @id @default(autoincrement())
   name          String
   locationName  String
   latitude      Float?
   longitude     Float?
   coverPhotoUrl String?
-  status        CourseStatus   @default(pending)
+  status        CourseStatus @default(pending)
   submittedById Int?
-  createdAt     DateTime       @default(now())
+  createdAt     DateTime     @default(now())
 
-  holes         Hole[]
-  reviews       CourseReview[]
-  submittedBy   User?          @relation("SubmittedCourses", fields: [submittedById], references: [id], onDelete: SetNull)
+  holes       Hole[]
+  reviews     CourseReview[]
+  submittedBy User?          @relation("SubmittedCourses", fields: [submittedById], references: [id], onDelete: SetNull)
 
   @@index([status])
   @@index([submittedById])
 }
 
 model Hole {
-  id             Int           @id @default(autoincrement())
-  courseId       Int
-  holeNumber     Int
-  par            Int?
-  distanceFeet   Int?
-  description    String?
-  teePhotoUrl    String?
-  teeLat         Float?
-  teeLng         Float?
-  basketLat      Float?
-  basketLng      Float?
-  createdAt      DateTime      @default(now())
+  id           Int      @id @default(autoincrement())
+  courseId     Int
+  holeNumber   Int
+  par          Int?
+  distanceFeet Int?
+  description  String?
+  teePhotoUrl  String?
+  teeLat       Float?
+  teeLng       Float?
+  basketLat    Float?
+  basketLng    Float?
+  createdAt    DateTime @default(now())
 
-  course         Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  reviews        HoleReview[]
-  lines          Line[]
+  course  Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  reviews HoleReview[]
+  lines   Line[]
 
   @@unique([courseId, holeNumber])
   @@index([courseId])
 }
 
 model CourseReview {
-  id          Int      @id @default(autoincrement())
-  courseId    Int
-  userId      Int
-  rating      Int
-  title       String?
-  body        String
-  photoUrl    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  courseId  Int
+  userId    Int
+  rating    Int
+  title     String?
+  body      String
+  photoUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([courseId, createdAt])
   @@index([userId])
@@ -124,8 +138,8 @@ model HoleReview {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  hole      Hole     @relation(fields: [holeId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hole Hole @relation(fields: [holeId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([holeId, createdAt])
   @@index([userId])
@@ -145,9 +159,9 @@ model Line {
   downvotes      Int        @default(0)
   createdAt      DateTime   @default(now())
 
-  hole           Hole       @relation(fields: [holeId], references: [id], onDelete: Cascade)
-  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  votes          LineVote[]
+  hole  Hole       @relation(fields: [holeId], references: [id], onDelete: Cascade)
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  votes LineVote[]
 
   @@index([holeId, createdAt])
   @@index([userId])
@@ -160,8 +174,8 @@ model LineVote {
   value     VoteValue
   createdAt DateTime  @default(now())
 
-  line      Line      @relation(fields: [lineId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  line Line @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([lineId, userId])
   @@index([userId])
@@ -173,8 +187,8 @@ model Follow {
   followingId Int
   createdAt   DateTime @default(now())
 
-  follower    User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
-  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+  follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
 
   @@unique([followerId, followingId])
   @@index([followingId])

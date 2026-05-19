@@ -1,6 +1,6 @@
 import { CourseStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { getRequestUserId } from "@/lib/current-user";
+import { getRequestUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
 type Params = {
@@ -53,11 +53,7 @@ export async function PATCH(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid course id" }, { status: 400 });
   }
 
-  const currentUserId = await getRequestUserId(request);
-  const currentUser = await prisma.user.findUnique({
-    where: { id: currentUserId },
-    select: { isAdmin: true }
-  });
+  const currentUser = await getRequestUser(request);
 
   if (!currentUser?.isAdmin) {
     return NextResponse.json({ error: "Admin access required" }, { status: 403 });

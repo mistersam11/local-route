@@ -6,13 +6,11 @@ import type { CourseReviewCard } from "@/lib/types";
 
 type CourseReviewFormProps = {
   courseId: number;
-  currentUserId: number;
   onCreated?: (review: CourseReviewCard) => void;
 };
 
 export function CourseReviewForm({
   courseId,
-  currentUserId,
   onCreated
 }: CourseReviewFormProps) {
   const [rating, setRating] = useState(4);
@@ -43,8 +41,7 @@ export function CourseReviewForm({
         const response = await fetch(`/api/courses/${courseId}/reviews`, {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
-            "x-demo-user-id": String(currentUserId)
+            "Content-Type": "application/json"
           },
           body: JSON.stringify({ rating, title, body, photoUrl })
         });

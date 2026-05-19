@@ -1,6 +1,6 @@
 import { Difficulty, LineTag, RiskLevel } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { getFollowingIds, getRequestUserId } from "@/lib/current-user";
+import { getFollowingIds, getRequestUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 import {
   getSerializedLinesForHole,
@@ -29,9 +29,9 @@ export async function GET(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid hole id" }, { status: 400 });
   }
 
-  const currentUserId = await getRequestUserId(request);
+  const currentUser = await getRequestUser(request);
   const sort = new URL(request.url).searchParams.get("sort");
-  const lines = await getSerializedLinesForHole(holeId, currentUserId, sort);
+  const lines = await getSerializedLinesForHole(holeId, currentUser?.id, sort);
 
   return NextResponse.json({ lines });
 }
@@ -44,8 +44,12 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const body = (await request.json()) as Record<string, unknown>;
-  const currentUserId = await getRequestUserId(request);
+  const currentUser = await getRequestUser(request);
   const name = String(body.name ?? "").trim();
+
+  if (!currentUser) {
+    return NextResponse.json({ error: "Log in to suggest a line" }, { status: 401 });
+  }
 
   if (name.length < 2) {
     return NextResponse.json({ error: "Line name is required" }, { status: 400 });
@@ -60,7 +64,7 @@ export async function POST(request: Request, { params }: Params) {
   const line = await prisma.line.create({
     data: {
       holeId,
-      userId: currentUserId,
+      userId: currentUser.id,
       name,
       description: String(body.description ?? "").trim() || null,
       difficulty: enumValue(Difficulty, body.difficulty, Difficulty.intermediate),
@@ -71,7 +75,7 @@ export async function POST(request: Request, { params }: Params) {
     include: includeLineAuthor
   });
 
-  const followingIds = await getFollowingIds(currentUserId);
+  const followingIds = await getFollowingIds(currentUser.id);
 
   return NextResponse.json({ line: serializeLine(line, followingIds) }, { status: 201 });
 }

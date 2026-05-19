@@ -1,6 +1,6 @@
 import { VoteValue } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { getFollowingIds, getRequestUserId } from "@/lib/current-user";
+import { getFollowingIds, getRequestUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 import { includeLineAuthor, serializeLine } from "@/lib/social-data";
 
@@ -21,7 +21,12 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid line id" }, { status: 400 });
   }
 
-  const currentUserId = await getRequestUserId(request);
+  const currentUser = await getRequestUser(request);
+
+  if (!currentUser) {
+    return NextResponse.json({ error: "Log in to vote" }, { status: 401 });
+  }
+
   const body = (await request.json()) as { value?: unknown };
   const value = parseVote(body.value);
   const lineExists = await prisma.line.findUnique({
@@ -34,7 +39,7 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const existing = await prisma.lineVote.findUnique({
-    where: { lineId_userId: { lineId, userId: currentUserId } }
+    where: { lineId_userId: { lineId, userId: currentUser.id } }
   });
 
   let upDelta = 0;
@@ -52,7 +57,7 @@ export async function POST(request: Request, { params }: Params) {
 
   if (!existing) {
     await prisma.lineVote.create({
-      data: { lineId, userId: currentUserId, value }
+      data: { lineId, userId: currentUser.id, value }
     });
   } else if (existing.value !== value) {
     await prisma.lineVote.update({
@@ -80,7 +85,7 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Line not found" }, { status: 404 });
   }
 
-  const followingIds = await getFollowingIds(currentUserId);
+  const followingIds = await getFollowingIds(currentUser.id);
 
   return NextResponse.json({ line: serializeLine(line, followingIds) });
 }

@@ -1,8 +1,10 @@
 import { PrismaClient, Prisma } from "@prisma/client";
+import { hashPassword } from "../src/lib/password";
 
 const prisma = new PrismaClient();
 
 async function main() {
+  await prisma.session.deleteMany();
   await prisma.lineVote.deleteMany();
   await prisma.follow.deleteMany();
   await prisma.line.deleteMany();
@@ -12,12 +14,13 @@ async function main() {
   await prisma.course.deleteMany();
   await prisma.user.deleteMany();
 
+  const demoPasswordHash = await hashPassword("localroute-demo");
   const [sam, nate, maya, ellis] = await Promise.all([
     prisma.user.create({
       data: {
         username: "sam",
         email: "sam@example.com",
-        passwordHash: "demo-password-hash",
+        passwordHash: demoPasswordHash,
         isAdmin: true,
         profileImageUrl: "https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=240&q=80"
       }
@@ -26,7 +29,7 @@ async function main() {
       data: {
         username: "natehyzer",
         email: "nate@example.com",
-        passwordHash: "demo-password-hash",
+        passwordHash: demoPasswordHash,
         profileImageUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=240&q=80"
       }
     }),
@@ -34,7 +37,7 @@ async function main() {
       data: {
         username: "mayaforehand",
         email: "maya@example.com",
-        passwordHash: "demo-password-hash",
+        passwordHash: demoPasswordHash,
         profileImageUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=240&q=80"
       }
     }),
@@ -42,7 +45,7 @@ async function main() {
       data: {
         username: "ellislines",
         email: "ellis@example.com",
-        passwordHash: "demo-password-hash",
+        passwordHash: demoPasswordHash,
         profileImageUrl: "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?auto=format&fit=crop&w=240&q=80"
       }
     })

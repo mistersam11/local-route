@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getRequestUserId } from "@/lib/current-user";
+import { getRequestUser } from "@/lib/current-user";
 import { getHoleSocialPayload } from "@/lib/social-data";
 
 type Params = {
@@ -15,7 +15,8 @@ export async function GET(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Invalid hole id" }, { status: 400 });
   }
 
-  const payload = await getHoleSocialPayload(holeId, await getRequestUserId(request));
+  const currentUser = await getRequestUser(request);
+  const payload = await getHoleSocialPayload(holeId, currentUser?.id);
 
   if (!payload) {
     return NextResponse.json({ error: "Hole not found" }, { status: 404 });
