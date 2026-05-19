@@ -7,7 +7,7 @@ export async function POST(request: Request) {
   const currentUser = await getRequestUser(request);
 
   if (!currentUser) {
-    return NextResponse.json({ error: "Log in to create a thread" }, { status: 401 });
+    return NextResponse.json({ error: "Log in to start a chain" }, { status: 401 });
   }
 
   const body = (await request.json()) as Record<string, unknown>;
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
 
   if (title.length < 4 || postBody.length < 4) {
     return NextResponse.json(
-      { error: "Title and post body are required" },
+      { error: "Title and chain body are required" },
       { status: 400 }
     );
   }

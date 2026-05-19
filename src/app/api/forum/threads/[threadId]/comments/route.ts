@@ -14,7 +14,7 @@ export async function POST(request: Request, { params }: Params) {
   const threadId = Number(params.threadId);
 
   if (!Number.isInteger(threadId)) {
-    return NextResponse.json({ error: "Invalid thread id" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid chain id" }, { status: 400 });
   }
 
   const currentUser = await getRequestUser(request);
@@ -36,7 +36,7 @@ export async function POST(request: Request, { params }: Params) {
   });
 
   if (!thread) {
-    return NextResponse.json({ error: "Thread not found" }, { status: 404 });
+    return NextResponse.json({ error: "Chain not found" }, { status: 404 });
   }
 
   try {

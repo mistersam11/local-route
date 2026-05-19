@@ -44,7 +44,7 @@ export function ForumCommentForm({ threadId }: { threadId: number }) {
       <textarea
         className="min-h-24 resize-none rounded-lg border border-canopy-900/10 p-3 font-semibold leading-6 outline-none"
         onChange={(event) => setBody(event.target.value)}
-        placeholder="Add to the thread"
+        placeholder="Add to the chain"
         value={body}
       />
       {error ? <p className="text-sm font-bold text-clay-700">{error}</p> : null}

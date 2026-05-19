@@ -2,8 +2,8 @@ import { ContentStatus } from "@prisma/client";
 import Link from "next/link";
 import { LogIn, MessageSquare, Search } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
+import { ForumComposer } from "@/components/ForumComposer";
 import { ForumRulesModal } from "@/components/ForumRulesModal";
-import { ForumThreadForm } from "@/components/ForumThreadForm";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
@@ -87,7 +87,7 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
               className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-ink/45"
               defaultValue={query}
               name="q"
-              placeholder="Search threads"
+              placeholder="Search chains"
             />
           </label>
           <button
@@ -100,13 +100,13 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
       </section>
 
       {currentUser ? (
-        <ForumThreadForm />
+        <ForumComposer />
       ) : (
         <section className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-canopy-900/10 bg-white p-4 shadow-sm">
           <div>
             <h2 className="text-xl font-black text-ink">Join the conversation</h2>
             <p className="mt-1 text-sm font-semibold text-ink/60">
-              Log in to create threads and comment.
+              Log in to start chains and comment.
             </p>
           </div>
           <Link
@@ -184,9 +184,9 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
       {!threads.length ? (
         <section className="rounded-lg bg-white p-8 text-center shadow-sm">
           <MessageSquare className="mx-auto text-canopy-700" size={32} aria-hidden />
-          <h2 className="mt-4 text-2xl font-black text-ink">No threads found</h2>
+          <h2 className="mt-4 text-2xl font-black text-ink">No chains found</h2>
           <p className="mt-2 text-sm font-semibold text-ink/55">
-            Start a new one or try another search.
+            Start a new chain or try another search.
           </p>
         </section>
       ) : null}

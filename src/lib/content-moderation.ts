@@ -9,7 +9,7 @@ export const moderationTargetLabels: Record<ModerationTargetType, string> = {
   courseReview: "Course review",
   holeReview: "Hole review",
   line: "Best line",
-  forumThread: "Forum thread",
+  forumThread: "Forum chain",
   forumComment: "Forum comment"
 };
 

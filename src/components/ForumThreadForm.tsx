@@ -7,7 +7,7 @@ import { uploadImage } from "@/lib/cloudinary-upload";
 
 const maxThreadPhotos = 10;
 
-export function ForumThreadForm() {
+export function ForumThreadForm({ onCancel }: { onCancel?: () => void }) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -24,7 +24,7 @@ export function ForumThreadForm() {
     const selectedFiles = Array.from(files).slice(0, remainingSlots);
 
     if (!remainingSlots) {
-      setError("Threads can have up to 10 photos.");
+      setError("Chains can have up to 10 photos.");
       return;
     }
 
@@ -49,7 +49,7 @@ export function ForumThreadForm() {
     });
 
     if (files.length > remainingSlots) {
-      setError("Threads can have up to 10 photos.");
+      setError("Chains can have up to 10 photos.");
     }
   }
 
@@ -73,7 +73,7 @@ export function ForumThreadForm() {
 
         if (!response.ok) {
           const payload = (await response.json()) as { error?: string };
-          setError(payload.error ?? "Thread could not be posted");
+          setError(payload.error ?? "Chain could not be posted");
           return;
         }
 
@@ -88,7 +88,18 @@ export function ForumThreadForm() {
 
   return (
     <section className="grid gap-3 rounded-lg border border-canopy-900/10 bg-[#fffdf7] p-4 shadow-sm">
-      <h2 className="text-xl font-black text-ink">Start a thread</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-black text-ink">Start a chain</h2>
+        {onCancel ? (
+          <button
+            className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-ink/55 shadow-sm transition hover:bg-canopy-50 hover:text-canopy-700"
+            onClick={onCancel}
+            type="button"
+          >
+            Cancel
+          </button>
+        ) : null}
+      </div>
       <input
         className="h-11 rounded-lg border border-canopy-900/10 bg-white px-3 font-semibold outline-none"
         onChange={(event) => setTitle(event.target.value)}
@@ -145,7 +156,7 @@ export function ForumThreadForm() {
         type="button"
       >
         <Send size={16} aria-hidden />
-        {isUploading ? "Uploading photos" : saving ? "Posting" : "Post thread"}
+        {isUploading ? "Uploading photos" : saving ? "Posting" : "Post chain"}
       </button>
     </section>
   );
