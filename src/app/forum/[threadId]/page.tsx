@@ -37,6 +37,7 @@ export default async function ForumThreadPage({ params }: ForumThreadPageProps) 
       where: { id: threadId, status: ContentStatus.visible },
       include: {
         user: { select: { id: true, username: true, profileImageUrl: true } },
+        photos: { orderBy: { sortOrder: "asc" } },
         comments: {
           where: { status: ContentStatus.visible },
           include: {
@@ -84,6 +85,28 @@ export default async function ForumThreadPage({ params }: ForumThreadPageProps) 
         <p className="mt-5 whitespace-pre-wrap text-base font-semibold leading-7 text-ink/70">
           {thread.body}
         </p>
+        {thread.photos.length ? (
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {thread.photos.map((photo, index) => (
+              <a
+                className={`relative overflow-hidden rounded-lg bg-ink ${
+                  thread.photos.length === 1 || index === 0
+                    ? "min-h-80 sm:col-span-2"
+                    : "min-h-56"
+                }`}
+                href={photo.url}
+                key={photo.id}
+                target="_blank"
+              >
+                <img
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover"
+                  src={photo.url}
+                />
+              </a>
+            ))}
+          </div>
+        ) : null}
       </article>
 
       <section className="grid gap-4">

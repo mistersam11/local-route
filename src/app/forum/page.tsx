@@ -55,6 +55,10 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
           },
           orderBy: { createdAt: "desc" },
           take: 1
+        },
+        photos: {
+          orderBy: { sortOrder: "asc" },
+          take: 4
         }
       },
       orderBy: { createdAt: "desc" },
@@ -137,6 +141,22 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
                   {thread._count.comments}
                 </span>
               </div>
+              {thread.photos.length ? (
+                <div className="grid grid-cols-4 gap-2">
+                  {thread.photos.map((photo) => (
+                    <div
+                      className="relative h-24 overflow-hidden rounded-lg bg-ink"
+                      key={photo.id}
+                    >
+                      <img
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-cover transition group-hover:scale-105"
+                        src={photo.url}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : null}
               <div className="flex flex-wrap items-center justify-between gap-3 text-sm font-bold text-ink/60">
                 <span className="flex items-center gap-2">
                   <Avatar

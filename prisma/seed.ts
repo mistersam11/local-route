@@ -400,6 +400,18 @@ async function main() {
       userId: sam.id,
       title: "Cedar Ridge conditions this week",
       body: "Fairways are playing great, but the rough is tall on holes 2 and 4. Bring a spotter if you are testing new drivers.",
+      photos: {
+        create: [
+          {
+            url: "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1200&q=80",
+            sortOrder: 1
+          },
+          {
+            url: "https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?auto=format&fit=crop&w=1200&q=80",
+            sortOrder: 2
+          }
+        ]
+      },
       comments: {
         create: [
           {

@@ -13,6 +13,12 @@ export async function POST(request: Request) {
   const body = (await request.json()) as Record<string, unknown>;
   const title = String(body.title ?? "").trim();
   const postBody = String(body.body ?? "").trim();
+  const photoUrls = Array.isArray(body.photoUrls)
+    ? body.photoUrls
+        .map((url) => String(url ?? "").trim())
+        .filter((url) => url.startsWith("https://"))
+        .slice(0, 10)
+    : [];
 
   if (title.length < 4 || postBody.length < 4) {
     return NextResponse.json(
@@ -37,7 +43,13 @@ export async function POST(request: Request) {
     data: {
       userId: currentUser.id,
       title,
-      body: postBody
+      body: postBody,
+      photos: {
+        create: photoUrls.map((url, index) => ({
+          url,
+          sortOrder: index + 1
+        }))
+      }
     },
     select: { id: true }
   });

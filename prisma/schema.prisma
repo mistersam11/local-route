@@ -294,11 +294,24 @@ model ForumThread {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
-  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   comments ForumComment[]
+  photos   ForumThreadPhoto[]
 
   @@index([status, createdAt])
   @@index([userId, createdAt])
+}
+
+model ForumThreadPhoto {
+  id        Int      @id @default(autoincrement())
+  threadId  Int
+  url       String
+  sortOrder Int
+  createdAt DateTime @default(now())
+
+  thread ForumThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, sortOrder])
 }
 
 model ForumComment {

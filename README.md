@@ -13,7 +13,7 @@ LocalRoute is a Letterboxd-style MVP for disc golf. Players can rate courses and
 - Course submission form with difficulty, amenities, dynamic hole setup, and photo attachments
 - Community course lists with their own list pages
 - Users directory for searching and following friends or pros
-- Forum threads and comments with first-visit rules popup
+- Forum threads with up to 10 photos, comments, search, and first-visit rules popup
 - Pending/approved/rejected course moderation status
 - Admin moderation dashboard with dedicated course submission review
 - Admin content moderation queue for reported reviews and suggested lines
@@ -140,7 +140,7 @@ The seed creates:
 - Submitted courses with pending approval status
 - Suggested lines with difficulty, risk, disc suggestions, tags, and votes
 - Course quick facts, played/want-to-play marks, and a starter course list
-- Forum threads and comments
+- Forum threads with optional photos, plus comments
 
 All new users sign up with an email, username, and password. Set `ADMIN_EMAILS`
 to a comma-separated list of owner emails to grant admin moderation access.

@@ -2,14 +2,60 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Send } from "lucide-react";
+import { Camera, Send, X } from "lucide-react";
+import { uploadImage } from "@/lib/cloudinary-upload";
+
+const maxThreadPhotos = 10;
 
 export function ForumThreadForm() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [uploadingCount, setUploadingCount] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isUploading = uploadingCount > 0;
+
+  function attachPhotos(files: FileList | null) {
+    if (!files?.length) return;
+
+    const remainingSlots = maxThreadPhotos - photoUrls.length;
+    const selectedFiles = Array.from(files).slice(0, remainingSlots);
+
+    if (!remainingSlots) {
+      setError("Threads can have up to 10 photos.");
+      return;
+    }
+
+    setError(null);
+    setUploadingCount((current) => current + selectedFiles.length);
+
+    selectedFiles.forEach((file) => {
+      void uploadImage(file)
+        .then((url) => {
+          setPhotoUrls((current) =>
+            current.length < maxThreadPhotos ? [...current, url] : current
+          );
+        })
+        .catch((uploadError: unknown) => {
+          setError(
+            uploadError instanceof Error ? uploadError.message : "Image upload failed"
+          );
+        })
+        .finally(() => {
+          setUploadingCount((current) => Math.max(0, current - 1));
+        });
+    });
+
+    if (files.length > remainingSlots) {
+      setError("Threads can have up to 10 photos.");
+    }
+  }
+
+  function removePhoto(url: string) {
+    setPhotoUrls((current) => current.filter((photoUrl) => photoUrl !== url));
+  }
 
   function submit() {
     setSaving(true);
@@ -22,7 +68,7 @@ export function ForumThreadForm() {
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({ title, body })
+          body: JSON.stringify({ title, body, photoUrls })
         });
 
         if (!response.ok) {
@@ -55,15 +101,51 @@ export function ForumThreadForm() {
         placeholder="What should the community know?"
         value={body}
       />
+      <div className="grid gap-3">
+        <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-canopy-900/10 bg-white px-3 text-sm font-bold text-ink/60 transition hover:bg-canopy-50">
+          <Camera size={16} aria-hidden />
+          <input
+            accept="image/*"
+            className="sr-only"
+            multiple
+            onChange={(event) => attachPhotos(event.target.files)}
+            type="file"
+          />
+          {isUploading
+            ? `Uploading ${uploadingCount} photo${uploadingCount === 1 ? "" : "s"}...`
+            : `Attach photos (${photoUrls.length}/${maxThreadPhotos})`}
+        </label>
+        {photoUrls.length ? (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+            {photoUrls.map((url) => (
+              <div className="relative aspect-square overflow-hidden rounded-lg bg-ink" key={url}>
+                <img
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover"
+                  src={url}
+                />
+                <button
+                  aria-label="Remove photo"
+                  className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-ink/75 text-white transition hover:bg-clay-700"
+                  onClick={() => removePhoto(url)}
+                  type="button"
+                >
+                  <X size={14} aria-hidden />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
       {error ? <p className="text-sm font-bold text-clay-700">{error}</p> : null}
       <button
         className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-full bg-ink px-5 text-sm font-black text-white transition hover:bg-canopy-700 disabled:bg-ink/35"
-        disabled={saving}
+        disabled={saving || isUploading}
         onClick={submit}
         type="button"
       >
         <Send size={16} aria-hidden />
-        {saving ? "Posting" : "Post thread"}
+        {isUploading ? "Uploading photos" : saving ? "Posting" : "Post thread"}
       </button>
     </section>
   );
