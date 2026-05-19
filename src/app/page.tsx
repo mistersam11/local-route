@@ -43,9 +43,9 @@ export default async function Home({ searchParams }: HomeProps) {
     <main className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:py-10">
       <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
         <div>
-          <p className="text-sm font-bold uppercase text-clay-700">Course diary</p>
+          <p className="text-sm font-bold uppercase text-clay-700">Courses</p>
           <h1 className="mt-3 max-w-2xl text-4xl font-black leading-tight text-ink sm:text-5xl">
-            Course and hole reviews, plus voted lines for disc golf
+            Explore Courses
           </h1>
         </div>
         <div className="grid gap-3">
