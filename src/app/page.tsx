@@ -1,7 +1,14 @@
-import { ContentStatus } from "@prisma/client";
+import { ContentStatus, CourseDifficulty } from "@prisma/client";
 import Link from "next/link";
-import { ArrowRight, CirclePlus, MapPin, MessageSquare, Search, Star } from "lucide-react";
+import { ArrowRight, MapPin, MessageSquare, Search, SlidersHorizontal, Star } from "lucide-react";
 import { Stars } from "@/components/Stars";
+import {
+  booleanInput,
+  courseDifficultyLabels,
+  courseDifficultyOptions,
+  courseFactDefinitions,
+  selectedCourseFacts
+} from "@/lib/course-facts";
 import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -9,14 +16,42 @@ export const dynamic = "force-dynamic";
 type HomeProps = {
   searchParams?: {
     q?: string;
+    difficulty?: string;
+    holes?: string;
+    parking?: string;
+    bathrooms?: string;
+    water?: string;
+    cart?: string;
+    dogs?: string;
+    beginner?: string;
+    free?: string;
   };
 };
 
 export default async function Home({ searchParams }: HomeProps) {
   const query = searchParams?.q?.trim() ?? "";
+  const difficulty = searchParams?.difficulty ?? "";
+  const holesFilter = searchParams?.holes ?? "";
+  const hasParking = booleanInput(searchParams?.parking);
+  const hasBathrooms = booleanInput(searchParams?.bathrooms);
+  const hasWater = booleanInput(searchParams?.water);
+  const cartFriendly = booleanInput(searchParams?.cart);
+  const dogFriendly = booleanInput(searchParams?.dogs);
+  const beginnerFriendly = booleanInput(searchParams?.beginner);
+  const freeOnly = booleanInput(searchParams?.free);
   const courses = await prisma.course.findMany({
     where: {
       status: "approved",
+      ...(Object.values(CourseDifficulty).includes(difficulty as CourseDifficulty)
+        ? { difficulty: difficulty as CourseDifficulty }
+        : {}),
+      ...(hasParking ? { hasParking: true } : {}),
+      ...(hasBathrooms ? { hasBathrooms: true } : {}),
+      ...(hasWater ? { hasWater: true } : {}),
+      ...(cartFriendly ? { cartFriendly: true } : {}),
+      ...(dogFriendly ? { dogFriendly: true } : {}),
+      ...(beginnerFriendly ? { beginnerFriendly: true } : {}),
+      ...(freeOnly ? { isPayToPlay: false } : {}),
       ...(query
         ? {
             OR: [
@@ -45,6 +80,10 @@ export default async function Home({ searchParams }: HomeProps) {
     },
     orderBy: { name: "asc" }
   });
+  const filteredCourses =
+    holesFilter && Number.isInteger(Number(holesFilter))
+      ? courses.filter((course) => course.holes.length >= Number(holesFilter))
+      : courses;
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:py-10">
@@ -58,36 +97,101 @@ export default async function Home({ searchParams }: HomeProps) {
         <div className="grid gap-3">
           <form
             action="/"
-            className="flex min-h-14 overflow-hidden rounded-full border border-canopy-900/10 bg-white shadow-panel"
+            className="grid gap-3 rounded-lg border border-canopy-900/10 bg-white p-3 shadow-panel"
           >
-            <label className="flex flex-1 items-center gap-3 px-5">
-              <Search size={20} className="shrink-0 text-canopy-700" aria-hidden />
-              <input
-                className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-ink/45"
-                defaultValue={query}
-                name="q"
-                placeholder="Search courses or cities"
-              />
-            </label>
-            <button
-              className="m-1 inline-flex items-center justify-center rounded-full bg-ink px-5 text-sm font-bold text-white transition hover:bg-canopy-700"
-              type="submit"
-            >
-              Search
-            </button>
+            <div className="flex min-h-12 overflow-hidden rounded-full border border-canopy-900/10">
+              <label className="flex flex-1 items-center gap-3 px-5">
+                <Search size={20} className="shrink-0 text-canopy-700" aria-hidden />
+                <input
+                  className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-ink/45"
+                  defaultValue={query}
+                  name="q"
+                  placeholder="Search courses or cities"
+                />
+              </label>
+              <button
+                className="m-1 inline-flex items-center justify-center rounded-full bg-ink px-5 text-sm font-bold text-white transition hover:bg-canopy-700"
+                type="submit"
+              >
+                Search
+              </button>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <label className="grid gap-1 text-xs font-black uppercase text-ink/45">
+                Difficulty
+                <select
+                  className="h-10 rounded-lg border border-canopy-900/10 px-3 text-sm font-bold normal-case text-ink outline-none"
+                  defaultValue={difficulty}
+                  name="difficulty"
+                >
+                  <option value="">Any</option>
+                  {courseDifficultyOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="grid gap-1 text-xs font-black uppercase text-ink/45">
+                Holes
+                <select
+                  className="h-10 rounded-lg border border-canopy-900/10 px-3 text-sm font-bold normal-case text-ink outline-none"
+                  defaultValue={holesFilter}
+                  name="holes"
+                >
+                  <option value="">Any</option>
+                  <option value="9">9+</option>
+                  <option value="18">18+</option>
+                  <option value="27">27+</option>
+                </select>
+              </label>
+              <div className="flex items-end gap-2">
+                <button
+                  className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-canopy-700 px-4 text-sm font-black text-white transition hover:bg-canopy-900"
+                  type="submit"
+                >
+                  <SlidersHorizontal size={16} aria-hidden />
+                  Filter
+                </button>
+                <Link
+                  className="inline-flex h-10 items-center justify-center rounded-full bg-canopy-50 px-4 text-sm font-black text-canopy-700 transition hover:bg-canopy-100"
+                  href="/"
+                >
+                  Clear
+                </Link>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {[
+                ["parking", "Parking", hasParking],
+                ["bathrooms", "Bathrooms", hasBathrooms],
+                ["water", "Water", hasWater],
+                ["cart", "Cart friendly", cartFriendly],
+                ["dogs", "Dog friendly", dogFriendly],
+                ["beginner", "Beginner friendly", beginnerFriendly],
+                ["free", "Free", freeOnly]
+              ].map(([name, label, checked]) => (
+                <label
+                  className="flex h-9 cursor-pointer items-center gap-2 rounded-full bg-canopy-50 px-3 text-xs font-black text-canopy-700"
+                  key={String(name)}
+                >
+                  <input
+                    className="accent-canopy-700"
+                    defaultChecked={Boolean(checked)}
+                    name={String(name)}
+                    type="checkbox"
+                    value="true"
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
           </form>
-          <Link
-            className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-full bg-canopy-700 px-5 text-sm font-black text-white shadow-sm transition hover:bg-canopy-900"
-            href="/courses/new"
-          >
-            <CirclePlus size={16} aria-hidden />
-            Submit a course
-          </Link>
         </div>
       </section>
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {courses.map((course) => {
+        {filteredCourses.map((course) => {
           const reviewCount = course.reviews.length;
           const averageRating =
             reviewCount > 0
@@ -102,6 +206,7 @@ export default async function Home({ searchParams }: HomeProps) {
             (total, hole) => total + hole._count.reviews,
             0
           );
+          const facts = selectedCourseFacts(course);
 
           return (
             <Link
@@ -136,6 +241,28 @@ export default async function Home({ searchParams }: HomeProps) {
                     <MapPin size={16} aria-hidden />
                     {course.locationName}
                   </p>
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs font-black uppercase">
+                    <span className="rounded-full bg-water-100 px-2.5 py-1 text-water-700">
+                      {courseDifficultyLabels[course.difficulty]}
+                    </span>
+                    {course.isPayToPlay ? (
+                      <span className="rounded-full bg-clay-100 px-2.5 py-1 text-clay-700">
+                        Pay to play
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-canopy-50 px-2.5 py-1 text-canopy-700">
+                        Free
+                      </span>
+                    )}
+                    {facts.slice(0, 2).map((fact) => (
+                      <span
+                        className="rounded-full bg-canopy-50 px-2.5 py-1 text-canopy-700"
+                        key={fact.key}
+                      >
+                        {fact.label}
+                      </span>
+                    ))}
+                  </div>
                   <p className="mt-4 flex items-center gap-2 text-sm font-bold">
                     <Stars rating={averageRating} />
                     <span className="text-ink/55">

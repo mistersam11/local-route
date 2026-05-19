@@ -6,11 +6,13 @@ LocalRoute is a Letterboxd-style MVP for disc golf. Players can rate courses and
 
 ## What Is Built
 
-- Searchable course home page with course ratings, hole review counts, and line counts
-- Course pages with cover photos, reviews, review form, hole list, and recent hole reviews
+- Searchable and filterable course home page with ratings, quick facts, hole review counts, and line counts
+- Course pages with cover photos, quick facts, played/want-to-play tracking, reviews, review form, hole list, and recent hole reviews
 - Hole pages with from-the-tee photo, 1-5 star reviews, optional photo attachments, and voted line suggestions
 - A "Best Line" per hole determined by community voting
-- Course submission form with dynamic hole setup and photo attachments
+- Course submission form with difficulty, amenities, dynamic hole setup, and photo attachments
+- Community course lists with their own list pages
+- Users directory for searching and following friends or pros
 - Pending/approved/rejected course moderation status
 - Admin moderation dashboard with dedicated course submission review
 - Admin content moderation queue for reported reviews and suggested lines
@@ -21,7 +23,7 @@ LocalRoute is a Letterboxd-style MVP for disc golf. Players can rate courses and
 - Follow/unfollow users
 - Direct image uploads to Cloudinary for course, hole, and review photos
 - OpenAI moderation checks for review text and suggested lines
-- Prisma schema for users, courses, course status, holes, course reviews, hole reviews, lines, line votes, and follows
+- Prisma schema for users, courses, course facts, course marks, lists, course reviews, hole reviews, lines, line votes, and follows
 
 ## Stack
 
@@ -135,6 +137,7 @@ The seed creates:
 - Hole reviews with ratings and optional photos
 - Submitted courses with pending approval status
 - Suggested lines with difficulty, risk, disc suggestions, tags, and votes
+- Course quick facts, played/want-to-play marks, and a starter course list
 
 All new users sign up with an email, username, and password. Set `ADMIN_EMAILS`
 to a comma-separated list of owner emails to grant admin moderation access.
@@ -152,7 +155,9 @@ The seeded demo users use the password `localroute-demo`.
 - `POST /api/courses`
 - `GET /api/courses/:courseId`
 - `PATCH /api/courses/:courseId`
+- `POST /api/courses/:courseId/marks`
 - `POST /api/courses/:courseId/reviews`
+- `POST /api/lists`
 - `GET /api/holes/:holeId`
 - `POST /api/holes/:holeId/reviews`
 - `GET /api/holes/:holeId/lines`

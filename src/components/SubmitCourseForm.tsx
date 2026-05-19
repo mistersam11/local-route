@@ -4,6 +4,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Camera, CirclePlus, Send, Trash2 } from "lucide-react";
 import { uploadImage } from "@/lib/cloudinary-upload";
+import {
+  courseDifficultyOptions,
+  courseFactDefinitions,
+  type CourseDifficultyValue,
+  type CourseFactKey
+} from "@/lib/course-facts";
 
 type HoleDraft = {
   holeNumber: number;
@@ -33,6 +39,16 @@ export function SubmitCourseForm() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [locationName, setLocationName] = useState("");
+  const [difficulty, setDifficulty] = useState<CourseDifficultyValue>("mixed");
+  const [facts, setFacts] = useState<Record<CourseFactKey, boolean>>({
+    hasParking: false,
+    hasBathrooms: false,
+    hasWater: false,
+    cartFriendly: false,
+    dogFriendly: false,
+    beginnerFriendly: false,
+    isPayToPlay: false
+  });
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
   const [coverPhotoUrl, setCoverPhotoUrl] = useState("");
@@ -88,6 +104,10 @@ export function SubmitCourseForm() {
     );
   }
 
+  function toggleFact(key: CourseFactKey) {
+    setFacts((current) => ({ ...current, [key]: !current[key] }));
+  }
+
   function submit() {
     setSaving(true);
     setError(null);
@@ -102,6 +122,8 @@ export function SubmitCourseForm() {
           body: JSON.stringify({
             name,
             locationName,
+            difficulty,
+            ...facts,
             latitude,
             longitude,
             coverPhotoUrl,
@@ -150,6 +172,22 @@ export function SubmitCourseForm() {
 
         <div className="grid gap-4 md:grid-cols-4">
           <label className="grid gap-2 text-sm font-bold text-ink/70">
+            Difficulty
+            <select
+              className="h-11 rounded-lg border border-canopy-900/10 bg-white px-3 font-semibold outline-none"
+              onChange={(event) =>
+                setDifficulty(event.target.value as CourseDifficultyValue)
+              }
+              value={difficulty}
+            >
+              {courseDifficultyOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-2 text-sm font-bold text-ink/70">
             Holes
             <input
               className="h-11 rounded-lg border border-canopy-900/10 bg-white px-3 font-semibold outline-none"
@@ -188,6 +226,30 @@ export function SubmitCourseForm() {
             />
             {isUploading ? "Uploading..." : coverPhotoUrl ? "Cover attached" : "Attach cover"}
           </label>
+        </div>
+
+        <div className="grid gap-3">
+          <p className="text-sm font-black uppercase text-ink/55">Quick facts</p>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+            {courseFactDefinitions.map((fact) => (
+              <label
+                className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm font-bold transition ${
+                  facts[fact.key]
+                    ? "border-canopy-700 bg-canopy-50 text-canopy-700"
+                    : "border-canopy-900/10 bg-white text-ink/60 hover:bg-canopy-50"
+                }`}
+                key={fact.key}
+              >
+                <input
+                  checked={facts[fact.key]}
+                  className="accent-canopy-700"
+                  onChange={() => toggleFact(fact.key)}
+                  type="checkbox"
+                />
+                {fact.label}
+              </label>
+            ))}
+          </div>
         </div>
       </section>
 

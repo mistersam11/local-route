@@ -36,6 +36,18 @@ enum CourseStatus {
   rejected
 }
 
+enum CourseDifficulty {
+  beginner
+  mixed
+  challenging
+  expert
+}
+
+enum CourseMarkType {
+  played
+  wantToPlay
+}
+
 enum ContentStatus {
   visible
   hidden
@@ -70,17 +82,19 @@ model User {
   isAdmin         Boolean  @default(false)
   createdAt       DateTime @default(now())
 
-  courseReviews    CourseReview[]
-  holeReviews      HoleReview[]
-  lines            Line[]
-  submittedCourses Course[]       @relation("SubmittedCourses")
-  following        Follow[]       @relation("Follower")
-  followers        Follow[]       @relation("Following")
-  lineVotes        LineVote[]
-  sessions         Session[]
-  contentReports   ContentReport[]         @relation("ContentReporter")
-  resolvedReports  ContentReport[]         @relation("ReportResolver")
+  courseReviews     CourseReview[]
+  holeReviews       HoleReview[]
+  lines             Line[]
+  submittedCourses  Course[]                @relation("SubmittedCourses")
+  following         Follow[]                @relation("Follower")
+  followers         Follow[]                @relation("Following")
+  lineVotes         LineVote[]
+  sessions          Session[]
+  contentReports    ContentReport[]         @relation("ContentReporter")
+  resolvedReports   ContentReport[]         @relation("ReportResolver")
   moderationActions AdminModerationAction[] @relation("ModerationActor")
+  courseMarks       CourseMark[]
+  courseLists       CourseList[]
 }
 
 model Session {
@@ -97,22 +111,80 @@ model Session {
 }
 
 model Course {
-  id            Int          @id @default(autoincrement())
-  name          String
-  locationName  String
-  latitude      Float?
-  longitude     Float?
-  coverPhotoUrl String?
-  status        CourseStatus @default(pending)
-  submittedById Int?
-  createdAt     DateTime     @default(now())
+  id               Int              @id @default(autoincrement())
+  name             String
+  locationName     String
+  latitude         Float?
+  longitude        Float?
+  coverPhotoUrl    String?
+  difficulty       CourseDifficulty @default(mixed)
+  hasParking       Boolean          @default(false)
+  hasBathrooms     Boolean          @default(false)
+  hasWater         Boolean          @default(false)
+  cartFriendly     Boolean          @default(false)
+  dogFriendly      Boolean          @default(false)
+  beginnerFriendly Boolean          @default(false)
+  isPayToPlay      Boolean          @default(false)
+  status           CourseStatus     @default(pending)
+  submittedById    Int?
+  createdAt        DateTime         @default(now())
 
   holes       Hole[]
   reviews     CourseReview[]
-  submittedBy User?          @relation("SubmittedCourses", fields: [submittedById], references: [id], onDelete: SetNull)
+  submittedBy User?            @relation("SubmittedCourses", fields: [submittedById], references: [id], onDelete: SetNull)
+  marks       CourseMark[]
+  listItems   CourseListItem[]
 
+  @@index([difficulty])
   @@index([status])
   @@index([submittedById])
+}
+
+model CourseMark {
+  id        Int            @id @default(autoincrement())
+  courseId  Int
+  userId    Int
+  type      CourseMarkType
+  createdAt DateTime       @default(now())
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, userId, type])
+  @@index([userId, type])
+  @@index([courseId, type])
+}
+
+model CourseList {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  title       String
+  description String?
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CourseListItem[]
+
+  @@index([userId, createdAt])
+  @@index([isPublic, createdAt])
+}
+
+model CourseListItem {
+  id        Int      @id @default(autoincrement())
+  listId    Int
+  courseId  Int
+  note      String?
+  rank      Int
+  createdAt DateTime @default(now())
+
+  list   CourseList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  course Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, courseId])
+  @@index([courseId])
+  @@index([listId, rank])
 }
 
 model Hole {

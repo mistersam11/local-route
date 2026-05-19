@@ -3,13 +3,13 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  CirclePlus,
+  List,
   LogIn,
-  Settings,
   ShieldCheck,
   UserPlus,
-  UserRound
+  UsersRound
 } from "lucide-react";
+import { UserMenu } from "@/components/UserMenu";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 import "./globals.css";
@@ -61,32 +61,32 @@ export default async function RootLayout({
                 <span className="brand-wordmark-route">Route</span>
               </span>
             </Link>
-            <nav className="flex items-center gap-2 text-sm font-semibold text-ink/75">
+            <nav className="flex min-w-0 items-center gap-1 overflow-x-auto text-sm font-semibold text-ink/75 sm:gap-2">
               <Link
                 href="/"
-                className="rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"
+                className="shrink-0 rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"
               >
                 Courses
               </Link>
               <Link
-                href="/courses/new"
-                className="flex items-center gap-2 rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"
+                href="/lists"
+                className="flex shrink-0 items-center gap-2 rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"
               >
-                <CirclePlus size={16} aria-hidden />
-                Submit
+                <List size={16} aria-hidden />
+                Lists
+              </Link>
+              <Link
+                href="/users"
+                className="flex shrink-0 items-center gap-2 rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"
+              >
+                <UsersRound size={16} aria-hidden />
+                Users
               </Link>
               {currentUser ? (
                 <>
-                  <Link
-                    href={`/profiles/${currentUser.id}`}
-                    className="flex items-center gap-2 rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"
-                  >
-                    <UserRound size={16} aria-hidden />
-                    @{currentUser.username}
-                  </Link>
                   {currentUser.isAdmin ? (
                     <Link
-                      className="flex items-center gap-2 rounded-full bg-ink px-3 py-2 text-xs font-black uppercase text-white transition hover:bg-canopy-700"
+                      className="flex shrink-0 items-center gap-2 rounded-full bg-ink px-3 py-2 text-xs font-black uppercase text-white transition hover:bg-canopy-700"
                       href="/admin"
                     >
                       <ShieldCheck size={14} aria-hidden />
@@ -99,13 +99,7 @@ export default async function RootLayout({
                       </span>
                     </Link>
                   ) : null}
-                  <Link
-                    href="/settings/profile"
-                    className="flex items-center gap-2 rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"
-                  >
-                    <Settings size={16} aria-hidden />
-                    Settings
-                  </Link>
+                  <UserMenu user={currentUser} />
                 </>
               ) : (
                 <>

@@ -1,5 +1,6 @@
-import { Prisma } from "@prisma/client";
+import { CourseDifficulty, Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { booleanInput } from "@/lib/course-facts";
 import { getRequestUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
@@ -15,10 +16,28 @@ function optionalNumber(value: unknown) {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q")?.trim();
+  const difficulty = searchParams.get("difficulty");
+  const hasParking = booleanInput(searchParams.get("parking"));
+  const hasBathrooms = booleanInput(searchParams.get("bathrooms"));
+  const hasWater = booleanInput(searchParams.get("water"));
+  const cartFriendly = booleanInput(searchParams.get("cart"));
+  const dogFriendly = booleanInput(searchParams.get("dogs"));
+  const beginnerFriendly = booleanInput(searchParams.get("beginner"));
+  const freeOnly = booleanInput(searchParams.get("free"));
 
   const courses = await prisma.course.findMany({
     where: {
       status: "approved",
+      ...(Object.values(CourseDifficulty).includes(difficulty as CourseDifficulty)
+        ? { difficulty: difficulty as CourseDifficulty }
+        : {}),
+      ...(hasParking ? { hasParking: true } : {}),
+      ...(hasBathrooms ? { hasBathrooms: true } : {}),
+      ...(hasWater ? { hasWater: true } : {}),
+      ...(cartFriendly ? { cartFriendly: true } : {}),
+      ...(dogFriendly ? { dogFriendly: true } : {}),
+      ...(beginnerFriendly ? { beginnerFriendly: true } : {}),
+      ...(freeOnly ? { isPayToPlay: false } : {}),
       ...(query
         ? {
             OR: [
@@ -53,6 +72,12 @@ export async function POST(request: Request) {
   const name = String(body.name ?? "").trim();
   const locationName = String(body.locationName ?? "").trim();
   const coverPhotoUrl = String(body.coverPhotoUrl ?? "").trim();
+  const rawDifficulty = String(body.difficulty ?? "");
+  const difficulty = Object.values(CourseDifficulty).includes(
+    rawDifficulty as CourseDifficulty
+  )
+    ? (rawDifficulty as CourseDifficulty)
+    : CourseDifficulty.mixed;
   const latitude = optionalNumber(body.latitude);
   const longitude = optionalNumber(body.longitude);
   const rawHoles = Array.isArray(body.holes) ? body.holes : [];
@@ -98,6 +123,14 @@ export async function POST(request: Request) {
       latitude,
       longitude,
       coverPhotoUrl: coverPhotoUrl || null,
+      difficulty,
+      hasParking: booleanInput(body.hasParking),
+      hasBathrooms: booleanInput(body.hasBathrooms),
+      hasWater: booleanInput(body.hasWater),
+      cartFriendly: booleanInput(body.cartFriendly),
+      dogFriendly: booleanInput(body.dogFriendly),
+      beginnerFriendly: booleanInput(body.beginnerFriendly),
+      isPayToPlay: booleanInput(body.isPayToPlay),
       status: "pending",
       submittedById: currentUser.id,
       holes: {

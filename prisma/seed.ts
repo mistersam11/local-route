@@ -5,6 +5,11 @@ const prisma = new PrismaClient();
 
 async function main() {
   await prisma.session.deleteMany();
+  await prisma.adminModerationAction.deleteMany();
+  await prisma.contentReport.deleteMany();
+  await prisma.courseListItem.deleteMany();
+  await prisma.courseList.deleteMany();
+  await prisma.courseMark.deleteMany();
   await prisma.lineVote.deleteMany();
   await prisma.follow.deleteMany();
   await prisma.line.deleteMany();
@@ -66,6 +71,14 @@ async function main() {
       locationName: "Burlington, VT",
       latitude: 44.47602,
       longitude: -73.21246,
+      difficulty: "challenging",
+      hasParking: true,
+      hasBathrooms: true,
+      hasWater: true,
+      cartFriendly: false,
+      dogFriendly: true,
+      beginnerFriendly: false,
+      isPayToPlay: false,
       status: "approved",
       submittedById: sam.id,
       coverPhotoUrl: "https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=1400&q=80",
@@ -127,6 +140,14 @@ async function main() {
       locationName: "Asheville, NC",
       latitude: 35.59671,
       longitude: -82.55512,
+      difficulty: "mixed",
+      hasParking: true,
+      hasBathrooms: false,
+      hasWater: false,
+      cartFriendly: true,
+      dogFriendly: true,
+      beginnerFriendly: true,
+      isPayToPlay: true,
       status: "approved",
       submittedById: maya.id,
       coverPhotoUrl: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=1400&q=80",
@@ -328,6 +349,29 @@ async function main() {
   ];
 
   await prisma.line.createMany({ data: lineData });
+
+  await prisma.courseMark.createMany({
+    data: [
+      { courseId: cedar.id, userId: sam.id, type: "played" },
+      { courseId: cedar.id, userId: nate.id, type: "wantToPlay" },
+      { courseId: pine.id, userId: maya.id, type: "played" },
+      { courseId: pine.id, userId: ellis.id, type: "wantToPlay" }
+    ]
+  });
+
+  await prisma.courseList.create({
+    data: {
+      userId: sam.id,
+      title: "Worth the Weekend Drive",
+      description: "Courses with enough personality to anchor a road trip.",
+      items: {
+        create: [
+          { courseId: cedar.id, rank: 1 },
+          { courseId: pine.id, rank: 2 }
+        ]
+      }
+    }
+  });
 }
 
 main()

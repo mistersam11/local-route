@@ -1,4 +1,4 @@
-import { ContentStatus } from "@prisma/client";
+import { ContentStatus, CourseMarkType } from "@prisma/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -12,9 +12,15 @@ import {
   Star
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
+import { CourseMarkButtons } from "@/components/CourseMarkButtons";
 import { CourseReviewForm } from "@/components/CourseReviewForm";
 import { ReportButton } from "@/components/ReportButton";
 import { Stars } from "@/components/Stars";
+import {
+  courseDifficultyLabels,
+  selectedCourseFacts,
+  type CourseDifficultyValue
+} from "@/lib/course-facts";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 
@@ -33,8 +39,8 @@ export default async function CoursePage({ params }: CoursePageProps) {
     notFound();
   }
 
-  const [currentUser, course, recentActivity] = await Promise.all([
-    getCurrentUser(),
+  const currentUser = await getCurrentUser();
+  const [course, recentActivity, markCounts, currentMarks] = await Promise.all([
     prisma.course.findUnique({
       where: { id: courseId },
       include: {
@@ -78,7 +84,18 @@ export default async function CoursePage({ params }: CoursePageProps) {
       },
       orderBy: { createdAt: "desc" },
       take: 5
-    })
+    }),
+    prisma.courseMark.groupBy({
+      by: ["type"],
+      where: { courseId },
+      _count: { _all: true }
+    }),
+    currentUser
+      ? prisma.courseMark.findMany({
+          where: { courseId, userId: currentUser.id },
+          select: { type: true }
+        })
+      : Promise.resolve([])
   ]);
 
   if (!course) {
@@ -98,6 +115,13 @@ export default async function CoursePage({ params }: CoursePageProps) {
     (total, hole) => total + hole._count.reviews,
     0
   );
+  const courseFacts = selectedCourseFacts(course);
+  const currentMarkTypes = new Set(currentMarks.map((mark) => mark.type));
+  const playedCount =
+    markCounts.find((entry) => entry.type === CourseMarkType.played)?._count._all ?? 0;
+  const wantToPlayCount =
+    markCounts.find((entry) => entry.type === CourseMarkType.wantToPlay)?._count
+      ._all ?? 0;
 
   return (
     <main className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:py-10">
@@ -143,7 +167,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="rounded-lg bg-white p-4 shadow-sm">
             <p className="text-sm font-semibold text-ink/55">Holes</p>
             <p className="mt-1 text-2xl font-black">{course.holes.length}</p>
@@ -156,7 +180,61 @@ export default async function CoursePage({ params }: CoursePageProps) {
             <p className="text-sm font-semibold text-ink/55">Hole reviews</p>
             <p className="mt-1 text-2xl font-black">{totalHoleReviews}</p>
           </div>
+          <div className="rounded-lg bg-white p-4 shadow-sm">
+            <p className="text-sm font-semibold text-ink/55">Difficulty</p>
+            <p className="mt-1 text-2xl font-black">
+              {courseDifficultyLabels[course.difficulty as CourseDifficultyValue]}
+            </p>
+          </div>
         </div>
+
+        <section className="grid gap-4 rounded-lg border border-canopy-900/10 bg-white p-4 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-black text-ink">Quick facts</h2>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs font-black uppercase">
+                <span className="rounded-full bg-water-100 px-2.5 py-1 text-water-700">
+                  {courseDifficultyLabels[course.difficulty as CourseDifficultyValue]}
+                </span>
+                <span
+                  className={`rounded-full px-2.5 py-1 ${
+                    course.isPayToPlay
+                      ? "bg-clay-100 text-clay-700"
+                      : "bg-canopy-50 text-canopy-700"
+                  }`}
+                >
+                  {course.isPayToPlay ? "Pay to play" : "Free"}
+                </span>
+                {courseFacts.length ? (
+                  courseFacts
+                    .filter((fact) => fact.key !== "isPayToPlay")
+                    .map((fact) => (
+                      <span
+                        className="rounded-full bg-canopy-50 px-2.5 py-1 text-canopy-700"
+                        key={fact.key}
+                      >
+                        {fact.label}
+                      </span>
+                    ))
+                ) : (
+                  <span className="rounded-full bg-clay-100 px-2.5 py-1 text-clay-700">
+                    Facts needed
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="w-full sm:w-auto sm:min-w-80">
+              <CourseMarkButtons
+                courseId={course.id}
+                currentUserId={currentUser?.id}
+                initialPlayed={currentMarkTypes.has(CourseMarkType.played)}
+                initialPlayedCount={playedCount}
+                initialWantToPlay={currentMarkTypes.has(CourseMarkType.wantToPlay)}
+                initialWantToPlayCount={wantToPlayCount}
+              />
+            </div>
+          </div>
+        </section>
 
         {currentUser ? (
           <CourseReviewForm courseId={course.id} />
