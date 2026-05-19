@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Camera, CirclePlus, Send, Trash2 } from "lucide-react";
+import { uploadImage } from "@/lib/cloudinary-upload";
 
 type HoleDraft = {
   holeNumber: number;
@@ -22,16 +23,10 @@ function makeHole(holeNumber: number): HoleDraft {
   };
 }
 
-function readPhoto(file: File | undefined, onLoad: (value: string) => void) {
+async function uploadPhoto(file: File | undefined, onLoad: (value: string) => void) {
   if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = () => {
-    if (typeof reader.result === "string") {
-      onLoad(reader.result);
-    }
-  };
-  reader.readAsDataURL(file);
+  onLoad(await uploadImage(file));
 }
 
 export function SubmitCourseForm() {
@@ -43,7 +38,24 @@ export function SubmitCourseForm() {
   const [coverPhotoUrl, setCoverPhotoUrl] = useState("");
   const [holes, setHoles] = useState<HoleDraft[]>(Array.from({ length: 18 }, (_, index) => makeHole(index + 1)));
   const [saving, setSaving] = useState(false);
+  const [uploadingCount, setUploadingCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const isUploading = uploadingCount > 0;
+
+  function attachPhoto(file: File | undefined, onLoad: (value: string) => void) {
+    setError(null);
+    setUploadingCount((current) => current + 1);
+
+    void uploadPhoto(file, onLoad)
+      .catch((uploadError: unknown) => {
+        setError(
+          uploadError instanceof Error ? uploadError.message : "Image upload failed"
+        );
+      })
+      .finally(() => {
+        setUploadingCount((current) => Math.max(0, current - 1));
+      });
+  }
 
   function updateHole(index: number, patch: Partial<HoleDraft>) {
     setHoles((current) =>
@@ -171,10 +183,10 @@ export function SubmitCourseForm() {
             <input
               accept="image/*"
               className="sr-only"
-              onChange={(event) => readPhoto(event.target.files?.[0], setCoverPhotoUrl)}
+              onChange={(event) => attachPhoto(event.target.files?.[0], setCoverPhotoUrl)}
               type="file"
             />
-            {coverPhotoUrl ? "Cover attached" : "Attach cover"}
+            {isUploading ? "Uploading..." : coverPhotoUrl ? "Cover attached" : "Attach cover"}
           </label>
         </div>
       </section>
@@ -240,13 +252,13 @@ export function SubmitCourseForm() {
                   accept="image/*"
                   className="sr-only"
                   onChange={(event) =>
-                    readPhoto(event.target.files?.[0], (value) =>
+                    attachPhoto(event.target.files?.[0], (value) =>
                       updateHole(index, { teePhotoUrl: value })
                     )
                   }
                   type="file"
                 />
-                {hole.teePhotoUrl ? "Tee photo" : "Photo"}
+                {isUploading ? "Uploading..." : hole.teePhotoUrl ? "Tee photo" : "Photo"}
               </label>
             </div>
           </article>
@@ -261,12 +273,12 @@ export function SubmitCourseForm() {
 
       <button
         className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-sm font-black text-white shadow-sm transition hover:bg-canopy-700 disabled:bg-ink/35"
-        disabled={saving}
+        disabled={saving || isUploading}
         onClick={submit}
         type="button"
       >
         <Send size={17} aria-hidden />
-        Submit course
+        {isUploading ? "Uploading photos" : "Submit course"}
       </button>
     </div>
   );

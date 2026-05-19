@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { Stars } from "@/components/Stars";
+import { uploadImage } from "@/lib/cloudinary-upload";
 import type {
   BestLine,
   Difficulty,
@@ -56,6 +57,7 @@ export function HoleSocialClient({ initialPayload }: { initialPayload: HoleSocia
   const [reviewTitle, setReviewTitle] = useState("");
   const [reviewBody, setReviewBody] = useState("");
   const [reviewPhotoUrl, setReviewPhotoUrl] = useState("");
+  const [uploadingReviewPhoto, setUploadingReviewPhoto] = useState(false);
   const [lineForm, setLineForm] = useState<LineForm>(emptyLineForm);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -63,13 +65,17 @@ export function HoleSocialClient({ initialPayload }: { initialPayload: HoleSocia
   function attachReviewPhoto(file: File | undefined) {
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        setReviewPhotoUrl(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
+    setUploadingReviewPhoto(true);
+    setError(null);
+
+    void uploadImage(file)
+      .then(setReviewPhotoUrl)
+      .catch((uploadError: unknown) => {
+        setError(
+          uploadError instanceof Error ? uploadError.message : "Image upload failed"
+        );
+      })
+      .finally(() => setUploadingReviewPhoto(false));
   }
 
   const bestLine = useMemo(
@@ -271,17 +277,21 @@ export function HoleSocialClient({ initialPayload }: { initialPayload: HoleSocia
                   onChange={(event) => attachReviewPhoto(event.target.files?.[0])}
                   type="file"
                 />
-                {reviewPhotoUrl ? "Photo attached" : "Attach a photo"}
+                {uploadingReviewPhoto
+                  ? "Uploading photo..."
+                  : reviewPhotoUrl
+                    ? "Photo attached"
+                    : "Attach a photo"}
               </label>
               {error ? <p className="text-sm font-bold text-clay-700">{error}</p> : null}
               <button
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-ink px-4 text-sm font-black text-white transition hover:bg-canopy-700 disabled:bg-ink/35"
-                disabled={saving}
+                disabled={saving || uploadingReviewPhoto}
                 onClick={postReview}
                 type="button"
               >
                 <Send size={16} aria-hidden />
-                Post review
+                {uploadingReviewPhoto ? "Uploading" : "Post review"}
               </button>
             </div>
           )}

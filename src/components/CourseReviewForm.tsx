@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Camera, Send } from "lucide-react";
+import { uploadImage } from "@/lib/cloudinary-upload";
 import type { CourseReviewCard } from "@/lib/types";
 
 type CourseReviewFormProps = {
@@ -17,19 +18,24 @@ export function CourseReviewForm({
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function attachPhoto(file: File | undefined) {
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        setPhotoUrl(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
+    setUploadingPhoto(true);
+    setError(null);
+
+    void uploadImage(file)
+      .then(setPhotoUrl)
+      .catch((uploadError: unknown) => {
+        setError(
+          uploadError instanceof Error ? uploadError.message : "Image upload failed"
+        );
+      })
+      .finally(() => setUploadingPhoto(false));
   }
 
   function submit() {
@@ -99,17 +105,17 @@ export function CourseReviewForm({
           onChange={(event) => attachPhoto(event.target.files?.[0])}
           type="file"
         />
-        {photoUrl ? "Photo attached" : "Attach a photo"}
+        {uploadingPhoto ? "Uploading photo..." : photoUrl ? "Photo attached" : "Attach a photo"}
       </label>
       {error ? <p className="text-sm font-bold text-clay-700">{error}</p> : null}
       <button
         className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-ink px-4 text-sm font-black text-white transition hover:bg-canopy-700 disabled:bg-ink/35"
-        disabled={saving}
+        disabled={saving || uploadingPhoto}
         onClick={submit}
         type="button"
       >
         <Send size={16} aria-hidden />
-        Post review
+        {uploadingPhoto ? "Uploading" : "Post review"}
       </button>
     </div>
   );

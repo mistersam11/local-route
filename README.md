@@ -15,6 +15,7 @@ LocalRoute is a Letterboxd-style MVP for disc golf. Players can rate courses and
 - User profiles with course reviews, suggested lines, and following list
 - Real email/username account signup and login
 - Follow/unfollow users
+- Direct image uploads to Cloudinary for course, hole, and review photos
 - Prisma schema for users, courses, course status, holes, course reviews, hole reviews, lines, line votes, and follows
 
 ## Stack
@@ -37,6 +38,13 @@ Create a local environment file and set `DATABASE_URL` to a PostgreSQL connectio
 
 ```bash
 cp .env.example .env
+```
+
+For image uploads, create a Cloudinary unsigned upload preset and set:
+
+```bash
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="your-cloud-name"
+NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET="your-unsigned-upload-preset"
 ```
 
 Initialize and seed the database:
@@ -96,9 +104,9 @@ For public access from other networks, deploy it instead of running it from your
 
 - Vercel for the Next.js app
 - Prisma Postgres, Neon, Supabase, or Railway Postgres for the database
-- Object storage such as UploadThing, S3, or Cloudinary for durable image uploads
+- Cloudinary for durable image uploads
 
-Before public launch, move the MVP data-URL photo storage to durable object storage.
+Before public launch, add profile editing and image moderation workflows.
 
 ## Demo Data
 
