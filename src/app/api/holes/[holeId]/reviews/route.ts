@@ -36,6 +36,18 @@ export async function POST(request: Request, { params }: Params) {
     );
   }
 
+  const hole = await prisma.hole.findUnique({
+    where: { id: holeId },
+    select: { id: true, course: { select: { status: true } } }
+  });
+
+  if (!hole || hole.course.status !== "approved") {
+    return NextResponse.json(
+      { error: "This hole is not open for reviews yet" },
+      { status: 404 }
+    );
+  }
+
   try {
     await moderateTextFields([title, text]);
   } catch (error) {

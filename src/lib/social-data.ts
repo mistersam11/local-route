@@ -138,7 +138,7 @@ export async function getHoleSocialPayload(
     currentUserId
       ? prisma.user.findUnique({
           where: { id: currentUserId },
-          select: { id: true, username: true, profileImageUrl: true }
+          select: { id: true, username: true, profileImageUrl: true, isAdmin: true }
         })
       : Promise.resolve(null),
     getFollowingIds(currentUserId),
@@ -163,12 +163,26 @@ export async function getHoleSocialPayload(
     return null;
   }
 
+  if (
+    hole.course.status !== "approved" &&
+    (!currentUser ||
+      (hole.course.submittedById !== currentUser.id && !currentUser.isAdmin))
+  ) {
+    return null;
+  }
+
   const lines = hole.lines
     .map((line) => serializeLine(line, followingIds))
     .sort((first, second) => second.score - first.score || second.upvotes - first.upvotes);
 
   return {
-    currentUser,
+    currentUser: currentUser
+      ? {
+          id: currentUser.id,
+          username: currentUser.username,
+          profileImageUrl: currentUser.profileImageUrl
+        }
+      : null,
     course: {
       id: hole.course.id,
       name: hole.course.name,

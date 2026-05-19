@@ -23,12 +23,14 @@ type AdminCourseReviewPageProps = {
 };
 
 const statusStyles = {
+  draft: "bg-white text-ink/60",
   approved: "bg-canopy-50 text-canopy-700",
   pending: "bg-water-100 text-water-700",
   rejected: "bg-clay-100 text-clay-700"
 };
 
 const statusLabels = {
+  draft: "Draft",
   approved: "Approved",
   pending: "Pending review",
   rejected: "Rejected"
@@ -147,6 +149,7 @@ export default async function AdminCourseReviewPage({
                   <MapPin size={16} aria-hidden />
                   {course.locationName}
                 </span>
+                {course.layoutName ? <span>{course.layoutName}</span> : null}
                 <span>{course.holes.length} holes</span>
                 {averageRating ? <span>{averageRating.toFixed(1)}/5 avg</span> : null}
               </p>
@@ -323,7 +326,30 @@ export default async function AdminCourseReviewPage({
               <dt className="font-bold text-ink/55">Longitude</dt>
               <dd className="font-black text-ink">{course.longitude ?? "Missing"}</dd>
             </div>
+            {course.layoutName ? (
+              <div className="flex items-center justify-between gap-3">
+                <dt className="font-bold text-ink/55">Layout</dt>
+                <dd className="font-black text-ink">{course.layoutName}</dd>
+              </div>
+            ) : null}
           </dl>
+          {course.importSourceUrl ? (
+            <a
+              className="break-all rounded-lg bg-water-100 p-3 text-sm font-bold text-canopy-700 transition hover:bg-canopy-50"
+              href={course.importSourceUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              UDisc source
+            </a>
+          ) : null}
+          {course.importWarnings.length ? (
+            <div className="grid gap-2 rounded-lg bg-water-100 p-3 text-sm font-bold text-ink">
+              {course.importWarnings.map((warning) => (
+                <p key={warning}>{warning}</p>
+              ))}
+            </div>
+          ) : null}
           {course.submittedBy ? (
             <Link
               className="flex items-center gap-3 rounded-lg bg-canopy-50 p-3 transition hover:bg-canopy-100"

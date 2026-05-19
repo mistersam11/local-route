@@ -31,6 +31,7 @@ enum VoteValue {
 }
 
 enum CourseStatus {
+  draft
   pending
   approved
   rejected
@@ -130,6 +131,9 @@ model Course {
   beginnerFriendly Boolean          @default(false)
   isPayToPlay      Boolean          @default(false)
   status           CourseStatus     @default(pending)
+  layoutName       String?
+  importSourceUrl  String?
+  importWarnings   String[]         @default([])
   submittedById    Int?
   createdAt        DateTime         @default(now())
 

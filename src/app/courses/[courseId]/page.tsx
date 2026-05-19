@@ -102,6 +102,13 @@ export default async function CoursePage({ params }: CoursePageProps) {
     notFound();
   }
 
+  const canEditDraft =
+    currentUser?.isAdmin || currentUser?.id === course.submittedById;
+
+  if (course.status === "draft" && !canEditDraft) {
+    notFound();
+  }
+
   const averageRating =
     course.reviews.length > 0
       ? course.reviews.reduce((total, review) => total + review.rating, 0) /
@@ -153,12 +160,21 @@ export default async function CoursePage({ params }: CoursePageProps) {
               </p>
               {course.status !== "approved" ? (
                 <span className="mt-3 inline-flex rounded-full bg-clay-100 px-3 py-1 text-xs font-black uppercase text-clay-700">
-                  {course.status === "pending" ? "Pending review" : "Rejected"}
+                  {course.status === "draft"
+                    ? "Draft"
+                    : course.status === "pending"
+                      ? "Pending review"
+                      : "Rejected"}
                 </span>
               ) : null}
               <h1 className="mt-3 text-4xl font-black leading-tight sm:text-5xl">
                 {course.name}
               </h1>
+              {course.layoutName ? (
+                <p className="mt-2 text-sm font-black uppercase text-white/70">
+                  {course.layoutName}
+                </p>
+              ) : null}
               <p className="mt-3 flex items-center gap-2 text-sm font-bold">
                 <Stars rating={averageRating} />
                 <span>{course.reviews.length ? averageRating.toFixed(1) : "No reviews yet"}</span>
@@ -236,9 +252,18 @@ export default async function CoursePage({ params }: CoursePageProps) {
           </div>
         </section>
 
-        {currentUser ? (
+        {course.status !== "approved" && canEditDraft ? (
+          <Link
+            className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-full bg-ink px-5 text-sm font-black text-white transition hover:bg-canopy-700"
+            href={`/courses/${course.id}/edit`}
+          >
+            Edit draft
+          </Link>
+        ) : null}
+
+        {course.status === "approved" && currentUser ? (
           <CourseReviewForm courseId={course.id} />
-        ) : (
+        ) : course.status === "approved" ? (
           <Link
             className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-full bg-ink px-5 text-sm font-black text-white transition hover:bg-canopy-700"
             href={`/login?redirectTo=/courses/${course.id}`}
@@ -246,7 +271,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
             <LogIn size={16} aria-hidden />
             Log in to review
           </Link>
-        )}
+        ) : null}
 
         <section>
           <h2 className="mb-3 text-2xl font-black text-ink">Reviews</h2>

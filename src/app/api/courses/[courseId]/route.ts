@@ -9,7 +9,7 @@ type Params = {
   };
 };
 
-export async function GET(_request: Request, { params }: Params) {
+export async function GET(request: Request, { params }: Params) {
   const courseId = Number(params.courseId);
 
   if (!Number.isInteger(courseId)) {
@@ -45,6 +45,14 @@ export async function GET(_request: Request, { params }: Params) {
 
   if (!course) {
     return NextResponse.json({ error: "Course not found" }, { status: 404 });
+  }
+
+  if (course.status === "draft") {
+    const currentUser = await getRequestUser(request);
+
+    if (!currentUser || (course.submittedById !== currentUser.id && !currentUser.isAdmin)) {
+      return NextResponse.json({ error: "Course not found" }, { status: 404 });
+    }
   }
 
   return NextResponse.json({ course });

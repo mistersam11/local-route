@@ -22,17 +22,19 @@ type AdminPageProps = {
   };
 };
 
-const filters = ["pending", "approved", "rejected", "all"] as const;
+const filters = ["pending", "draft", "approved", "rejected", "all"] as const;
 type Filter = (typeof filters)[number];
 type ModerationStatus = Exclude<Filter, "all">;
 
 const statusStyles = {
+  draft: "bg-white text-ink/60",
   approved: "bg-canopy-50 text-canopy-700",
   pending: "bg-water-100 text-water-700",
   rejected: "bg-clay-100 text-clay-700"
 };
 
 const statusLabels = {
+  draft: "Draft",
   approved: "Approved",
   pending: "Pending",
   rejected: "Rejected"
@@ -89,6 +91,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   ]);
 
   const counts: Record<ModerationStatus, number> = {
+    draft: 0,
     approved: 0,
     pending: 0,
     rejected: 0
@@ -98,7 +101,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     counts[entry.status as ModerationStatus] = entry._count._all;
   });
 
-  const total = counts.approved + counts.pending + counts.rejected;
+  const total = counts.draft + counts.approved + counts.pending + counts.rejected;
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:py-10">
@@ -134,8 +137,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         </div>
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-4">
+      <section className="grid gap-3 sm:grid-cols-5">
         <Stat label="Total" value={total} />
+        <Stat label="Draft" value={counts.draft} />
         <Stat icon={<Clock3 size={18} aria-hidden />} label="Pending" value={counts.pending} />
         <Stat icon={<CheckCircle2 size={18} aria-hidden />} label="Approved" value={counts.approved} />
         <Stat icon={<XCircle size={18} aria-hidden />} label="Rejected" value={counts.rejected} />

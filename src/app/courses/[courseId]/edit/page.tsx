@@ -1,0 +1,93 @@
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
+import {
+  CourseDraftEditor,
+  type CourseDraftEditorCourse
+} from "@/components/CourseDraftEditor";
+import { getCurrentUser } from "@/lib/current-user";
+import { prisma } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
+
+type CourseEditPageProps = {
+  params: {
+    courseId: string;
+  };
+};
+
+export default async function CourseEditPage({ params }: CourseEditPageProps) {
+  const courseId = Number(params.courseId);
+
+  if (!Number.isInteger(courseId)) {
+    notFound();
+  }
+
+  const currentUser = await getCurrentUser();
+
+  if (!currentUser) {
+    redirect(`/login?redirectTo=/courses/${courseId}/edit`);
+  }
+
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    include: {
+      holes: { orderBy: { holeNumber: "asc" } }
+    }
+  });
+
+  if (!course) {
+    notFound();
+  }
+
+  if (course.submittedById !== currentUser.id && !currentUser.isAdmin) {
+    notFound();
+  }
+
+  if (course.status === "approved") {
+    redirect(`/courses/${course.id}`);
+  }
+
+  const editorCourse: CourseDraftEditorCourse = {
+    id: course.id,
+    name: course.name,
+    locationName: course.locationName,
+    layoutName: course.layoutName,
+    latitude: course.latitude,
+    longitude: course.longitude,
+    coverPhotoUrl: course.coverPhotoUrl,
+    difficulty: course.difficulty,
+    hasParking: course.hasParking,
+    hasBathrooms: course.hasBathrooms,
+    hasWater: course.hasWater,
+    cartFriendly: course.cartFriendly,
+    dogFriendly: course.dogFriendly,
+    beginnerFriendly: course.beginnerFriendly,
+    isPayToPlay: course.isPayToPlay,
+    status: course.status,
+    importSourceUrl: course.importSourceUrl,
+    importWarnings: course.importWarnings,
+    holes: course.holes.map((hole) => ({
+      id: hole.id,
+      holeNumber: hole.holeNumber,
+      par: hole.par,
+      distanceFeet: hole.distanceFeet,
+      description: hole.description,
+      teePhotoUrl: hole.teePhotoUrl
+    }))
+  };
+
+  return (
+    <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6 lg:py-10">
+      <Link
+        href={`/courses/${course.id}`}
+        className="inline-flex w-fit items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-ink shadow-sm transition hover:bg-canopy-50"
+      >
+        <ArrowLeft size={16} aria-hidden />
+        Course page
+      </Link>
+
+      <CourseDraftEditor initialCourse={editorCourse} />
+    </main>
+  );
+}

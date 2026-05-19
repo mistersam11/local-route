@@ -36,6 +36,18 @@ export async function POST(request: Request, { params }: Params) {
     );
   }
 
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: { id: true, status: true }
+  });
+
+  if (!course || course.status !== "approved") {
+    return NextResponse.json(
+      { error: "This course is not open for reviews yet" },
+      { status: 404 }
+    );
+  }
+
   try {
     await moderateTextFields([title, reviewBody]);
   } catch (error) {

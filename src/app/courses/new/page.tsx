@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, LogIn } from "lucide-react";
 import { SubmitCourseForm } from "@/components/SubmitCourseForm";
+import { UdiscImportForm } from "@/components/UdiscImportForm";
 import { getCurrentUser } from "@/lib/current-user";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +27,15 @@ export default async function NewCoursePage() {
       </section>
 
       {currentUser ? (
-        <SubmitCourseForm />
+        <>
+          <UdiscImportForm />
+          <div className="flex items-center gap-3 text-sm font-black uppercase text-ink/45">
+            <span className="h-px flex-1 bg-canopy-900/10" />
+            Or enter it manually
+            <span className="h-px flex-1 bg-canopy-900/10" />
+          </div>
+          <SubmitCourseForm />
+        </>
       ) : (
         <section className="grid gap-4 rounded-lg border border-canopy-900/10 bg-[#fffdf7] p-5 shadow-sm">
           <h2 className="text-2xl font-black text-ink">Log in to submit a course</h2>

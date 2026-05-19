@@ -5,9 +5,10 @@ import { useState } from "react";
 import { Check, Clock3, ExternalLink, X } from "lucide-react";
 import Link from "next/link";
 
-type CourseStatus = "pending" | "approved" | "rejected";
+type CourseStatus = "draft" | "pending" | "approved" | "rejected";
 
 const statusLabels: Record<CourseStatus, string> = {
+  draft: "Draft",
   approved: "Approved",
   pending: "Pending review",
   rejected: "Rejected"

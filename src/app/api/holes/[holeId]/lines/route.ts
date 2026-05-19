@@ -56,9 +56,12 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Line name is required" }, { status: 400 });
   }
 
-  const hole = await prisma.hole.findUnique({ where: { id: holeId }, select: { id: true } });
+  const hole = await prisma.hole.findUnique({
+    where: { id: holeId },
+    select: { id: true, course: { select: { status: true } } }
+  });
 
-  if (!hole) {
+  if (!hole || hole.course.status !== "approved") {
     return NextResponse.json({ error: "Hole not found" }, { status: 404 });
   }
 
