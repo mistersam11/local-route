@@ -2,6 +2,7 @@ import { Difficulty, LineTag, RiskLevel } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { getFollowingIds, getRequestUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
+import { moderateTextFields, moderationFailure } from "@/lib/moderation";
 import {
   getSerializedLinesForHole,
   includeLineAuthor,
@@ -61,16 +62,31 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Hole not found" }, { status: 404 });
   }
 
+  const description = String(body.description ?? "").trim();
+  const discSuggestion = String(body.discSuggestion ?? "").trim();
+
+  try {
+    await moderateTextFields([name, description, discSuggestion]);
+  } catch (error) {
+    const failure = moderationFailure(error);
+
+    if (failure) {
+      return NextResponse.json({ error: failure.message }, { status: failure.status });
+    }
+
+    throw error;
+  }
+
   const line = await prisma.line.create({
     data: {
       holeId,
       userId: currentUser.id,
       name,
-      description: String(body.description ?? "").trim() || null,
+      description: description || null,
       difficulty: enumValue(Difficulty, body.difficulty, Difficulty.intermediate),
       riskLevel: enumValue(RiskLevel, body.riskLevel, RiskLevel.medium),
       tag: enumValue(LineTag, body.tag, LineTag.safe),
-      discSuggestion: String(body.discSuggestion ?? "").trim() || null
+      discSuggestion: discSuggestion || null
     },
     include: includeLineAuthor
   });

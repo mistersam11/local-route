@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getRequestUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
+import { moderateTextFields, moderationFailure } from "@/lib/moderation";
 import { includeCourseReviewAuthor, serializeCourseReview } from "@/lib/social-data";
 
 type Params = {
@@ -33,6 +34,18 @@ export async function POST(request: Request, { params }: Params) {
       { error: "Rating and review are required" },
       { status: 400 }
     );
+  }
+
+  try {
+    await moderateTextFields([title, reviewBody]);
+  } catch (error) {
+    const failure = moderationFailure(error);
+
+    if (failure) {
+      return NextResponse.json({ error: failure.message }, { status: failure.status });
+    }
+
+    throw error;
   }
 
   const review = await prisma.courseReview.create({

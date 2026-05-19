@@ -11,6 +11,7 @@ import {
   UserRound
 } from "lucide-react";
 import { getCurrentUser } from "@/lib/current-user";
+import { prisma } from "@/lib/db";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -24,6 +25,11 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const currentUser = await getCurrentUser();
+  const pendingAdminNotifications = currentUser?.isAdmin
+    ? await prisma.course.count({ where: { status: "pending" } })
+    : 0;
+  const adminNotificationLabel =
+    pendingAdminNotifications > 99 ? "99+" : String(pendingAdminNotifications);
 
   return (
     <html lang="en">
@@ -61,11 +67,17 @@ export default async function RootLayout({
                   </Link>
                   {currentUser.isAdmin ? (
                     <Link
-                      className="flex items-center gap-1 rounded-full bg-clay-100 px-3 py-2 text-xs font-black uppercase text-clay-700 transition hover:bg-clay-300/45"
+                      className="flex items-center gap-2 rounded-full bg-ink px-3 py-2 text-xs font-black uppercase text-white transition hover:bg-canopy-700"
                       href="/admin"
                     >
                       <ShieldCheck size={14} aria-hidden />
-                      Admin
+                      Admin Panel
+                      <span
+                        aria-label={`${pendingAdminNotifications} admin notifications`}
+                        className="ml-1 flex min-w-5 items-center justify-center rounded-full bg-clay-300 px-1.5 py-0.5 text-[11px] leading-none text-ink"
+                      >
+                        {adminNotificationLabel}
+                      </span>
                     </Link>
                   ) : null}
                   <Link

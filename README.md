@@ -18,6 +18,7 @@ LocalRoute is a Letterboxd-style MVP for disc golf. Players can rate courses and
 - Profile editing with avatar upload, bio, and home course
 - Follow/unfollow users
 - Direct image uploads to Cloudinary for course, hole, and review photos
+- OpenAI moderation checks for review text and suggested lines
 - Prisma schema for users, courses, course status, holes, course reviews, hole reviews, lines, line votes, and follows
 
 ## Stack
@@ -47,6 +48,13 @@ For image uploads, create a Cloudinary unsigned upload preset and set:
 ```bash
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="your-cloud-name"
 NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET="your-unsigned-upload-preset"
+```
+
+For text moderation in production, add an OpenAI API key:
+
+```bash
+OPENAI_API_KEY="your-openai-api-key"
+OPENAI_MODERATION_MODEL="omni-moderation-latest"
 ```
 
 Initialize and seed the database:
