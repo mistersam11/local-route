@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { Flag } from "lucide-react";
 
-type ReportableTargetType = "courseReview" | "holeReview" | "line";
+type ReportableTargetType =
+  | "courseReview"
+  | "holeReview"
+  | "line"
+  | "forumThread"
+  | "forumComment";
 
 type ReportButtonProps = {
   targetType: ReportableTargetType;

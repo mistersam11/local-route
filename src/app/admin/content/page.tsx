@@ -51,7 +51,8 @@ function formatDate(date: Date) {
 }
 
 async function recentContentRefs(status?: ContentStatus) {
-  const [courseReviews, holeReviews, lines] = await Promise.all([
+  const [courseReviews, holeReviews, lines, forumThreads, forumComments] =
+    await Promise.all([
     prisma.courseReview.findMany({
       where: status ? { status } : {},
       select: { id: true, createdAt: true },
@@ -65,6 +66,18 @@ async function recentContentRefs(status?: ContentStatus) {
       take: 20
     }),
     prisma.line.findMany({
+      where: status ? { status } : {},
+      select: { id: true, createdAt: true },
+      orderBy: { createdAt: "desc" },
+      take: 20
+    }),
+    prisma.forumThread.findMany({
+      where: status ? { status } : {},
+      select: { id: true, createdAt: true },
+      orderBy: { createdAt: "desc" },
+      take: 20
+    }),
+    prisma.forumComment.findMany({
       where: status ? { status } : {},
       select: { id: true, createdAt: true },
       orderBy: { createdAt: "desc" },
@@ -87,6 +100,16 @@ async function recentContentRefs(status?: ContentStatus) {
       targetType: ModerationTargetType.line,
       targetRecordId: line.id,
       createdAt: line.createdAt
+    })),
+    ...forumThreads.map((thread) => ({
+      targetType: ModerationTargetType.forumThread,
+      targetRecordId: thread.id,
+      createdAt: thread.createdAt
+    })),
+    ...forumComments.map((comment) => ({
+      targetType: ModerationTargetType.forumComment,
+      targetRecordId: comment.id,
+      createdAt: comment.createdAt
     }))
   ]
     .sort((first, second) => second.createdAt.getTime() - first.createdAt.getTime())
@@ -112,12 +135,16 @@ export default async function AdminContentPage({
     hiddenCourseReviewCount,
     hiddenHoleReviewCount,
     hiddenLineCount,
+    hiddenForumThreadCount,
+    hiddenForumCommentCount,
     recentActions
   ] = await Promise.all([
     prisma.contentReport.count({ where: { status: ReportStatus.open } }),
     prisma.courseReview.count({ where: { status: ContentStatus.hidden } }),
     prisma.holeReview.count({ where: { status: ContentStatus.hidden } }),
     prisma.line.count({ where: { status: ContentStatus.hidden } }),
+    prisma.forumThread.count({ where: { status: ContentStatus.hidden } }),
+    prisma.forumComment.count({ where: { status: ContentStatus.hidden } }),
     prisma.adminModerationAction.findMany({
       include: {
         admin: { select: { username: true } }
@@ -127,7 +154,12 @@ export default async function AdminContentPage({
     })
   ]);
 
-  const hiddenCount = hiddenCourseReviewCount + hiddenHoleReviewCount + hiddenLineCount;
+  const hiddenCount =
+    hiddenCourseReviewCount +
+    hiddenHoleReviewCount +
+    hiddenLineCount +
+    hiddenForumThreadCount +
+    hiddenForumCommentCount;
   const openReportGroups = await prisma.contentReport.groupBy({
     by: ["targetType", "targetRecordId"],
     where: { status: ReportStatus.open },

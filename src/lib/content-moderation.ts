@@ -8,7 +8,9 @@ import { prisma } from "@/lib/db";
 export const moderationTargetLabels: Record<ModerationTargetType, string> = {
   courseReview: "Course review",
   holeReview: "Hole review",
-  line: "Best line"
+  line: "Best line",
+  forumThread: "Forum thread",
+  forumComment: "Forum comment"
 };
 
 export const moderationActionLabels: Record<ModerationActionType, string> = {
@@ -136,34 +138,90 @@ export async function getModerationTargetCard(
     };
   }
 
-  const line = await prisma.line.findUnique({
+  if (targetType === ModerationTargetType.line) {
+    const line = await prisma.line.findUnique({
+      where: { id: targetRecordId },
+      include: {
+        user: { select: { id: true, username: true, profileImageUrl: true } },
+        hole: {
+          select: {
+            id: true,
+            holeNumber: true,
+            course: { select: { name: true } }
+          }
+        }
+      }
+    });
+
+    if (!line) return null;
+
+    return {
+      id: line.id,
+      type: targetType,
+      typeLabel: moderationTargetLabels[targetType],
+      status: line.status,
+      title: line.name,
+      body: line.description || line.discSuggestion,
+      context: `${line.hole.course.name} - Hole ${line.hole.holeNumber}`,
+      href: `/holes/${line.hole.id}`,
+      createdAt: line.createdAt,
+      hiddenReason: line.hiddenReason,
+      author: line.user
+    };
+  }
+
+  if (targetType === ModerationTargetType.forumThread) {
+    const thread = await prisma.forumThread.findUnique({
+      where: { id: targetRecordId },
+      include: {
+        user: { select: { id: true, username: true, profileImageUrl: true } }
+      }
+    });
+
+    if (!thread) return null;
+
+    return {
+      id: thread.id,
+      type: targetType,
+      typeLabel: moderationTargetLabels[targetType],
+      status: thread.status,
+      title: thread.title,
+      body: thread.body,
+      context: "Forum",
+      href: `/forum/${thread.id}`,
+      createdAt: thread.createdAt,
+      hiddenReason: thread.hiddenReason,
+      author: thread.user
+    };
+  }
+
+  const comment = await prisma.forumComment.findUnique({
     where: { id: targetRecordId },
     include: {
       user: { select: { id: true, username: true, profileImageUrl: true } },
-      hole: {
+      thread: {
         select: {
           id: true,
-          holeNumber: true,
-          course: { select: { name: true } }
+          title: true
         }
       }
     }
   });
 
-  if (!line) return null;
+  if (!comment) return null;
 
   return {
-    id: line.id,
+    id: comment.id,
     type: targetType,
     typeLabel: moderationTargetLabels[targetType],
-    status: line.status,
-    title: line.name,
-    body: line.description || line.discSuggestion,
-    context: `${line.hole.course.name} - Hole ${line.hole.holeNumber}`,
-    href: `/holes/${line.hole.id}`,
-    createdAt: line.createdAt,
-    hiddenReason: line.hiddenReason,
-    author: line.user
+    status: comment.status,
+    title: `Comment on ${comment.thread.title}`,
+    body: comment.body,
+    context: "Forum",
+    href: `/forum/${comment.thread.id}`,
+    createdAt: comment.createdAt,
+    hiddenReason: comment.hiddenReason,
+    author: comment.user
   };
 }
 
@@ -218,7 +276,15 @@ export async function setModerationTargetStatus({
     return prisma.holeReview.update({ where: { id: targetRecordId }, data });
   }
 
-  return prisma.line.update({ where: { id: targetRecordId }, data });
+  if (targetType === ModerationTargetType.line) {
+    return prisma.line.update({ where: { id: targetRecordId }, data });
+  }
+
+  if (targetType === ModerationTargetType.forumThread) {
+    return prisma.forumThread.update({ where: { id: targetRecordId }, data });
+  }
+
+  return prisma.forumComment.update({ where: { id: targetRecordId }, data });
 }
 
 export async function deleteModerationTarget(
@@ -233,7 +299,15 @@ export async function deleteModerationTarget(
     return prisma.holeReview.delete({ where: { id: targetRecordId } });
   }
 
-  return prisma.line.delete({ where: { id: targetRecordId } });
+  if (targetType === ModerationTargetType.line) {
+    return prisma.line.delete({ where: { id: targetRecordId } });
+  }
+
+  if (targetType === ModerationTargetType.forumThread) {
+    return prisma.forumThread.delete({ where: { id: targetRecordId } });
+  }
+
+  return prisma.forumComment.delete({ where: { id: targetRecordId } });
 }
 
 export function reportWhere(targetType: ModerationTargetType, targetRecordId: number) {

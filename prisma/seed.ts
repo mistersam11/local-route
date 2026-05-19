@@ -7,6 +7,8 @@ async function main() {
   await prisma.session.deleteMany();
   await prisma.adminModerationAction.deleteMany();
   await prisma.contentReport.deleteMany();
+  await prisma.forumComment.deleteMany();
+  await prisma.forumThread.deleteMany();
   await prisma.courseListItem.deleteMany();
   await prisma.courseList.deleteMany();
   await prisma.courseMark.deleteMany();
@@ -368,6 +370,46 @@ async function main() {
         create: [
           { courseId: cedar.id, rank: 1 },
           { courseId: pine.id, rank: 2 }
+        ]
+      }
+    }
+  });
+
+  const roadTripThread = await prisma.forumThread.create({
+    data: {
+      userId: nate.id,
+      title: "Best two-course day near Asheville?",
+      body: "I have one open Saturday and want a woods-heavy morning round plus something friendlier in the afternoon. Pine Hollow is on the list. What pairs well with it?",
+      comments: {
+        create: [
+          {
+            userId: maya.id,
+            body: "Pine Hollow early is the move. If your legs are still alive, add a shorter park-style course after lunch."
+          },
+          {
+            userId: ellis.id,
+            body: "Check the local club page first if rain hits. The low holes can hold water."
+          }
+        ]
+      }
+    }
+  });
+
+  await prisma.forumThread.create({
+    data: {
+      userId: sam.id,
+      title: "Cedar Ridge conditions this week",
+      body: "Fairways are playing great, but the rough is tall on holes 2 and 4. Bring a spotter if you are testing new drivers.",
+      comments: {
+        create: [
+          {
+            userId: nate.id,
+            body: "Played it yesterday and agree. Hole 4 left side is eating discs."
+          },
+          {
+            userId: maya.id,
+            body: `Good call. Also, ${roadTripThread.title} made me want a weekend road trip.`
+          }
         ]
       }
     }

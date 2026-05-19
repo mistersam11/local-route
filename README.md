@@ -13,6 +13,7 @@ LocalRoute is a Letterboxd-style MVP for disc golf. Players can rate courses and
 - Course submission form with difficulty, amenities, dynamic hole setup, and photo attachments
 - Community course lists with their own list pages
 - Users directory for searching and following friends or pros
+- Forum threads and comments with first-visit rules popup
 - Pending/approved/rejected course moderation status
 - Admin moderation dashboard with dedicated course submission review
 - Admin content moderation queue for reported reviews and suggested lines
@@ -23,7 +24,8 @@ LocalRoute is a Letterboxd-style MVP for disc golf. Players can rate courses and
 - Follow/unfollow users
 - Direct image uploads to Cloudinary for course, hole, and review photos
 - OpenAI moderation checks for review text and suggested lines
-- Prisma schema for users, courses, course facts, course marks, lists, course reviews, hole reviews, lines, line votes, and follows
+- OpenAI moderation checks for forum threads and comments
+- Prisma schema for users, courses, course facts, course marks, lists, forum threads, forum comments, course reviews, hole reviews, lines, line votes, and follows
 
 ## Stack
 
@@ -138,6 +140,7 @@ The seed creates:
 - Submitted courses with pending approval status
 - Suggested lines with difficulty, risk, disc suggestions, tags, and votes
 - Course quick facts, played/want-to-play marks, and a starter course list
+- Forum threads and comments
 
 All new users sign up with an email, username, and password. Set `ADMIN_EMAILS`
 to a comma-separated list of owner emails to grant admin moderation access.
@@ -163,6 +166,8 @@ The seeded demo users use the password `localroute-demo`.
 - `GET /api/holes/:holeId/lines`
 - `POST /api/holes/:holeId/lines`
 - `POST /api/lines/:lineId/vote`
+- `POST /api/forum/threads`
+- `POST /api/forum/threads/:threadId/comments`
 - `GET /api/users/:userId`
 - `POST /api/users/:userId/follow`
 - `DELETE /api/users/:userId/follow`

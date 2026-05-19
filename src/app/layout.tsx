@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   List,
   LogIn,
+  MessageSquare,
   ShieldCheck,
   UserPlus,
   UsersRound
@@ -74,6 +75,13 @@ export default async function RootLayout({
               >
                 <List size={16} aria-hidden />
                 Lists
+              </Link>
+              <Link
+                href="/forum"
+                className="flex shrink-0 items-center gap-2 rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"
+              >
+                <MessageSquare size={16} aria-hidden />
+                Forum
               </Link>
               <Link
                 href="/users"

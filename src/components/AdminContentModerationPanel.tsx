@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { CheckCircle2, Eye, EyeOff, Trash2 } from "lucide-react";
 
-type TargetType = "courseReview" | "holeReview" | "line";
+type TargetType =
+  | "courseReview"
+  | "holeReview"
+  | "line"
+  | "forumThread"
+  | "forumComment";
 type ContentStatus = "visible" | "hidden";
 type AdminAction = "hide" | "restore" | "delete" | "resolve";
 
