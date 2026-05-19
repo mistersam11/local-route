@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CirclePlus, LogIn, LogOut, Map, UserPlus, UserRound } from "lucide-react";
+import {
+  CirclePlus,
+  LogIn,
+  LogOut,
+  Map,
+  ShieldCheck,
+  UserPlus,
+  UserRound
+} from "lucide-react";
 import { getCurrentUser } from "@/lib/current-user";
 import "./globals.css";
 
@@ -50,6 +58,12 @@ export default async function RootLayout({
                     <UserRound size={16} aria-hidden />
                     @{currentUser.username}
                   </Link>
+                  {currentUser.isAdmin ? (
+                    <span className="flex items-center gap-1 rounded-full bg-clay-100 px-3 py-2 text-xs font-black uppercase text-clay-700">
+                      <ShieldCheck size={14} aria-hidden />
+                      Admin
+                    </span>
+                  ) : null}
                   <form action="/api/auth/logout" method="post">
                     <button
                       className="flex items-center gap-2 rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"

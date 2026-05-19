@@ -39,17 +39,24 @@ function getCookieValue(cookieHeader: string | null, name: string) {
   );
 }
 
+function normalizeEmail(email: string) {
+  return email
+    .trim()
+    .replace(/^["'`]+|["'`]+$/g, "")
+    .toLowerCase();
+}
+
 export function adminEmails() {
   return new Set(
     (process.env.ADMIN_EMAILS ?? "")
-      .split(",")
-      .map((email) => email.trim().toLowerCase())
+      .split(/[,\s]+/)
+      .map(normalizeEmail)
       .filter(Boolean)
   );
 }
 
 export function isAdminEmail(email: string) {
-  return adminEmails().has(email.trim().toLowerCase());
+  return adminEmails().has(normalizeEmail(email));
 }
 
 export async function createSession(userId: number) {
