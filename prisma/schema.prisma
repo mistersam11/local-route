@@ -36,6 +36,29 @@ enum CourseStatus {
   rejected
 }
 
+enum ContentStatus {
+  visible
+  hidden
+}
+
+enum ModerationTargetType {
+  courseReview
+  holeReview
+  line
+}
+
+enum ReportStatus {
+  open
+  resolved
+}
+
+enum ModerationActionType {
+  hide
+  restore
+  delete
+  resolve
+}
+
 model User {
   id              Int      @id @default(autoincrement())
   username        String   @unique
@@ -55,6 +78,9 @@ model User {
   followers        Follow[]       @relation("Following")
   lineVotes        LineVote[]
   sessions         Session[]
+  contentReports   ContentReport[]         @relation("ContentReporter")
+  resolvedReports  ContentReport[]         @relation("ReportResolver")
+  moderationActions AdminModerationAction[] @relation("ModerationActor")
 }
 
 model Session {
@@ -112,61 +138,110 @@ model Hole {
 }
 
 model CourseReview {
-  id        Int      @id @default(autoincrement())
-  courseId  Int
-  userId    Int
-  rating    Int
-  title     String?
-  body      String
-  photoUrl  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           Int           @id @default(autoincrement())
+  courseId     Int
+  userId       Int
+  rating       Int
+  title        String?
+  body         String
+  photoUrl     String?
+  status       ContentStatus @default(visible)
+  hiddenAt     DateTime?
+  hiddenReason String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([courseId, createdAt])
+  @@index([status, createdAt])
   @@index([userId])
 }
 
 model HoleReview {
-  id        Int      @id @default(autoincrement())
-  holeId    Int
-  userId    Int
-  rating    Int
-  title     String?
-  body      String
-  photoUrl  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           Int           @id @default(autoincrement())
+  holeId       Int
+  userId       Int
+  rating       Int
+  title        String?
+  body         String
+  photoUrl     String?
+  status       ContentStatus @default(visible)
+  hiddenAt     DateTime?
+  hiddenReason String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   hole Hole @relation(fields: [holeId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([holeId, createdAt])
+  @@index([status, createdAt])
   @@index([userId])
 }
 
 model Line {
-  id             Int        @id @default(autoincrement())
+  id             Int           @id @default(autoincrement())
   holeId         Int
   userId         Int
   name           String
   description    String?
   difficulty     Difficulty
   riskLevel      RiskLevel
-  tag            LineTag    @default(safe)
+  tag            LineTag       @default(safe)
   discSuggestion String?
-  upvotes        Int        @default(0)
-  downvotes      Int        @default(0)
-  createdAt      DateTime   @default(now())
+  upvotes        Int           @default(0)
+  downvotes      Int           @default(0)
+  status         ContentStatus @default(visible)
+  hiddenAt       DateTime?
+  hiddenReason   String?
+  createdAt      DateTime      @default(now())
 
   hole  Hole       @relation(fields: [holeId], references: [id], onDelete: Cascade)
   user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   votes LineVote[]
 
   @@index([holeId, createdAt])
+  @@index([status, createdAt])
   @@index([userId])
+}
+
+model ContentReport {
+  id             Int                  @id @default(autoincrement())
+  targetType     ModerationTargetType
+  targetRecordId Int
+  userId         Int
+  reason         String?
+  status         ReportStatus         @default(open)
+  createdAt      DateTime             @default(now())
+  resolvedAt     DateTime?
+  resolvedById   Int?
+
+  reporter User  @relation("ContentReporter", fields: [userId], references: [id], onDelete: Cascade)
+  resolver User? @relation("ReportResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@unique([targetType, targetRecordId, userId])
+  @@index([status, createdAt])
+  @@index([targetType, targetRecordId])
+  @@index([userId])
+}
+
+model AdminModerationAction {
+  id             Int                  @id @default(autoincrement())
+  targetType     ModerationTargetType
+  targetRecordId Int
+  adminId        Int
+  action         ModerationActionType
+  reason         String?
+  targetSummary  String?
+  createdAt      DateTime             @default(now())
+
+  admin User @relation("ModerationActor", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([targetType, targetRecordId])
+  @@index([adminId, createdAt])
+  @@index([createdAt])
 }
 
 model LineVote {

@@ -1,3 +1,4 @@
+import { ContentStatus } from "@prisma/client";
 import Link from "next/link";
 import { ArrowRight, CirclePlus, MapPin, MessageSquare, Search, Star } from "lucide-react";
 import { Stars } from "@/components/Stars";
@@ -26,12 +27,18 @@ export default async function Home({ searchParams }: HomeProps) {
         : {})
     },
     include: {
-      reviews: { select: { rating: true } },
+      reviews: {
+        where: { status: ContentStatus.visible },
+        select: { rating: true }
+      },
       holes: {
         select: {
           id: true,
           _count: {
-            select: { lines: true, reviews: true }
+            select: {
+              lines: { where: { status: ContentStatus.visible } },
+              reviews: { where: { status: ContentStatus.visible } }
+            }
           }
         }
       }

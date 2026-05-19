@@ -1,4 +1,4 @@
-import { VoteValue } from "@prisma/client";
+import { ContentStatus, VoteValue } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { getFollowingIds, getRequestUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
@@ -29,8 +29,8 @@ export async function POST(request: Request, { params }: Params) {
 
   const body = (await request.json()) as { value?: unknown };
   const value = parseVote(body.value);
-  const lineExists = await prisma.line.findUnique({
-    where: { id: lineId },
+  const lineExists = await prisma.line.findFirst({
+    where: { id: lineId, status: ContentStatus.visible },
     select: { id: true }
   });
 

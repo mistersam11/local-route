@@ -1,3 +1,4 @@
+import { ContentStatus } from "@prisma/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -43,6 +44,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         homeCourseName: true,
         createdAt: true,
         lines: {
+          where: { status: ContentStatus.visible },
           include: {
             user: { select: { id: true, username: true, profileImageUrl: true } },
             hole: {
@@ -56,6 +58,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           orderBy: { createdAt: "desc" }
         },
         courseReviews: {
+          where: { status: ContentStatus.visible },
           include: {
             course: { select: { id: true, name: true, locationName: true } },
             user: { select: { id: true, username: true, profileImageUrl: true } }
@@ -63,6 +66,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           orderBy: { createdAt: "desc" }
         },
         holeReviews: {
+          where: { status: ContentStatus.visible },
           include: {
             hole: {
               select: {

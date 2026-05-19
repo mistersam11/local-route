@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, LogOut } from "lucide-react";
 import { redirect } from "next/navigation";
 import { ProfileSettingsForm } from "@/components/ProfileSettingsForm";
 import { getCurrentUser } from "@/lib/current-user";
@@ -47,6 +47,22 @@ export default async function ProfileSettingsPage() {
       </section>
 
       <ProfileSettingsForm user={user} />
+
+      <section className="grid gap-3 rounded-lg border border-canopy-900/10 bg-white p-4 shadow-sm">
+        <div>
+          <p className="text-sm font-bold uppercase text-clay-700">Account</p>
+          <h2 className="mt-1 text-xl font-black text-ink">Session</h2>
+        </div>
+        <form action="/api/auth/logout" method="post">
+          <button
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-clay-100 px-4 text-sm font-black text-clay-700 transition hover:bg-clay-300/45"
+            type="submit"
+          >
+            <LogOut size={16} aria-hidden />
+            Log out
+          </button>
+        </form>
+      </section>
     </main>
   );
 }

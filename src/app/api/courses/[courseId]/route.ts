@@ -1,4 +1,4 @@
-import { CourseStatus } from "@prisma/client";
+import { ContentStatus, CourseStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { getRequestUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
@@ -22,12 +22,16 @@ export async function GET(_request: Request, { params }: Params) {
       holes: {
         include: {
           _count: {
-            select: { lines: true, reviews: true }
+            select: {
+              lines: { where: { status: ContentStatus.visible } },
+              reviews: { where: { status: ContentStatus.visible } }
+            }
           }
         },
         orderBy: { holeNumber: "asc" }
       },
       reviews: {
+        where: { status: ContentStatus.visible },
         include: {
           user: { select: { id: true, username: true, profileImageUrl: true } }
         },

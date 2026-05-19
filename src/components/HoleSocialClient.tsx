@@ -13,6 +13,7 @@ import {
   Trophy
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
+import { ReportButton } from "@/components/ReportButton";
 import { Stars } from "@/components/Stars";
 import { uploadImage } from "@/lib/cloudinary-upload";
 import type {
@@ -296,7 +297,11 @@ export function HoleSocialClient({ initialPayload }: { initialPayload: HoleSocia
             </div>
           )}
           {reviews.map((review) => (
-            <ReviewCard review={review} key={review.id} />
+            <ReviewCard
+              currentUserId={currentUser?.id}
+              review={review}
+              key={review.id}
+            />
           ))}
         </section>
       </section>
@@ -308,7 +313,13 @@ export function HoleSocialClient({ initialPayload }: { initialPayload: HoleSocia
               <Trophy size={16} aria-hidden />
               Best Line
             </p>
-            <LineCard canVote={canVote} line={bestLine} onVote={vote} top />
+            <LineCard
+              canVote={canVote}
+              currentUserId={currentUser?.id}
+              line={bestLine}
+              onVote={vote}
+              top
+            />
           </div>
         ) : null}
 
@@ -399,6 +410,7 @@ export function HoleSocialClient({ initialPayload }: { initialPayload: HoleSocia
             <LineCard
               key={line.id}
               canVote={canVote}
+              currentUserId={currentUser?.id}
               line={line}
               onVote={vote}
               top={line.id === bestLine?.id}
@@ -410,7 +422,13 @@ export function HoleSocialClient({ initialPayload }: { initialPayload: HoleSocia
   );
 }
 
-function ReviewCard({ review }: { review: HoleReviewCard }) {
+function ReviewCard({
+  review,
+  currentUserId
+}: {
+  review: HoleReviewCard;
+  currentUserId?: number;
+}) {
   return (
     <article className="rounded-lg border border-canopy-900/10 bg-[#fffdf7] p-4 shadow-sm">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
@@ -424,9 +442,14 @@ function ReviewCard({ review }: { review: HoleReviewCard }) {
             @{review.author.username}
           </Link>
         </div>
-        <span className="text-sm font-bold">
-          <Stars rating={review.rating} /> {review.rating}/5
-        </span>
+        <div className="flex items-center gap-2">
+          {currentUserId && currentUserId !== review.author.id ? (
+            <ReportButton targetId={review.id} targetType="holeReview" />
+          ) : null}
+          <span className="text-sm font-bold">
+            <Stars rating={review.rating} /> {review.rating}/5
+          </span>
+        </div>
       </div>
       {review.title ? <h3 className="mb-2 text-lg font-black text-ink">{review.title}</h3> : null}
       <p className="text-sm font-semibold leading-6 text-ink/70">{review.body}</p>
@@ -445,12 +468,14 @@ function LineCard({
   line,
   onVote,
   top,
-  canVote
+  canVote,
+  currentUserId
 }: {
   line: BestLine;
   onVote: (lineId: number, value: "up" | "down") => void;
   top?: boolean;
   canVote: boolean;
+  currentUserId?: number;
 }) {
   return (
     <article className="rounded-lg border border-canopy-900/10 bg-white p-4 shadow-sm">
@@ -465,10 +490,15 @@ function LineCard({
             @{line.author.username}
           </Link>
         </div>
-        <span className="rounded-full bg-canopy-50 px-3 py-1 text-sm font-black text-canopy-700">
-          {line.score > 0 ? "+" : ""}
-          {line.score}
-        </span>
+        <div className="flex flex-col items-end gap-2">
+          <span className="rounded-full bg-canopy-50 px-3 py-1 text-sm font-black text-canopy-700">
+            {line.score > 0 ? "+" : ""}
+            {line.score}
+          </span>
+          {currentUserId && currentUserId !== line.author.id ? (
+            <ReportButton targetId={line.id} targetType="line" />
+          ) : null}
+        </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-2 text-xs font-black uppercase">
         {top ? (

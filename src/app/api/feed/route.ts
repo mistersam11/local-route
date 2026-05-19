@@ -1,3 +1,4 @@
+import { ContentStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { getFollowingIds, getRequestUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
@@ -15,6 +16,7 @@ export async function GET(request: Request) {
   const [lines, reviews, holeReviews] = await Promise.all([
     prisma.line.findMany({
       where: {
+        status: ContentStatus.visible,
         ...(courseId && Number.isInteger(courseId)
           ? { hole: { courseId } }
           : {}),
@@ -36,6 +38,7 @@ export async function GET(request: Request) {
     }),
     prisma.courseReview.findMany({
       where: {
+        status: ContentStatus.visible,
         ...(courseId && Number.isInteger(courseId) ? { courseId } : {}),
         ...(followedOnly ? { userId: { in: [...followingIds] } } : {})
       },
@@ -50,6 +53,7 @@ export async function GET(request: Request) {
     }),
     prisma.holeReview.findMany({
       where: {
+        status: ContentStatus.visible,
         ...(courseId && Number.isInteger(courseId)
           ? { hole: { courseId } }
           : {}),

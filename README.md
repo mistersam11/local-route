@@ -13,6 +13,8 @@ LocalRoute is a Letterboxd-style MVP for disc golf. Players can rate courses and
 - Course submission form with dynamic hole setup and photo attachments
 - Pending/approved/rejected course moderation status
 - Admin moderation dashboard with dedicated course submission review
+- Admin content moderation queue for reported reviews and suggested lines
+- User reporting for course reviews, hole reviews, and suggested lines
 - User profiles with course reviews, suggested lines, and following list
 - Real email/username account signup and login
 - Profile editing with avatar upload, bio, and home course
@@ -116,7 +118,10 @@ For public access from other networks, deploy it instead of running it from your
 - Prisma Postgres, Neon, Supabase, or Railway Postgres for the database
 - Cloudinary for durable image uploads
 
-Before public launch, add profile editing and image moderation workflows.
+After Prisma schema changes, run `npx prisma db push` against the production
+database before using the newly deployed app.
+
+Before public launch, add image moderation workflows.
 
 ## Demo Data
 
@@ -140,7 +145,9 @@ The seeded demo users use the password `localroute-demo`.
 - `POST /api/auth/signup`
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
+- `PATCH /api/admin/content`
 - `PATCH /api/me/profile`
+- `POST /api/reports`
 - `GET /api/courses`
 - `POST /api/courses`
 - `GET /api/courses/:courseId`

@@ -1,9 +1,9 @@
+import { ReportStatus } from "@prisma/client";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
   CirclePlus,
   LogIn,
-  LogOut,
   Map,
   Settings,
   ShieldCheck,
@@ -26,7 +26,12 @@ export default async function RootLayout({
 }>) {
   const currentUser = await getCurrentUser();
   const pendingAdminNotifications = currentUser?.isAdmin
-    ? await prisma.course.count({ where: { status: "pending" } })
+    ? (
+        await Promise.all([
+          prisma.course.count({ where: { status: "pending" } }),
+          prisma.contentReport.count({ where: { status: ReportStatus.open } })
+        ])
+      ).reduce((total, count) => total + count, 0)
     : 0;
   const adminNotificationLabel =
     pendingAdminNotifications > 99 ? "99+" : String(pendingAdminNotifications);
@@ -87,15 +92,6 @@ export default async function RootLayout({
                     <Settings size={16} aria-hidden />
                     Settings
                   </Link>
-                  <form action="/api/auth/logout" method="post">
-                    <button
-                      className="flex items-center gap-2 rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"
-                      type="submit"
-                    >
-                      <LogOut size={16} aria-hidden />
-                      Log out
-                    </button>
-                  </form>
                 </>
               ) : (
                 <>

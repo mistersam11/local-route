@@ -112,10 +112,26 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
             Course moderation
           </h1>
         </div>
-        <p className="max-w-xl text-sm font-semibold leading-6 text-ink/60">
-          Review submitted courses, inspect hole data, and decide what belongs in
-          the public course directory.
-        </p>
+        <div className="grid gap-3 sm:justify-items-end">
+          <p className="max-w-xl text-sm font-semibold leading-6 text-ink/60 sm:text-right">
+            Review submitted courses, inspect hole data, and decide what belongs in
+            the public course directory.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              className="rounded-full bg-ink px-4 py-2 text-sm font-black text-white"
+              href="/admin"
+            >
+              Course submissions
+            </Link>
+            <Link
+              className="rounded-full bg-white px-4 py-2 text-sm font-black text-ink/70 transition hover:bg-canopy-50 hover:text-canopy-700"
+              href="/admin/content"
+            >
+              Content queue
+            </Link>
+          </div>
+        </div>
       </section>
 
       <section className="grid gap-3 sm:grid-cols-4">

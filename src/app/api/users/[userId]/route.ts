@@ -1,3 +1,4 @@
+import { ContentStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { getFollowingIds, getRequestUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
@@ -26,6 +27,7 @@ export async function GET(request: Request, { params }: Params) {
       profileImageUrl: true,
       createdAt: true,
       lines: {
+        where: { status: ContentStatus.visible },
         include: {
           user: { select: { id: true, username: true, profileImageUrl: true } },
           hole: {
@@ -38,6 +40,7 @@ export async function GET(request: Request, { params }: Params) {
         orderBy: { createdAt: "desc" }
       },
       courseReviews: {
+        where: { status: ContentStatus.visible },
         include: {
           user: { select: { id: true, username: true, profileImageUrl: true } },
           course: { select: { id: true, name: true } }
@@ -45,6 +48,7 @@ export async function GET(request: Request, { params }: Params) {
         orderBy: { createdAt: "desc" }
       },
       holeReviews: {
+        where: { status: ContentStatus.visible },
         include: {
           user: { select: { id: true, username: true, profileImageUrl: true } },
           hole: {

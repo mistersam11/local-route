@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { ContentStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getFollowingIds } from "@/lib/current-user";
 import type {
@@ -147,10 +147,12 @@ export async function getHoleSocialPayload(
       include: {
         course: true,
         reviews: {
+          where: { status: ContentStatus.visible },
           include: holeReviewWithAuthor.include,
           orderBy: { createdAt: "desc" }
         },
         lines: {
+          where: { status: ContentStatus.visible },
           include: lineWithAuthor.include
         }
       }
@@ -193,7 +195,7 @@ export async function getSerializedLinesForHole(
   const [followingIds, lines] = await Promise.all([
     getFollowingIds(currentUserId),
     prisma.line.findMany({
-      where: { holeId },
+      where: { holeId, status: ContentStatus.visible },
       include: lineWithAuthor.include
     })
   ]);

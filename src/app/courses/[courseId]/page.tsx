@@ -1,3 +1,4 @@
+import { ContentStatus } from "@prisma/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { CourseReviewForm } from "@/components/CourseReviewForm";
+import { ReportButton } from "@/components/ReportButton";
 import { Stars } from "@/components/Stars";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
@@ -37,6 +39,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
       where: { id: courseId },
       include: {
         reviews: {
+          where: { status: ContentStatus.visible },
           include: {
             user: { select: { id: true, username: true, profileImageUrl: true } }
           },
@@ -45,13 +48,20 @@ export default async function CoursePage({ params }: CoursePageProps) {
         holes: {
           include: {
             _count: {
-              select: { lines: true, reviews: true }
+              select: {
+                lines: { where: { status: ContentStatus.visible } },
+                reviews: { where: { status: ContentStatus.visible } }
+              }
             },
             lines: {
+              where: { status: ContentStatus.visible },
               orderBy: [{ upvotes: "desc" }, { downvotes: "asc" }],
               take: 1
             },
-            reviews: { select: { rating: true } }
+            reviews: {
+              where: { status: ContentStatus.visible },
+              select: { rating: true }
+            }
           },
           orderBy: { holeNumber: "asc" }
         },
@@ -61,7 +71,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
       }
     }),
     prisma.holeReview.findMany({
-      where: { hole: { courseId } },
+      where: { status: ContentStatus.visible, hole: { courseId } },
       include: {
         user: { select: { id: true, username: true, profileImageUrl: true } },
         hole: { select: { id: true, holeNumber: true } }
@@ -180,9 +190,14 @@ export default async function CoursePage({ params }: CoursePageProps) {
                     />
                     @{review.user.username}
                   </Link>
-                  <span className="rounded-full bg-clay-100 px-3 py-1 text-sm font-black text-clay-700">
-                    {review.rating}/5
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {currentUser && currentUser.id !== review.user.id ? (
+                      <ReportButton targetId={review.id} targetType="courseReview" />
+                    ) : null}
+                    <span className="rounded-full bg-clay-100 px-3 py-1 text-sm font-black text-clay-700">
+                      {review.rating}/5
+                    </span>
+                  </div>
                 </div>
                 {review.title ? (
                   <h3 className="mt-4 text-lg font-black text-ink">{review.title}</h3>
