@@ -60,10 +60,13 @@ export default async function RootLayout({
                     @{currentUser.username}
                   </Link>
                   {currentUser.isAdmin ? (
-                    <span className="flex items-center gap-1 rounded-full bg-clay-100 px-3 py-2 text-xs font-black uppercase text-clay-700">
+                    <Link
+                      className="flex items-center gap-1 rounded-full bg-clay-100 px-3 py-2 text-xs font-black uppercase text-clay-700 transition hover:bg-clay-300/45"
+                      href="/admin"
+                    >
                       <ShieldCheck size={14} aria-hidden />
                       Admin
-                    </span>
+                    </Link>
                   ) : null}
                   <Link
                     href="/settings/profile"

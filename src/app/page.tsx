@@ -15,7 +15,7 @@ export default async function Home({ searchParams }: HomeProps) {
   const query = searchParams?.q?.trim() ?? "";
   const courses = await prisma.course.findMany({
     where: {
-      status: { not: "rejected" },
+      status: "approved",
       ...(query
         ? {
             OR: [

@@ -18,7 +18,7 @@ export async function GET(request: Request) {
 
   const courses = await prisma.course.findMany({
     where: {
-      status: { not: "rejected" },
+      status: "approved",
       ...(query
         ? {
             OR: [

@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { CourseReviewForm } from "@/components/CourseReviewForm";
-import { CourseStatusControls } from "@/components/CourseStatusControls";
 import { Stars } from "@/components/Stars";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
@@ -148,13 +147,6 @@ export default async function CoursePage({ params }: CoursePageProps) {
             <p className="mt-1 text-2xl font-black">{totalHoleReviews}</p>
           </div>
         </div>
-
-        {currentUser?.isAdmin ? (
-          <CourseStatusControls
-            courseId={course.id}
-            initialStatus={course.status}
-          />
-        ) : null}
 
         {currentUser ? (
           <CourseReviewForm courseId={course.id} />

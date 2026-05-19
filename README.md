@@ -12,6 +12,7 @@ LocalRoute is a Letterboxd-style MVP for disc golf. Players can rate courses and
 - A "Best Line" per hole determined by community voting
 - Course submission form with dynamic hole setup and photo attachments
 - Pending/approved/rejected course moderation status
+- Admin moderation dashboard with dedicated course submission review
 - User profiles with course reviews, suggested lines, and following list
 - Real email/username account signup and login
 - Profile editing with avatar upload, bio, and home course
