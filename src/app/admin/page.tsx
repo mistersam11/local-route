@@ -76,14 +76,27 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           select: { id: true, username: true, profileImageUrl: true }
         },
         _count: {
-          select: { holes: true, reviews: true }
+          select: { reviews: true }
         },
         holes: {
+          where: { layoutId: null },
           select: {
             _count: {
               select: { lines: true, reviews: true }
             }
           }
+        },
+        layouts: {
+          include: {
+            holes: {
+              select: {
+                _count: {
+                  select: { lines: true, reviews: true }
+                }
+              }
+            }
+          },
+          orderBy: { sortOrder: "asc" }
         }
       },
       orderBy: [{ status: "desc" }, { createdAt: "desc" }]
@@ -164,11 +177,12 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       <section className="grid gap-4">
         {courses.length ? (
           courses.map((course) => {
-            const lineCount = course.holes.reduce(
+            const displayHoles = course.layouts[0]?.holes ?? course.holes;
+            const lineCount = displayHoles.reduce(
               (total, hole) => total + hole._count.lines,
               0
             );
-            const holeReviewCount = course.holes.reduce(
+            const holeReviewCount = displayHoles.reduce(
               (total, hole) => total + hole._count.reviews,
               0
             );
@@ -211,7 +225,10 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-3 text-sm font-bold text-ink/60">
-                    <span>{course._count.holes} holes</span>
+                    <span>{displayHoles.length} holes</span>
+                    {course.layouts.length > 1 ? (
+                      <span>{course.layouts.length} layouts</span>
+                    ) : null}
                     <span>{course._count.reviews} course reviews</span>
                     <span>{holeReviewCount} hole reviews</span>
                     <span>{lineCount} lines</span>

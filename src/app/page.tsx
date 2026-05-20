@@ -67,6 +67,7 @@ export default async function Home({ searchParams }: HomeProps) {
         select: { rating: true }
       },
       holes: {
+        where: { layoutId: null },
         select: {
           id: true,
           _count: {
@@ -76,13 +77,32 @@ export default async function Home({ searchParams }: HomeProps) {
             }
           }
         }
+      },
+      layouts: {
+        include: {
+          holes: {
+            select: {
+              id: true,
+              _count: {
+                select: {
+                  lines: { where: { status: ContentStatus.visible } },
+                  reviews: { where: { status: ContentStatus.visible } }
+                }
+              }
+            }
+          }
+        },
+        orderBy: { sortOrder: "asc" }
       }
     },
     orderBy: { name: "asc" }
   });
   const filteredCourses =
     holesFilter && Number.isInteger(Number(holesFilter))
-      ? courses.filter((course) => course.holes.length >= Number(holesFilter))
+      ? courses.filter((course) => {
+          const displayHoles = course.layouts[0]?.holes ?? course.holes;
+          return displayHoles.length >= Number(holesFilter);
+        })
       : courses;
 
   return (
@@ -192,17 +212,18 @@ export default async function Home({ searchParams }: HomeProps) {
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {filteredCourses.map((course) => {
+          const displayHoles = course.layouts[0]?.holes ?? course.holes;
           const reviewCount = course.reviews.length;
           const averageRating =
             reviewCount > 0
               ? course.reviews.reduce((total, review) => total + review.rating, 0) /
                 reviewCount
               : 0;
-          const lineCount = course.holes.reduce(
+          const lineCount = displayHoles.reduce(
             (total, hole) => total + hole._count.lines,
             0
           );
-          const holeReviewCount = course.holes.reduce(
+          const holeReviewCount = displayHoles.reduce(
             (total, hole) => total + hole._count.reviews,
             0
           );
@@ -226,7 +247,7 @@ export default async function Home({ searchParams }: HomeProps) {
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-ink/70 to-transparent" />
                 <span className="absolute bottom-3 left-3 rounded-full bg-[#fffdf7]/90 px-3 py-1 text-sm font-bold text-ink">
-                  {course.holes.length} holes
+                  {displayHoles.length} holes
                 </span>
                 {course.status === "pending" ? (
                   <span className="absolute right-3 top-3 rounded-full bg-clay-100 px-3 py-1 text-xs font-black uppercase text-clay-700">

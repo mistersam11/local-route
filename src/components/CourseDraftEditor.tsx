@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
+  AlertTriangle,
   Camera,
   CheckCircle2,
   CirclePlus,
@@ -29,6 +30,21 @@ type HoleDraft = {
   teePhotoUrl: string;
 };
 
+type LayoutDraft = {
+  id?: number;
+  name: string;
+  holes: HoleDraft[];
+};
+
+type CourseEditorHole = {
+  id: number;
+  holeNumber: number;
+  par: number | null;
+  distanceFeet: number | null;
+  description: string | null;
+  teePhotoUrl: string | null;
+};
+
 export type CourseDraftEditorCourse = {
   id: number;
   name: string;
@@ -48,13 +64,11 @@ export type CourseDraftEditorCourse = {
   status: CourseStatusValue;
   importSourceUrl: string | null;
   importWarnings: string[];
-  holes: Array<{
+  holes: CourseEditorHole[];
+  layouts?: Array<{
     id: number;
-    holeNumber: number;
-    par: number | null;
-    distanceFeet: number | null;
-    description: string | null;
-    teePhotoUrl: string | null;
+    name: string;
+    holes: CourseEditorHole[];
   }>;
 };
 
@@ -100,9 +114,17 @@ export function CourseDraftEditor({
   initialCourse: CourseDraftEditorCourse;
 }) {
   const router = useRouter();
+  const initialLayouts =
+    initialCourse.layouts?.map((layout) => ({
+      id: layout.id,
+      name: layout.name,
+      holes: layout.holes.map(toHoleDraft)
+    })) ?? [];
   const [name, setName] = useState(initialCourse.name);
   const [locationName, setLocationName] = useState(initialCourse.locationName);
   const [layoutName, setLayoutName] = useState(initialCourse.layoutName ?? "");
+  const [layoutDrafts, setLayoutDrafts] = useState<LayoutDraft[]>(initialLayouts);
+  const [selectedLayoutIndex, setSelectedLayoutIndex] = useState(0);
   const [difficulty, setDifficulty] = useState<CourseDifficultyValue>(
     initialCourse.difficulty
   );
@@ -120,7 +142,7 @@ export function CourseDraftEditor({
   const [coverPhotoUrl, setCoverPhotoUrl] = useState(
     initialCourse.coverPhotoUrl ?? ""
   );
-  const [holes, setHoles] = useState<HoleDraft[]>(
+  const [legacyHoles, setLegacyHoles] = useState<HoleDraft[]>(
     initialCourse.holes.map(toHoleDraft)
   );
   const [status, setStatus] = useState<CourseStatusValue>(initialCourse.status);
@@ -131,6 +153,10 @@ export function CourseDraftEditor({
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const isUploading = uploadingCount > 0;
+  const hasImportedLayouts = layoutDrafts.length > 0;
+  const selectedLayout =
+    layoutDrafts[Math.min(selectedLayoutIndex, layoutDrafts.length - 1)];
+  const holes = selectedLayout?.holes ?? legacyHoles;
 
   function attachPhoto(file: File | undefined, onLoad: (value: string) => void) {
     setError(null);
@@ -147,8 +173,40 @@ export function CourseDraftEditor({
       });
   }
 
+  function updateCurrentHoles(updater: (current: HoleDraft[]) => HoleDraft[]) {
+    if (!hasImportedLayouts) {
+      setLegacyHoles(updater);
+      return;
+    }
+
+    setLayoutDrafts((current) =>
+      current.map((layout, index) =>
+        index === selectedLayoutIndex
+          ? { ...layout, holes: updater(layout.holes) }
+          : layout
+      )
+    );
+  }
+
+  function updateSelectedLayoutName(value: string) {
+    if (!hasImportedLayouts) {
+      setLayoutName(value);
+      return;
+    }
+
+    setLayoutDrafts((current) =>
+      current.map((layout, index) =>
+        index === selectedLayoutIndex ? { ...layout, name: value } : layout
+      )
+    );
+
+    if (selectedLayoutIndex === 0) {
+      setLayoutName(value);
+    }
+  }
+
   function updateHole(index: number, patch: Partial<HoleDraft>) {
-    setHoles((current) =>
+    updateCurrentHoles((current) =>
       current.map((hole, holeIndex) =>
         holeIndex === index ? { ...hole, ...patch } : hole
       )
@@ -156,13 +214,13 @@ export function CourseDraftEditor({
   }
 
   function addHole() {
-    setHoles((current) => [...current, makeHole(current.length + 1)]);
+    updateCurrentHoles((current) => [...current, makeHole(current.length + 1)]);
   }
 
   function setHoleCount(value: string) {
     const nextCount = Math.max(0, Math.min(36, Number(value) || 0));
 
-    setHoles((current) =>
+    updateCurrentHoles((current) =>
       Array.from({ length: nextCount }, (_item, index) => {
         const existing = current[index];
         return existing ? { ...existing, holeNumber: index + 1 } : makeHole(index + 1);
@@ -171,7 +229,7 @@ export function CourseDraftEditor({
   }
 
   function removeHole(index: number) {
-    setHoles((current) =>
+    updateCurrentHoles((current) =>
       current
         .filter((_hole, holeIndex) => holeIndex !== index)
         .map((hole, holeIndex) => ({ ...hole, holeNumber: holeIndex + 1 }))
@@ -198,13 +256,18 @@ export function CourseDraftEditor({
           body: JSON.stringify({
             name,
             locationName,
-            layoutName,
+            layoutName: layoutDrafts[0]?.name || layoutName,
             difficulty,
             ...facts,
             latitude,
             longitude,
             coverPhotoUrl,
-            holes,
+            holes: legacyHoles,
+            layouts: layoutDrafts.map((layout) => ({
+              id: layout.id,
+              name: layout.name,
+              holes: layout.holes
+            })),
             submitForReview
           })
         });
@@ -255,11 +318,17 @@ export function CourseDraftEditor({
             </a>
           ) : null}
           {initialCourse.importWarnings.length ? (
-            <ul className="grid gap-1">
-              {initialCourse.importWarnings.map((warning) => (
-                <li key={warning}>{warning}</li>
-              ))}
-            </ul>
+            <div
+              className="flex gap-2 rounded-lg border border-clay-300 bg-clay-100 p-3 text-clay-700"
+              role="alert"
+            >
+              <AlertTriangle className="mt-0.5 shrink-0" size={16} aria-hidden />
+              <ul className="grid gap-1">
+                {initialCourse.importWarnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            </div>
           ) : null}
         </section>
       ) : null}
@@ -300,13 +369,31 @@ export function CourseDraftEditor({
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
+          {layoutDrafts.length > 1 ? (
+            <label className="grid gap-2 text-sm font-bold text-ink/70">
+              Imported layout
+              <select
+                className="h-11 rounded-lg border border-canopy-900/10 bg-white px-3 font-semibold outline-none"
+                onChange={(event) =>
+                  setSelectedLayoutIndex(Number(event.target.value))
+                }
+                value={selectedLayoutIndex}
+              >
+                {layoutDrafts.map((layout, index) => (
+                  <option key={layout.id ?? index} value={index}>
+                    {layout.name || `Layout ${index + 1}`} ({layout.holes.length})
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <label className="grid gap-2 text-sm font-bold text-ink/70">
             Layout
             <input
               className="h-11 rounded-lg border border-canopy-900/10 bg-white px-3 font-semibold outline-none"
-              onChange={(event) => setLayoutName(event.target.value)}
+              onChange={(event) => updateSelectedLayoutName(event.target.value)}
               placeholder="Optional"
-              value={layoutName}
+              value={selectedLayout?.name ?? layoutName}
             />
           </label>
           <label className="grid gap-2 text-sm font-bold text-ink/70">
@@ -398,7 +485,14 @@ export function CourseDraftEditor({
 
       <section className="grid gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-2xl font-black text-ink">Holes</h2>
+          <div>
+            <h2 className="text-2xl font-black text-ink">Holes</h2>
+            {selectedLayout ? (
+              <p className="mt-1 text-sm font-bold text-ink/55">
+                {selectedLayout.name || `Layout ${selectedLayoutIndex + 1}`}
+              </p>
+            ) : null}
+          </div>
           <button
             className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-white px-4 text-sm font-black text-ink shadow-sm transition hover:bg-canopy-50"
             onClick={addHole}

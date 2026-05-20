@@ -138,6 +138,7 @@ model Course {
   createdAt        DateTime         @default(now())
 
   holes       Hole[]
+  layouts     CourseLayout[]
   reviews     CourseReview[]
   submittedBy User?            @relation("SubmittedCourses", fields: [submittedById], references: [id], onDelete: SetNull)
   marks       CourseMark[]
@@ -146,6 +147,21 @@ model Course {
   @@index([difficulty])
   @@index([status])
   @@index([submittedById])
+}
+
+model CourseLayout {
+  id             Int      @id @default(autoincrement())
+  courseId       Int
+  name           String
+  sortOrder      Int      @default(0)
+  sourceLayoutId String?
+  createdAt      DateTime @default(now())
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  holes  Hole[]
+
+  @@unique([courseId, name])
+  @@index([courseId, sortOrder])
 }
 
 model CourseMark {
@@ -198,6 +214,7 @@ model CourseListItem {
 model Hole {
   id           Int      @id @default(autoincrement())
   courseId     Int
+  layoutId     Int?
   holeNumber   Int
   par          Int?
   distanceFeet Int?
@@ -209,12 +226,13 @@ model Hole {
   basketLng    Float?
   createdAt    DateTime @default(now())
 
-  course  Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course  Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  layout  CourseLayout? @relation(fields: [layoutId], references: [id], onDelete: Cascade)
   reviews HoleReview[]
   lines   Line[]
 
-  @@unique([courseId, holeNumber])
   @@index([courseId])
+  @@index([layoutId, holeNumber])
 }
 
 model CourseReview {

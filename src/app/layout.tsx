@@ -45,7 +45,7 @@ export default async function RootLayout({
     <html lang="en">
       <body>
         <header className="sticky top-0 z-50 border-b border-canopy-900/10 bg-[#fffdf7]/90 backdrop-blur">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
             <Link href="/" className="flex min-w-0 shrink-0 items-center gap-3">
               <span className="brand-mark" aria-hidden>
                 <Image
@@ -62,7 +62,7 @@ export default async function RootLayout({
                 <span className="brand-wordmark-route">Route</span>
               </span>
             </Link>
-            <nav className="flex min-w-0 items-center gap-1 overflow-x-auto text-sm font-semibold text-ink/75 sm:gap-2">
+            <nav className="flex min-w-0 flex-wrap items-center justify-end gap-1 overflow-visible text-sm font-semibold text-ink/75 sm:gap-2">
               <Link
                 href="/"
                 className="shrink-0 rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"

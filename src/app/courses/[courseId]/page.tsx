@@ -14,6 +14,7 @@ import {
 import { Avatar } from "@/components/Avatar";
 import { CourseMarkButtons } from "@/components/CourseMarkButtons";
 import { CourseReviewForm } from "@/components/CourseReviewForm";
+import { LayoutSelector } from "@/components/LayoutSelector";
 import { ReportButton } from "@/components/ReportButton";
 import { Stars } from "@/components/Stars";
 import {
@@ -30,17 +31,20 @@ type CoursePageProps = {
   params: {
     courseId: string;
   };
+  searchParams?: {
+    layout?: string;
+  };
 };
 
-export default async function CoursePage({ params }: CoursePageProps) {
+export default async function CoursePage({ params, searchParams }: CoursePageProps) {
   const courseId = Number(params.courseId);
 
   if (!Number.isInteger(courseId)) {
     notFound();
   }
 
-  const currentUser = await getCurrentUser();
-  const [course, recentActivity, markCounts, currentMarks] = await Promise.all([
+  const [currentUser, course] = await Promise.all([
+    getCurrentUser(),
     prisma.course.findUnique({
       where: { id: courseId },
       include: {
@@ -52,6 +56,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
           orderBy: { createdAt: "desc" }
         },
         holes: {
+          where: { layoutId: null },
           include: {
             _count: {
               select: {
@@ -71,13 +76,62 @@ export default async function CoursePage({ params }: CoursePageProps) {
           },
           orderBy: { holeNumber: "asc" }
         },
+        layouts: {
+          include: {
+            holes: {
+              include: {
+                _count: {
+                  select: {
+                    lines: { where: { status: ContentStatus.visible } },
+                    reviews: { where: { status: ContentStatus.visible } }
+                  }
+                },
+                lines: {
+                  where: { status: ContentStatus.visible },
+                  orderBy: [{ upvotes: "desc" }, { downvotes: "asc" }],
+                  take: 1
+                },
+                reviews: {
+                  where: { status: ContentStatus.visible },
+                  select: { rating: true }
+                }
+              },
+              orderBy: { holeNumber: "asc" }
+            }
+          },
+          orderBy: { sortOrder: "asc" }
+        },
         submittedBy: {
           select: { id: true, username: true, profileImageUrl: true }
         }
       }
-    }),
+    })
+  ]);
+
+  if (!course) {
+    notFound();
+  }
+
+  const canEditDraft =
+    currentUser?.isAdmin || currentUser?.id === course.submittedById;
+
+  if (course.status === "draft" && !canEditDraft) {
+    notFound();
+  }
+
+  const requestedLayoutId = Number(searchParams?.layout);
+  const selectedLayout =
+    Number.isInteger(requestedLayoutId) && requestedLayoutId > 0
+      ? course.layouts.find((layout) => layout.id === requestedLayoutId)
+      : course.layouts[0];
+  const displayHoles = selectedLayout?.holes ?? course.holes;
+  const displayHoleIds = displayHoles.map((hole) => hole.id);
+  const [recentActivity, markCounts, currentMarks] = await Promise.all([
     prisma.holeReview.findMany({
-      where: { status: ContentStatus.visible, hole: { courseId } },
+      where: {
+        status: ContentStatus.visible,
+        holeId: displayHoleIds.length ? { in: displayHoleIds } : -1
+      },
       include: {
         user: { select: { id: true, username: true, profileImageUrl: true } },
         hole: { select: { id: true, holeNumber: true } }
@@ -98,27 +152,16 @@ export default async function CoursePage({ params }: CoursePageProps) {
       : Promise.resolve([])
   ]);
 
-  if (!course) {
-    notFound();
-  }
-
-  const canEditDraft =
-    currentUser?.isAdmin || currentUser?.id === course.submittedById;
-
-  if (course.status === "draft" && !canEditDraft) {
-    notFound();
-  }
-
   const averageRating =
     course.reviews.length > 0
       ? course.reviews.reduce((total, review) => total + review.rating, 0) /
         course.reviews.length
       : 0;
-  const totalLines = course.holes.reduce(
+  const totalLines = displayHoles.reduce(
     (total, hole) => total + hole._count.lines,
     0
   );
-  const totalHoleReviews = course.holes.reduce(
+  const totalHoleReviews = displayHoles.reduce(
     (total, hole) => total + hole._count.reviews,
     0
   );
@@ -129,6 +172,12 @@ export default async function CoursePage({ params }: CoursePageProps) {
   const wantToPlayCount =
     markCounts.find((entry) => entry.type === CourseMarkType.wantToPlay)?._count
       ._all ?? 0;
+  const layoutOptions = course.layouts.map((layout) => ({
+    id: layout.id,
+    name: layout.name,
+    holeCount: layout.holes.length
+  }));
+  const selectedLayoutName = selectedLayout?.name ?? course.layoutName;
 
   return (
     <main className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:py-10">
@@ -170,9 +219,9 @@ export default async function CoursePage({ params }: CoursePageProps) {
               <h1 className="mt-3 text-4xl font-black leading-tight sm:text-5xl">
                 {course.name}
               </h1>
-              {course.layoutName ? (
+              {selectedLayoutName ? (
                 <p className="mt-2 text-sm font-black uppercase text-white/70">
-                  {course.layoutName}
+                  {selectedLayoutName}
                 </p>
               ) : null}
               <p className="mt-3 flex items-center gap-2 text-sm font-bold">
@@ -183,10 +232,15 @@ export default async function CoursePage({ params }: CoursePageProps) {
           </div>
         </div>
 
+        <LayoutSelector
+          layouts={layoutOptions}
+          selectedLayoutId={selectedLayout?.id}
+        />
+
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="rounded-lg bg-white p-4 shadow-sm">
             <p className="text-sm font-semibold text-ink/55">Holes</p>
-            <p className="mt-1 text-2xl font-black">{course.holes.length}</p>
+            <p className="mt-1 text-2xl font-black">{displayHoles.length}</p>
           </div>
           <div className="rounded-lg bg-white p-4 shadow-sm">
             <p className="text-sm font-semibold text-ink/55">Lines</p>
@@ -329,7 +383,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
           </span>
         </div>
         <div className="grid gap-3">
-          {course.holes.map((hole) => {
+          {displayHoles.map((hole) => {
             const bestLine = hole.lines[0] ?? null;
             const averageHoleRating =
               hole.reviews.length > 0
@@ -421,7 +475,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
                 />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-black text-ink">
-                    Hole {review.hole.holeNumber} · {review.rating}/5
+                    Hole {review.hole.holeNumber} - {review.rating}/5
                   </span>
                   <span className="block truncate text-sm font-semibold text-ink/55">
                     {review.title ?? review.body}

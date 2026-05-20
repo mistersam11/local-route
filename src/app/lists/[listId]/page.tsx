@@ -42,6 +42,7 @@ export default async function ListPage({ params }: ListPageProps) {
                   select: { rating: true }
                 },
                 holes: {
+                  where: { layoutId: null },
                   select: {
                     id: true,
                     _count: {
@@ -51,6 +52,22 @@ export default async function ListPage({ params }: ListPageProps) {
                       }
                     }
                   }
+                },
+                layouts: {
+                  include: {
+                    holes: {
+                      select: {
+                        id: true,
+                        _count: {
+                          select: {
+                            lines: { where: { status: ContentStatus.visible } },
+                            reviews: { where: { status: ContentStatus.visible } }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  orderBy: { sortOrder: "asc" }
                 }
               }
             }
@@ -101,16 +118,17 @@ export default async function ListPage({ params }: ListPageProps) {
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {list.items.map((item) => {
           const course = item.course;
+          const displayHoles = course.layouts[0]?.holes ?? course.holes;
           const reviewCount = course.reviews.length;
           const averageRating = reviewCount
             ? course.reviews.reduce((total, review) => total + review.rating, 0) /
               reviewCount
             : 0;
-          const lineCount = course.holes.reduce(
+          const lineCount = displayHoles.reduce(
             (total, hole) => total + hole._count.lines,
             0
           );
-          const holeReviewCount = course.holes.reduce(
+          const holeReviewCount = displayHoles.reduce(
             (total, hole) => total + hole._count.reviews,
             0
           );

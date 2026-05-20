@@ -76,6 +76,7 @@ export default async function AdminCourseReviewPage({
         orderBy: { createdAt: "desc" }
       },
       holes: {
+        where: { layoutId: null },
         include: {
           _count: {
             select: { lines: true, reviews: true }
@@ -87,6 +88,24 @@ export default async function AdminCourseReviewPage({
           reviews: { select: { rating: true } }
         },
         orderBy: { holeNumber: "asc" }
+      },
+      layouts: {
+        include: {
+          holes: {
+            include: {
+              _count: {
+                select: { lines: true, reviews: true }
+              },
+              lines: {
+                orderBy: [{ upvotes: "desc" }, { downvotes: "asc" }],
+                take: 1
+              },
+              reviews: { select: { rating: true } }
+            },
+            orderBy: { holeNumber: "asc" }
+          }
+        },
+        orderBy: { sortOrder: "asc" }
       }
     }
   });
@@ -95,19 +114,21 @@ export default async function AdminCourseReviewPage({
     notFound();
   }
 
-  const missingTeePhotos = course.holes.filter((hole) => !hole.teePhotoUrl).length;
-  const missingPars = course.holes.filter((hole) => !hole.par).length;
-  const missingDistances = course.holes.filter((hole) => !hole.distanceFeet).length;
+  const displayHoles = course.layouts[0]?.holes ?? course.holes;
+  const displayLayoutName = course.layouts[0]?.name ?? course.layoutName;
+  const missingTeePhotos = displayHoles.filter((hole) => !hole.teePhotoUrl).length;
+  const missingPars = displayHoles.filter((hole) => !hole.par).length;
+  const missingDistances = displayHoles.filter((hole) => !hole.distanceFeet).length;
   const averageRating =
     course.reviews.length > 0
       ? course.reviews.reduce((total, review) => total + review.rating, 0) /
         course.reviews.length
       : null;
-  const totalLines = course.holes.reduce(
+  const totalLines = displayHoles.reduce(
     (total, hole) => total + hole._count.lines,
     0
   );
-  const totalHoleReviews = course.holes.reduce(
+  const totalHoleReviews = displayHoles.reduce(
     (total, hole) => total + hole._count.reviews,
     0
   );
@@ -149,8 +170,11 @@ export default async function AdminCourseReviewPage({
                   <MapPin size={16} aria-hidden />
                   {course.locationName}
                 </span>
-                {course.layoutName ? <span>{course.layoutName}</span> : null}
-                <span>{course.holes.length} holes</span>
+                {displayLayoutName ? <span>{displayLayoutName}</span> : null}
+                <span>{displayHoles.length} holes</span>
+                {course.layouts.length > 1 ? (
+                  <span>{course.layouts.length} layouts</span>
+                ) : null}
                 {averageRating ? <span>{averageRating.toFixed(1)}/5 avg</span> : null}
               </p>
             </div>
@@ -158,7 +182,7 @@ export default async function AdminCourseReviewPage({
         </section>
 
         <section className="grid gap-3 sm:grid-cols-4">
-          <ReviewStat label="Holes" value={course.holes.length} />
+          <ReviewStat label="Holes" value={displayHoles.length} />
           <ReviewStat label="Lines" value={totalLines} />
           <ReviewStat label="Hole reviews" value={totalHoleReviews} />
           <ReviewStat label="Course reviews" value={course.reviews.length} />
@@ -168,11 +192,11 @@ export default async function AdminCourseReviewPage({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-2xl font-black text-ink">Hole review</h2>
             <span className="rounded-full bg-water-100 px-3 py-1 text-sm font-bold text-water-700">
-              {course.holes.length} submitted
+              {displayHoles.length} submitted
             </span>
           </div>
           <div className="grid gap-3">
-            {course.holes.map((hole) => {
+            {displayHoles.map((hole) => {
               const bestLine = hole.lines[0] ?? null;
               const averageHoleRating =
                 hole.reviews.length > 0
@@ -326,10 +350,16 @@ export default async function AdminCourseReviewPage({
               <dt className="font-bold text-ink/55">Longitude</dt>
               <dd className="font-black text-ink">{course.longitude ?? "Missing"}</dd>
             </div>
-            {course.layoutName ? (
+            {displayLayoutName ? (
               <div className="flex items-center justify-between gap-3">
                 <dt className="font-bold text-ink/55">Layout</dt>
-                <dd className="font-black text-ink">{course.layoutName}</dd>
+                <dd className="font-black text-ink">{displayLayoutName}</dd>
+              </div>
+            ) : null}
+            {course.layouts.length > 1 ? (
+              <div className="flex items-center justify-between gap-3">
+                <dt className="font-bold text-ink/55">Layouts</dt>
+                <dd className="font-black text-ink">{course.layouts.length}</dd>
               </div>
             ) : null}
           </dl>

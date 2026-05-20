@@ -36,6 +36,32 @@ function normalizeHole(rawHole: unknown, index: number) {
   };
 }
 
+function normalizeLayout(rawLayout: unknown, index: number) {
+  const layout = rawLayout as Record<string, unknown>;
+  const rawHoles = Array.isArray(layout.holes) ? layout.holes : [];
+  const name = String(layout.name ?? "").trim() || `Layout ${index + 1}`;
+  const holes = rawHoles
+    .map(normalizeHole)
+    .filter((hole) => Number.isInteger(hole.holeNumber) && hole.holeNumber > 0)
+    .slice(0, 72);
+
+  return { name, holes };
+}
+
+function dedupeLayoutNames(layouts: ReturnType<typeof normalizeLayout>[]) {
+  const seen = new Map<string, number>();
+
+  return layouts.map((layout) => {
+    const key = layout.name.toLowerCase();
+    const count = seen.get(key) ?? 0;
+    seen.set(key, count + 1);
+
+    return count === 0
+      ? layout
+      : { ...layout, name: `${layout.name} ${count + 1}` };
+  });
+}
+
 export async function PATCH(request: Request, { params }: Params) {
   const courseId = Number(params.courseId);
 
@@ -90,10 +116,15 @@ export async function PATCH(request: Request, { params }: Params) {
   const longitude = optionalNumber(body.longitude);
   const shouldSubmit = body.submitForReview === true;
   const rawHoles = Array.isArray(body.holes) ? body.holes : [];
+  const rawLayouts = Array.isArray(body.layouts) ? body.layouts : [];
   const holes = rawHoles
     .map(normalizeHole)
     .filter((hole) => Number.isInteger(hole.holeNumber) && hole.holeNumber > 0)
     .slice(0, 36);
+  const layouts = dedupeLayoutNames(
+    rawLayouts.map(normalizeLayout).filter((layout) => layout.holes.length)
+  );
+  const primaryLayoutName = layouts[0]?.name ?? layoutName;
 
   if (name.length < 2 || locationName.length < 2) {
     return NextResponse.json(
@@ -102,7 +133,7 @@ export async function PATCH(request: Request, { params }: Params) {
     );
   }
 
-  if (shouldSubmit && holes.length === 0) {
+  if (shouldSubmit && holes.length === 0 && layouts.length === 0) {
     return NextResponse.json(
       { error: "Add at least one hole before submitting for review" },
       { status: 400 }
@@ -117,7 +148,7 @@ export async function PATCH(request: Request, { params }: Params) {
       data: {
         name,
         locationName,
-        layoutName: layoutName || null,
+        layoutName: primaryLayoutName || null,
         coverPhotoUrl: coverPhotoUrl || null,
         latitude,
         longitude,
@@ -134,8 +165,28 @@ export async function PATCH(request: Request, { params }: Params) {
     });
 
     await tx.hole.deleteMany({ where: { courseId } });
+    await tx.courseLayout.deleteMany({ where: { courseId } });
 
-    if (holes.length) {
+    if (layouts.length) {
+      for (const [index, layout] of layouts.entries()) {
+        const createdLayout = await tx.courseLayout.create({
+          data: {
+            courseId,
+            name: layout.name,
+            sortOrder: index
+          },
+          select: { id: true }
+        });
+
+        await tx.hole.createMany({
+          data: layout.holes.map((hole) => ({
+            ...hole,
+            courseId,
+            layoutId: createdLayout.id
+          })) as Prisma.HoleCreateManyInput[]
+        });
+      }
+    } else if (holes.length) {
       await tx.hole.createMany({
         data: holes.map((hole) => ({
           ...hole,
@@ -146,7 +197,16 @@ export async function PATCH(request: Request, { params }: Params) {
 
     return tx.course.findUniqueOrThrow({
       where: { id: courseId },
-      include: { holes: { orderBy: { holeNumber: "asc" } } }
+      include: {
+        holes: {
+          where: { layoutId: null },
+          orderBy: { holeNumber: "asc" }
+        },
+        layouts: {
+          include: { holes: { orderBy: { holeNumber: "asc" } } },
+          orderBy: { sortOrder: "asc" }
+        }
+      }
     });
   });
 
