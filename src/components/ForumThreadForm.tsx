@@ -4,13 +4,25 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Camera, Send, X } from "lucide-react";
 import { uploadImage } from "@/lib/cloudinary-upload";
+import { courseForumFlairs } from "@/lib/course-community-shared";
 
 const maxThreadPhotos = 10;
 
-export function ForumThreadForm({ onCancel }: { onCancel?: () => void }) {
+type ForumThreadFormProps = {
+  courseId?: number;
+  courseName?: string;
+  onCancel?: () => void;
+};
+
+export function ForumThreadForm({
+  courseId,
+  courseName,
+  onCancel
+}: ForumThreadFormProps) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [flair, setFlair] = useState("");
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [uploadingCount, setUploadingCount] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -68,7 +80,13 @@ export function ForumThreadForm({ onCancel }: { onCancel?: () => void }) {
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({ title, body, photoUrls })
+          body: JSON.stringify({
+            title,
+            body,
+            photoUrls,
+            courseId,
+            flair: flair || undefined
+          })
         });
 
         if (!response.ok) {
@@ -89,7 +107,9 @@ export function ForumThreadForm({ onCancel }: { onCancel?: () => void }) {
   return (
     <section className="grid gap-3 rounded-lg border border-canopy-900/10 bg-[#fffdf7] p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-black text-ink">Start a chain</h2>
+        <h2 className="text-xl font-black text-ink">
+          {courseName ? `Post in ${courseName}` : "Start a chain"}
+        </h2>
         {onCancel ? (
           <button
             className="rounded-full bg-white px-3 py-1.5 text-xs font-black text-ink/55 shadow-sm transition hover:bg-canopy-50 hover:text-canopy-700"
@@ -100,12 +120,30 @@ export function ForumThreadForm({ onCancel }: { onCancel?: () => void }) {
           </button>
         ) : null}
       </div>
-      <input
-        className="h-11 rounded-lg border border-canopy-900/10 bg-white px-3 font-semibold outline-none"
-        onChange={(event) => setTitle(event.target.value)}
-        placeholder="Course conditions, lost discs, local events..."
-        value={title}
-      />
+      <div className="grid gap-3 sm:grid-cols-[1fr_180px]">
+        <input
+          className="h-11 rounded-lg border border-canopy-900/10 bg-white px-3 font-semibold outline-none"
+          onChange={(event) => setTitle(event.target.value)}
+          placeholder={
+            courseName
+              ? "Conditions, league night, lost discs..."
+              : "Course conditions, lost discs, local events..."
+          }
+          value={title}
+        />
+        <select
+          className="h-11 rounded-lg border border-canopy-900/10 bg-white px-3 text-sm font-bold text-ink outline-none"
+          onChange={(event) => setFlair(event.target.value)}
+          value={flair}
+        >
+          <option value="">No flair</option>
+          {courseForumFlairs.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      </div>
       <textarea
         className="min-h-28 resize-none rounded-lg border border-canopy-900/10 bg-white p-3 font-semibold leading-6 outline-none"
         onChange={(event) => setBody(event.target.value)}

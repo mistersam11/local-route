@@ -1,12 +1,15 @@
 import Link from "next/link";
-import { LogIn } from "lucide-react";
+import { Chrome, LogIn } from "lucide-react";
 import { getCurrentUser } from "@/lib/current-user";
+import { createCsrfToken } from "@/lib/security/csrf";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 const errorMessages: Record<string, string> = {
-  credentials: "That email/username and password did not match."
+  credentials: "That email/username and password did not match.",
+  oauth: "Google sign-in could not be completed.",
+  oauth_config: "Google sign-in is not configured yet."
 };
 
 function safeRedirect(value: string | undefined) {
@@ -23,6 +26,7 @@ type LoginPageProps = {
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const currentUser = await getCurrentUser();
   const redirectTo = safeRedirect(searchParams?.redirectTo);
+  const csrfToken = createCsrfToken();
 
   if (currentUser) {
     redirect(redirectTo);
@@ -36,8 +40,16 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <section className="w-full rounded-lg border border-canopy-900/10 bg-[#fffdf7] p-6 shadow-panel">
         <p className="text-sm font-bold uppercase text-clay-700">Welcome back</p>
         <h1 className="mt-2 text-3xl font-black text-ink">Log in to LocalRoute</h1>
+        <Link
+          className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-white px-4 text-sm font-black text-ink shadow-sm ring-1 ring-canopy-900/10 transition hover:bg-canopy-50"
+          href={`/api/auth/google?redirectTo=${encodeURIComponent(redirectTo)}`}
+        >
+          <Chrome size={16} aria-hidden />
+          Continue with Google
+        </Link>
         <form action="/api/auth/login" className="mt-6 grid gap-4" method="post">
           <input name="redirectTo" type="hidden" value={redirectTo} />
+          <input name="csrfToken" type="hidden" value={csrfToken} />
           <label className="grid gap-2 text-sm font-bold text-ink/70">
             Email or username
             <input

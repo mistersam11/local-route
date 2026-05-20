@@ -14,18 +14,20 @@ LocalRoute is a Letterboxd-style MVP for disc golf. Players can rate courses and
 - Community course lists with their own list pages
 - Users directory for searching and following friends or pros
 - Forum chains with up to 10 photos, comments, search, and first-visit rules popup
+- Local events hub with course-linked events, RSVPs, recurring metadata, privacy, filters, and event discussion chains
 - Pending/approved/rejected course moderation status
 - Admin moderation dashboard with dedicated course submission review
 - Admin content moderation queue for reported reviews and suggested lines
 - User reporting for course reviews, hole reviews, and suggested lines
 - User profiles with course reviews, suggested lines, and following list
 - Real email/username account signup and login
+- Google OAuth login with verified-email account linking
 - Profile editing with avatar upload, bio, and home course
 - Follow/unfollow users
 - Direct image uploads to Cloudinary for course, hole, and review photos
 - OpenAI moderation checks for review text and suggested lines
 - OpenAI moderation checks for forum chains and comments
-- Prisma schema for users, courses, course facts, course marks, lists, forum chains, forum comments, course reviews, hole reviews, lines, line votes, and follows
+- Prisma schema for users, courses, course facts, course marks, lists, events, RSVPs, forum chains, forum comments, course reviews, hole reviews, lines, line votes, and follows
 
 ## Stack
 
@@ -43,10 +45,24 @@ Install Node.js 20 or newer, then run:
 npm install
 ```
 
-Create a local environment file and set `DATABASE_URL` to a PostgreSQL connection string:
+Create a local environment file and set `DATABASE_URL` to a PostgreSQL connection string. Also set `AUTH_SECRET` to a long random value before sharing or deploying the app:
 
 ```bash
 cp .env.example .env
+```
+
+For Google login, create an OAuth client in Google Cloud Console and add this redirect URI:
+
+```text
+http://localhost:3000/api/auth/google/callback
+```
+
+Then set:
+
+```bash
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
+AUTH_BASE_URL="http://localhost:3000"
 ```
 
 For image uploads, create a Cloudinary unsigned upload preset and set:
@@ -140,16 +156,24 @@ The seed creates:
 - Submitted courses with pending approval status
 - Suggested lines with difficulty, risk, disc suggestions, tags, and votes
 - Course quick facts, played/want-to-play marks, and a starter course list
+- Course-linked league, doubles, and glow-round events with RSVPs
 - Forum chains with optional photos, plus comments
 
 All new users sign up with an email, username, and password. Set `ADMIN_EMAILS`
 to a comma-separated list of owner emails to grant admin moderation access.
 The seeded demo users use the password `localroute-demo`.
 
+Credential passwords are stored as bcrypt hashes. The signup flow checks password
+strength and, when enabled, the Have I Been Pwned k-anonymity password API.
+Login, signup, and Google OAuth attempts are rate-limited by hashed IP and
+identifier buckets.
+
 ## API Routes
 
 - `POST /api/auth/signup`
 - `POST /api/auth/login`
+- `GET /api/auth/google`
+- `GET /api/auth/google/callback`
 - `POST /api/auth/logout`
 - `PATCH /api/admin/content`
 - `PATCH /api/me/profile`
@@ -160,6 +184,12 @@ The seeded demo users use the password `localroute-demo`.
 - `PATCH /api/courses/:courseId`
 - `POST /api/courses/:courseId/marks`
 - `POST /api/courses/:courseId/reviews`
+- `GET /api/events`
+- `POST /api/events`
+- `GET /api/events/:eventId`
+- `PATCH /api/events/:eventId`
+- `DELETE /api/events/:eventId`
+- `POST /api/events/:eventId/rsvp`
 - `POST /api/lists`
 - `GET /api/holes/:holeId`
 - `POST /api/holes/:holeId/reviews`

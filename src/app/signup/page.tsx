@@ -1,14 +1,17 @@
 import Link from "next/link";
-import { UserPlus } from "lucide-react";
+import { Chrome, UserPlus } from "lucide-react";
 import { getCurrentUser } from "@/lib/current-user";
+import { createCsrfToken } from "@/lib/security/csrf";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 const errorMessages: Record<string, string> = {
   email: "Enter a valid email address.",
-  password: "Passwords need to be at least 8 characters.",
-  taken: "That username or email is already taken.",
+  password: "Use 12+ characters with upper/lowercase letters, a number, and a symbol.",
+  rate_limited: "Please wait a bit before trying again.",
+  request: "That request expired. Refresh and try again.",
+  taken: "Account creation could not be completed with those details.",
   username: "Usernames need 3-24 letters, numbers, underscores, or hyphens."
 };
 
@@ -26,6 +29,7 @@ type SignupPageProps = {
 export default async function SignupPage({ searchParams }: SignupPageProps) {
   const currentUser = await getCurrentUser();
   const redirectTo = safeRedirect(searchParams?.redirectTo);
+  const csrfToken = createCsrfToken();
 
   if (currentUser) {
     redirect(redirectTo);
@@ -39,8 +43,16 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
       <section className="w-full rounded-lg border border-canopy-900/10 bg-[#fffdf7] p-6 shadow-panel">
         <p className="text-sm font-bold uppercase text-clay-700">Join the card</p>
         <h1 className="mt-2 text-3xl font-black text-ink">Create your account</h1>
+        <Link
+          className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-white px-4 text-sm font-black text-ink shadow-sm ring-1 ring-canopy-900/10 transition hover:bg-canopy-50"
+          href={`/api/auth/google?redirectTo=${encodeURIComponent(redirectTo)}`}
+        >
+          <Chrome size={16} aria-hidden />
+          Continue with Google
+        </Link>
         <form action="/api/auth/signup" className="mt-6 grid gap-4" method="post">
           <input name="redirectTo" type="hidden" value={redirectTo} />
+          <input name="csrfToken" type="hidden" value={csrfToken} />
           <label className="grid gap-2 text-sm font-bold text-ink/70">
             Username
             <input
@@ -68,7 +80,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
             <input
               autoComplete="new-password"
               className="h-11 rounded-lg border border-canopy-900/10 bg-white px-3 font-semibold outline-none"
-              minLength={8}
+              minLength={12}
               name="password"
               required
               type="password"

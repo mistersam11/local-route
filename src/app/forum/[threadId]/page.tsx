@@ -1,12 +1,25 @@
-import { ContentStatus } from "@prisma/client";
+import { ContentStatus, CourseEventVisibility } from "@prisma/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, MessageSquare } from "lucide-react";
+import { ArrowLeft, CalendarClock, MessageSquare, Tag } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { ForumCommentForm } from "@/components/ForumCommentForm";
+import {
+  ForumCommentThread,
+  type ForumCommentView
+} from "@/components/ForumCommentThread";
 import { ReportButton } from "@/components/ReportButton";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
+import {
+  courseEventTypeLabels,
+  formatEventDateTime
+} from "@/lib/events";
+import {
+  buildForumCommentTree,
+  type ForumCommentTreeNode,
+  type ForumCommentTreeSource
+} from "@/lib/forum-comments";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +37,24 @@ function formatDate(date: Date) {
   }).format(date);
 }
 
+type ForumCommentRecord = ForumCommentTreeSource & {
+  createdAt: Date;
+};
+
+function serializeCommentTree(
+  comments: Array<ForumCommentTreeNode<ForumCommentRecord>>
+): ForumCommentView[] {
+  return comments.map((comment) => ({
+    id: comment.id,
+    parentCommentId: comment.parentCommentId,
+    body: comment.body,
+    createdAtLabel: formatDate(comment.createdAt),
+    replyCount: comment.replyCount,
+    user: comment.user,
+    replies: serializeCommentTree(comment.replies)
+  }));
+}
+
 export default async function ForumThreadPage({ params }: ForumThreadPageProps) {
   const threadId = Number(params.threadId);
 
@@ -31,21 +62,41 @@ export default async function ForumThreadPage({ params }: ForumThreadPageProps) 
     notFound();
   }
 
-  const [currentUser, thread] = await Promise.all([
-    getCurrentUser(),
+  const currentUser = await getCurrentUser();
+  const [thread, comments] = await Promise.all([
     prisma.forumThread.findFirst({
-      where: { id: threadId, status: ContentStatus.visible },
+      where: {
+        id: threadId,
+        status: ContentStatus.visible,
+        OR: [
+          { eventId: null },
+          { event: { visibility: CourseEventVisibility.public } },
+          { event: { visibility: CourseEventVisibility.unlisted } },
+          ...(currentUser ? [{ event: { hostId: currentUser.id } }] : [])
+        ]
+      },
       include: {
         user: { select: { id: true, username: true, profileImageUrl: true } },
+        course: { select: { id: true, name: true, locationName: true } },
         photos: { orderBy: { sortOrder: "asc" } },
-        comments: {
-          where: { status: ContentStatus.visible },
-          include: {
-            user: { select: { id: true, username: true, profileImageUrl: true } }
-          },
-          orderBy: { createdAt: "asc" }
+        event: {
+          select: {
+            id: true,
+            title: true,
+            type: true,
+            startTime: true,
+            timezone: true,
+            visibility: true
+          }
         }
       }
+    }),
+    prisma.forumComment.findMany({
+      where: { threadId, status: ContentStatus.visible },
+      include: {
+        user: { select: { id: true, username: true, profileImageUrl: true } }
+      },
+      orderBy: { createdAt: "asc" }
     })
   ]);
 
@@ -53,14 +104,26 @@ export default async function ForumThreadPage({ params }: ForumThreadPageProps) 
     notFound();
   }
 
+  const commentTree = serializeCommentTree(buildForumCommentTree(comments));
+
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-6 px-4 py-8 sm:px-6 lg:py-10">
       <Link
         className="inline-flex w-fit items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-ink shadow-sm transition hover:bg-canopy-50"
-        href="/forum"
+        href={
+          thread.event
+            ? `/events/${thread.event.id}`
+            : thread.course
+              ? `/courses/${thread.course.id}/forum`
+              : "/forum"
+        }
       >
         <ArrowLeft size={16} aria-hidden />
-        Forum
+        {thread.event
+          ? "Event"
+          : thread.course
+            ? `${thread.course.name} forum`
+            : "Forum"}
       </Link>
 
       <article className="rounded-lg border border-canopy-900/10 bg-[#fffdf7] p-5 shadow-panel">
@@ -74,9 +137,42 @@ export default async function ForumThreadPage({ params }: ForumThreadPageProps) 
               />
               @{thread.user.username} - {formatDate(thread.createdAt)}
             </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {thread.course ? (
+                <Link
+                  className="rounded-full bg-canopy-50 px-3 py-1 text-xs font-black uppercase text-canopy-700 transition hover:bg-canopy-100"
+                  href={`/courses/${thread.course.id}/forum`}
+                >
+                  {thread.course.name}
+                </Link>
+              ) : null}
+              {thread.flair ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-water-100 px-3 py-1 text-xs font-black uppercase text-water-700">
+                  <Tag size={13} aria-hidden />
+                  {thread.flair}
+                </span>
+              ) : null}
+              {thread.event ? (
+                <Link
+                  className="inline-flex items-center gap-1 rounded-full bg-clay-100 px-3 py-1 text-xs font-black uppercase text-clay-700 transition hover:bg-clay-300/45"
+                  href={`/events/${thread.event.id}`}
+                >
+                  <CalendarClock size={13} aria-hidden />
+                  {courseEventTypeLabels[thread.event.type]}
+                </Link>
+              ) : null}
+            </div>
             <h1 className="mt-4 text-4xl font-black leading-tight text-ink">
               {thread.title}
             </h1>
+            {thread.event ? (
+              <p className="mt-2 text-sm font-black uppercase text-ink/45">
+                {formatEventDateTime(
+                  thread.event.startTime,
+                  thread.event.timezone
+                )}
+              </p>
+            ) : null}
           </div>
           {currentUser && currentUser.id !== thread.user.id ? (
             <ReportButton targetId={thread.id} targetType="forumThread" />
@@ -114,7 +210,7 @@ export default async function ForumThreadPage({ params }: ForumThreadPageProps) 
           <h2 className="text-2xl font-black text-ink">Comments</h2>
           <span className="flex items-center gap-2 rounded-full bg-water-100 px-3 py-1 text-sm font-black text-water-700">
             <MessageSquare size={15} aria-hidden />
-            {thread.comments.length}
+            {comments.length}
           </span>
         </div>
 
@@ -129,29 +225,11 @@ export default async function ForumThreadPage({ params }: ForumThreadPageProps) 
           </Link>
         )}
 
-        {thread.comments.map((comment) => (
-          <article
-            className="rounded-lg border border-canopy-900/10 bg-white p-4 shadow-sm"
-            key={comment.id}
-          >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <p className="flex items-center gap-2 text-sm font-bold text-ink/60">
-                <Avatar
-                  name={comment.user.username}
-                  size="sm"
-                  src={comment.user.profileImageUrl}
-                />
-                @{comment.user.username} - {formatDate(comment.createdAt)}
-              </p>
-              {currentUser && currentUser.id !== comment.user.id ? (
-                <ReportButton targetId={comment.id} targetType="forumComment" />
-              ) : null}
-            </div>
-            <p className="mt-3 whitespace-pre-wrap text-sm font-semibold leading-6 text-ink/70">
-              {comment.body}
-            </p>
-          </article>
-        ))}
+        <ForumCommentThread
+          comments={commentTree}
+          currentUserId={currentUser?.id ?? null}
+          threadId={thread.id}
+        />
       </section>
     </main>
   );

@@ -27,3 +27,16 @@ export async function getFollowingIds(userId?: number | null) {
 
   return new Set(follows.map((follow) => follow.followingId));
 }
+
+export async function getFollowingCourseIds(userId?: number | null) {
+  if (!userId) {
+    return new Set<number>();
+  }
+
+  const follows = await prisma.courseFollow.findMany({
+    where: { userId },
+    select: { courseId: true }
+  });
+
+  return new Set(follows.map((follow) => follow.courseId));
+}

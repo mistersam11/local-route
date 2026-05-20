@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { ProfileSettingsForm } from "@/components/ProfileSettingsForm";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
+import { createCsrfToken } from "@/lib/security/csrf";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,8 @@ export default async function ProfileSettingsPage() {
   if (!user) {
     redirect("/login?redirectTo=/settings/profile");
   }
+
+  const csrfToken = createCsrfToken();
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-8 sm:px-6 lg:py-10">
@@ -54,6 +57,7 @@ export default async function ProfileSettingsPage() {
           <h2 className="mt-1 text-xl font-black text-ink">Session</h2>
         </div>
         <form action="/api/auth/logout" method="post">
+          <input name="csrfToken" type="hidden" value={csrfToken} />
           <button
             className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-clay-100 px-4 text-sm font-black text-clay-700 transition hover:bg-clay-300/45"
             type="submit"

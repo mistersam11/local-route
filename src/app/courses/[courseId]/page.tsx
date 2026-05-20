@@ -1,9 +1,14 @@
-import { ContentStatus, CourseMarkType } from "@prisma/client";
+import {
+  ContentStatus,
+  CourseEventVisibility,
+  CourseMarkType
+} from "@prisma/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
+  CalendarClock,
   Disc3,
   Flag,
   ExternalLink,
@@ -26,6 +31,13 @@ import {
 } from "@/lib/course-facts";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
+import {
+  courseEventCommunitySections,
+  courseEventTypeLabels,
+  countEventRsvps,
+  formatEventDateTime,
+  groupCourseEventsForCommunity
+} from "@/lib/events";
 
 export const dynamic = "force-dynamic";
 
@@ -133,31 +145,67 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
       : course.layouts[0];
   const displayHoles = selectedLayout?.holes ?? course.holes;
   const displayHoleIds = displayHoles.map((hole) => hole.id);
-  const [recentActivity, markCounts, currentMarks] = await Promise.all([
-    prisma.holeReview.findMany({
-      where: {
-        status: ContentStatus.visible,
-        holeId: displayHoleIds.length ? { in: displayHoleIds } : -1
-      },
-      include: {
-        user: { select: { id: true, username: true, profileImageUrl: true } },
-        hole: { select: { id: true, holeNumber: true } }
-      },
-      orderBy: { createdAt: "desc" },
-      take: 5
-    }),
-    prisma.courseMark.groupBy({
-      by: ["type"],
-      where: { courseId },
-      _count: { _all: true }
-    }),
-    currentUser
-      ? prisma.courseMark.findMany({
-          where: { courseId, userId: currentUser.id },
-          select: { type: true }
-        })
-      : Promise.resolve([])
-  ]);
+  const [
+    recentActivity,
+    markCounts,
+    currentMarks,
+    courseThreadCount,
+    upcomingEvents
+  ] = await Promise.all([
+      prisma.holeReview.findMany({
+        where: {
+          status: ContentStatus.visible,
+          holeId: displayHoleIds.length ? { in: displayHoleIds } : -1
+        },
+        include: {
+          user: { select: { id: true, username: true, profileImageUrl: true } },
+          hole: { select: { id: true, holeNumber: true } }
+        },
+        orderBy: { createdAt: "desc" },
+        take: 5
+      }),
+      prisma.courseMark.groupBy({
+        by: ["type"],
+        where: { courseId },
+        _count: { _all: true }
+      }),
+      currentUser
+        ? prisma.courseMark.findMany({
+            where: { courseId, userId: currentUser.id },
+            select: { type: true }
+          })
+        : Promise.resolve([]),
+      prisma.forumThread.count({
+        where: {
+          courseId,
+          status: ContentStatus.visible,
+          OR: [
+            { eventId: null },
+            { event: { visibility: CourseEventVisibility.public } }
+          ]
+        }
+      }),
+      prisma.courseEvent.findMany({
+        where: {
+          courseId,
+          visibility: CourseEventVisibility.public,
+          startTime: { gte: new Date() }
+        },
+        include: {
+          rsvps: { select: { status: true } },
+          discussionThread: {
+            select: {
+              id: true,
+              _count: {
+                select: { comments: { where: { status: ContentStatus.visible } } }
+              }
+            }
+          }
+        },
+        orderBy: [{ startTime: "asc" }, { id: "asc" }],
+        take: 12
+      })
+    ]);
 
   const averageRating =
     course.reviews.length > 0
@@ -201,6 +249,7 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
         (proposal) => proposal.submittedById === currentUser.id
       )
     : null;
+  const upcomingEventGroups = groupCourseEventsForCommunity(upcomingEvents);
 
   return (
     <main className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:py-10">
@@ -324,14 +373,26 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
               </div>
             </div>
             <div className="w-full sm:w-auto sm:min-w-80">
-              <CourseMarkButtons
-                courseId={course.id}
-                currentUserId={currentUser?.id}
-                initialPlayed={currentMarkTypes.has(CourseMarkType.played)}
-                initialPlayedCount={playedCount}
-                initialWantToPlay={currentMarkTypes.has(CourseMarkType.wantToPlay)}
-                initialWantToPlayCount={wantToPlayCount}
-              />
+              <div className="grid gap-2">
+                <CourseMarkButtons
+                  courseId={course.id}
+                  currentUserId={currentUser?.id}
+                  initialPlayed={currentMarkTypes.has(CourseMarkType.played)}
+                  initialPlayedCount={playedCount}
+                  initialWantToPlay={currentMarkTypes.has(CourseMarkType.wantToPlay)}
+                  initialWantToPlayCount={wantToPlayCount}
+                />
+                <Link
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-water-100 px-4 text-sm font-black text-water-700 transition hover:bg-water-200"
+                  href={`/courses/${course.id}/forum`}
+                >
+                  <MessageSquare size={16} aria-hidden />
+                  Course forum
+                  <span className="rounded-full bg-white/80 px-2 py-0.5 text-xs text-ink">
+                    {courseThreadCount}
+                  </span>
+                </Link>
+              </div>
             </div>
           </div>
         </section>
@@ -458,14 +519,67 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
         </section>
       </section>
 
-      <section>
-        <div className="mb-4 flex items-center justify-between">
+      <section className="flex flex-col gap-8">
+        <section className="grid gap-4 rounded-lg border border-canopy-900/10 bg-white p-4 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="flex items-center gap-2 text-2xl font-black text-ink">
+              <CalendarClock size={22} aria-hidden />
+              Upcoming events
+            </h2>
+            <Link
+              className="rounded-full bg-canopy-50 px-3 py-1.5 text-sm font-black text-canopy-700 transition hover:bg-canopy-100"
+              href={`/events?courseId=${course.id}`}
+            >
+              All events
+            </Link>
+          </div>
+          <div className="grid gap-4">
+            {courseEventCommunitySections.map((section) => {
+              const sectionEvents = upcomingEventGroups[section.key];
+
+              return (
+                <div className="grid gap-2 border-t border-canopy-900/10 pt-3" key={section.key}>
+                  <h3 className="text-sm font-black uppercase text-ink/45">
+                    {section.label}
+                  </h3>
+                  {sectionEvents.length ? (
+                    sectionEvents.map((event) => {
+                      const rsvpCounts = countEventRsvps(event.rsvps);
+
+                      return (
+                        <Link
+                          className="grid gap-1 rounded-lg bg-[#fffdf7] p-3 transition hover:bg-canopy-50"
+                          href={`/events/${event.id}`}
+                          key={event.id}
+                        >
+                          <span className="text-sm font-black text-ink">
+                            {event.title}
+                          </span>
+                          <span className="flex flex-wrap items-center gap-2 text-xs font-bold text-ink/55">
+                            <span>{formatEventDateTime(event.startTime, event.timezone)}</span>
+                            <span>{courseEventTypeLabels[event.type]}</span>
+                            <span>{rsvpCounts.going} going</span>
+                          </span>
+                        </Link>
+                      );
+                    })
+                  ) : (
+                    <p className="text-sm font-semibold text-ink/45">No upcoming listings.</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <section>
+          <div className="mb-4 flex items-center justify-between">
           <h2 className="text-2xl font-black text-ink">Holes</h2>
           <span className="rounded-full bg-water-100 px-3 py-1 text-sm font-bold text-water-700">
             Discuss each hole
           </span>
-        </div>
-        <div className="grid gap-3">
+          </div>
+          <div className="grid gap-3">
           {displayHoles.map((hole) => {
             const bestLine = hole.lines[0] ?? null;
             const averageHoleRating =
@@ -540,7 +654,8 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
               </Link>
             );
           })}
-        </div>
+          </div>
+        </section>
 
         <div className="mt-8">
           <h2 className="mb-3 text-2xl font-black text-ink">Recent Hole Reviews</h2>

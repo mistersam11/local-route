@@ -2,10 +2,13 @@ import { createHash, randomBytes } from "crypto";
 import { cookies } from "next/headers";
 import type { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { normalizeEmail } from "@/lib/security/identity";
 
 export const SESSION_COOKIE = "localroute_session";
 
-const sessionDays = 30;
+const absoluteSessionDays = 30;
+const inactiveSessionDays = 14;
+const sessionTouchIntervalMs = 5 * 60 * 1000;
 
 type CookieOptions = {
   expires: Date;
@@ -39,13 +42,6 @@ function getCookieValue(cookieHeader: string | null, name: string) {
   );
 }
 
-function normalizeEmail(email: string) {
-  return email
-    .trim()
-    .replace(/^["'`]+|["'`]+$/g, "")
-    .toLowerCase();
-}
-
 export function adminEmails() {
   return new Set(
     (process.env.ADMIN_EMAILS ?? "")
@@ -61,17 +57,31 @@ export function isAdminEmail(email: string) {
 
 export async function createSession(userId: number) {
   const token = randomBytes(32).toString("base64url");
-  const expiresAt = new Date(Date.now() + sessionDays * 24 * 60 * 60 * 1000);
+  const now = new Date();
+  const expiresAt = new Date(
+    now.getTime() + absoluteSessionDays * 24 * 60 * 60 * 1000
+  );
 
   await prisma.session.create({
     data: {
       tokenHash: hashSessionToken(token),
       userId,
-      expiresAt
+      expiresAt,
+      lastSeenAt: now
     }
   });
 
   return { token, expiresAt };
+}
+
+export async function rotateSession(
+  response: NextResponse,
+  userId: number,
+  currentToken: string | null
+) {
+  await deleteSessionToken(currentToken);
+  const { token, expiresAt } = await createSession(userId);
+  setSessionCookie(response, token, expiresAt);
 }
 
 export function setSessionCookie(
@@ -100,6 +110,7 @@ export async function deleteSessionToken(token: string | null) {
 async function getUserFromToken(token: string | null) {
   if (!token) return null;
 
+  const now = new Date();
   const session = await prisma.session.findUnique({
     where: { tokenHash: hashSessionToken(token) },
     include: {
@@ -119,9 +130,22 @@ async function getUserFromToken(token: string | null) {
     return null;
   }
 
-  if (session.expiresAt <= new Date()) {
+  const inactiveExpiresAt = new Date(
+    session.lastSeenAt.getTime() + inactiveSessionDays * 24 * 60 * 60 * 1000
+  );
+
+  if (session.expiresAt <= now || inactiveExpiresAt <= now) {
     await prisma.session.delete({ where: { id: session.id } }).catch(() => null);
     return null;
+  }
+
+  if (now.getTime() - session.lastSeenAt.getTime() > sessionTouchIntervalMs) {
+    await prisma.session
+      .update({
+        where: { id: session.id },
+        data: { lastSeenAt: now }
+      })
+      .catch(() => null);
   }
 
   return {

@@ -1,17 +1,21 @@
-import { ContentStatus } from "@prisma/client";
 import Link from "next/link";
-import { LogIn, MessageSquare, Search } from "lucide-react";
+import { CalendarClock, LogIn, MessageSquare, Search, Tag } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { ForumComposer } from "@/components/ForumComposer";
 import { ForumRulesModal } from "@/components/ForumRulesModal";
 import { getCurrentUser } from "@/lib/current-user";
-import { prisma } from "@/lib/db";
+import {
+  getPersonalizedForumFeed,
+  normalizeForumFeedPage
+} from "@/lib/forum-feed";
+import { courseEventTypeLabels, formatEventDateTime } from "@/lib/events";
 
 export const dynamic = "force-dynamic";
 
 type ForumPageProps = {
   searchParams?: {
     q?: string;
+    page?: string;
   };
 };
 
@@ -25,46 +29,22 @@ function formatDate(date: Date) {
 
 export default async function ForumPage({ searchParams }: ForumPageProps) {
   const query = searchParams?.q?.trim() ?? "";
-  const [currentUser, threads] = await Promise.all([
-    getCurrentUser(),
-    prisma.forumThread.findMany({
-      where: {
-        status: ContentStatus.visible,
-        ...(query
-          ? {
-              OR: [
-                { title: { contains: query } },
-                { body: { contains: query } },
-                { user: { username: { contains: query } } }
-              ]
-            }
-          : {})
-      },
-      include: {
-        user: { select: { id: true, username: true, profileImageUrl: true } },
-        _count: {
-          select: { comments: { where: { status: ContentStatus.visible } } }
-        },
-        comments: {
-          where: { status: ContentStatus.visible },
-          select: {
-            id: true,
-            body: true,
-            createdAt: true,
-            user: { select: { username: true } }
-          },
-          orderBy: { createdAt: "desc" },
-          take: 1
-        },
-        photos: {
-          orderBy: { sortOrder: "asc" },
-          take: 4
-        }
-      },
-      orderBy: { createdAt: "desc" },
-      take: 40
-    })
-  ]);
+  const page = normalizeForumFeedPage(searchParams?.page);
+  const currentUser = await getCurrentUser();
+  const feed = await getPersonalizedForumFeed({
+    userId: currentUser?.id,
+    query,
+    page
+  });
+  const loadMoreParams = new URLSearchParams();
+
+  if (query) {
+    loadMoreParams.set("q", query);
+  }
+
+  if (feed.nextPage) {
+    loadMoreParams.set("page", String(feed.nextPage));
+  }
 
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6 lg:py-10">
@@ -72,9 +52,9 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
 
       <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
         <div>
-          <p className="text-sm font-bold uppercase text-clay-700">Forum</p>
+          <p className="text-sm font-bold uppercase text-clay-700">Chains</p>
           <h1 className="mt-3 max-w-2xl text-4xl font-black leading-tight text-ink sm:text-5xl">
-            Talk disc golf with the community
+            Talk disc golf
           </h1>
         </div>
         <form
@@ -120,7 +100,8 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
       )}
 
       <section className="grid gap-3">
-        {threads.map((thread) => {
+        {feed.items.map((item) => {
+          const thread = item.thread;
           const latestComment = thread.comments[0] ?? null;
 
           return (
@@ -131,7 +112,39 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <h2 className="text-2xl font-black text-ink">{thread.title}</h2>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {thread.course ? (
+                      <span className="rounded-full bg-canopy-50 px-2.5 py-1 text-xs font-black uppercase text-canopy-700">
+                        {thread.course.name}
+                      </span>
+                    ) : null}
+                    {item.source === "suggested" ? (
+                      <span className="rounded-full bg-white px-2.5 py-1 text-xs font-black uppercase text-ink/45 ring-1 ring-canopy-900/10">
+                        Suggested
+                      </span>
+                    ) : null}
+                    {thread.flair ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-water-100 px-2.5 py-1 text-xs font-black uppercase text-water-700">
+                        <Tag size={13} aria-hidden />
+                        {thread.flair}
+                      </span>
+                    ) : null}
+                    {thread.event ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-clay-100 px-2.5 py-1 text-xs font-black uppercase text-clay-700">
+                        <CalendarClock size={13} aria-hidden />
+                        {courseEventTypeLabels[thread.event.type]}
+                      </span>
+                    ) : null}
+                  </div>
+                  <h2 className="mt-2 text-2xl font-black text-ink">{thread.title}</h2>
+                  {thread.event ? (
+                    <p className="mt-1 text-xs font-black uppercase text-ink/45">
+                      {formatEventDateTime(
+                        thread.event.startTime,
+                        thread.event.timezone
+                      )}
+                    </p>
+                  ) : null}
                   <p className="mt-2 line-clamp-2 text-sm font-semibold leading-6 text-ink/65">
                     {thread.body}
                   </p>
@@ -181,12 +194,25 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
         })}
       </section>
 
-      {!threads.length ? (
+      {feed.nextPage ? (
+        <Link
+          className="mx-auto inline-flex h-11 items-center justify-center rounded-full bg-white px-5 text-sm font-black text-canopy-700 shadow-sm transition hover:bg-canopy-50"
+          href={`/forum?${loadMoreParams.toString()}`}
+        >
+          Load more
+        </Link>
+      ) : null}
+
+      {!feed.items.length ? (
         <section className="rounded-lg bg-white p-8 text-center shadow-sm">
           <MessageSquare className="mx-auto text-canopy-700" size={32} aria-hidden />
-          <h2 className="mt-4 text-2xl font-black text-ink">No chains found</h2>
+          <h2 className="mt-4 text-2xl font-black text-ink">
+            {query ? "No posts found" : "Follow courses to personalize your feed"}
+          </h2>
           <p className="mt-2 text-sm font-semibold text-ink/55">
-            Start a new chain or try another search.
+            {query
+              ? "Try another search or clear your filters."
+              : "Suggested community posts will appear here as the network grows."}
           </p>
         </section>
       ) : null}

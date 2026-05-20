@@ -80,16 +80,55 @@ enum ModerationActionType {
   resolve
 }
 
+enum NotificationType {
+  coursePost
+  courseEvent
+}
+
+enum NotificationTargetType {
+  forumThread
+  courseEvent
+}
+
+enum CourseEventType {
+  leagueNight
+  doubles
+  tournament
+  glowRound
+  casualRound
+  clinic
+  tagsMatch
+  puttingLeague
+}
+
+enum CourseEventVisibility {
+  public
+  unlisted
+  private
+}
+
+enum CourseEventRsvpStatus {
+  going
+  interested
+}
+
+enum CourseEventRecurrenceFrequency {
+  weekly
+  biweekly
+  monthly
+}
+
 model User {
-  id              Int      @id @default(autoincrement())
-  username        String   @unique
-  email           String   @unique
-  passwordHash    String
+  id              Int       @id @default(autoincrement())
+  username        String    @unique
+  email           String    @unique
+  emailVerifiedAt DateTime?
+  passwordHash    String?
   profileImageUrl String?
   bio             String?
   homeCourseName  String?
-  isAdmin         Boolean  @default(false)
-  createdAt       DateTime @default(now())
+  isAdmin         Boolean   @default(false)
+  createdAt       DateTime  @default(now())
 
   courseReviews                CourseReview[]
   holeReviews                  HoleReview[]
@@ -108,19 +147,59 @@ model User {
   courseLists                  CourseList[]
   forumThreads                 ForumThread[]
   forumComments                ForumComment[]
+  oauthAccounts                OauthAccount[]
+  courseFollows                CourseFollow[]
+  notifications                Notification[]          @relation("NotificationRecipient")
+  authoredNotifications        Notification[]          @relation("NotificationActor")
+  hostedCourseEvents           CourseEvent[]           @relation("HostedCourseEvents")
+  courseEventRsvps             CourseEventRsvp[]
 }
 
 model Session {
-  id        Int      @id @default(autoincrement())
-  tokenHash String   @unique
-  userId    Int
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id         Int      @id @default(autoincrement())
+  tokenHash  String   @unique
+  userId     Int
+  expiresAt  DateTime
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
+  @@index([lastSeenAt])
+}
+
+model OauthAccount {
+  id                Int      @id @default(autoincrement())
+  userId            Int
+  provider          String
+  providerAccountId String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@index([provider])
+}
+
+model AuthRateLimit {
+  id              Int       @id @default(autoincrement())
+  action          String
+  keyHash         String
+  attempts        Int       @default(0)
+  failures        Int       @default(0)
+  blockedUntil    DateTime?
+  windowStartedAt DateTime  @default(now())
+  lastAttemptAt   DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([action, keyHash])
+  @@index([action, blockedUntil])
+  @@index([updatedAt])
 }
 
 model Course {
@@ -153,10 +232,30 @@ model Course {
   submittedBy   User?                @relation("SubmittedCourses", fields: [submittedById], references: [id], onDelete: SetNull)
   marks         CourseMark[]
   listItems     CourseListItem[]
+  followers     CourseFollow[]
+  forumThreads  ForumThread[]
+  notifications Notification[]
+  events        CourseEvent[]
 
   @@index([difficulty])
   @@index([status])
   @@index([submittedById])
+}
+
+model CourseFollow {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  courseId        Int
+  notifyNewPosts  Boolean  @default(true)
+  notifyNewEvents Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([userId, createdAt])
+  @@index([courseId, createdAt])
 }
 
 model CourseEditProposal {
@@ -337,8 +436,11 @@ model Line {
 model ForumThread {
   id           Int           @id @default(autoincrement())
   userId       Int
+  courseId     Int?
+  eventId      Int?          @unique
   title        String
   body         String
+  flair        String?
   status       ContentStatus @default(visible)
   hiddenAt     DateTime?
   hiddenReason String?
@@ -346,11 +448,85 @@ model ForumThread {
   updatedAt    DateTime      @updatedAt
 
   user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course   Course?            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  event    CourseEvent?       @relation(fields: [eventId], references: [id], onDelete: SetNull)
   comments ForumComment[]
   photos   ForumThreadPhoto[]
 
   @@index([status, createdAt])
   @@index([userId, createdAt])
+  @@index([courseId, status, createdAt])
+  @@index([eventId])
+}
+
+model CourseEvent {
+  id                   Int                             @id @default(autoincrement())
+  title                String
+  description          String
+  hostId               Int
+  courseId             Int
+  type                 CourseEventType
+  startTime            DateTime
+  endTime              DateTime?
+  timezone             String                          @default("America/New_York")
+  recurrenceFrequency  CourseEventRecurrenceFrequency?
+  recurrenceInterval   Int                             @default(1)
+  recurrenceEndsAt     DateTime?
+  maxPlayers           Int?
+  visibility           CourseEventVisibility           @default(public)
+  tags                 String[]                        @default([])
+  imageUrl             String?
+  createdAt            DateTime                        @default(now())
+  updatedAt            DateTime                        @updatedAt
+
+  host             User              @relation("HostedCourseEvents", fields: [hostId], references: [id], onDelete: Cascade)
+  course           Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  rsvps            CourseEventRsvp[]
+  discussionThread ForumThread?
+
+  @@index([courseId, startTime])
+  @@index([hostId, startTime])
+  @@index([type, startTime])
+  @@index([visibility, startTime])
+}
+
+model CourseEventRsvp {
+  id        Int                   @id @default(autoincrement())
+  eventId   Int
+  userId    Int
+  status    CourseEventRsvpStatus
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+
+  event CourseEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([userId, status])
+  @@index([eventId, status])
+}
+
+model Notification {
+  id             Int                    @id @default(autoincrement())
+  userId         Int
+  actorId        Int?
+  courseId       Int
+  type           NotificationType
+  targetType     NotificationTargetType
+  targetRecordId Int
+  isRead         Boolean                @default(false)
+  readAt         DateTime?
+  createdAt      DateTime               @default(now())
+
+  user   User  @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor  User? @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, targetType, targetRecordId])
+  @@index([userId, isRead, createdAt])
+  @@index([courseId, type, createdAt])
+  @@index([actorId, createdAt])
+  @@index([targetType, targetRecordId])
 }
 
 model ForumThreadPhoto {
@@ -366,20 +542,25 @@ model ForumThreadPhoto {
 }
 
 model ForumComment {
-  id           Int           @id @default(autoincrement())
-  threadId     Int
-  userId       Int
-  body         String
-  status       ContentStatus @default(visible)
-  hiddenAt     DateTime?
-  hiddenReason String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id              Int           @id @default(autoincrement())
+  threadId        Int
+  parentCommentId Int?
+  userId          Int
+  body            String
+  status          ContentStatus @default(visible)
+  hiddenAt        DateTime?
+  hiddenReason    String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
-  thread ForumThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  thread        ForumThread    @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  parentComment ForumComment?  @relation("ForumCommentReplies", fields: [parentCommentId], references: [id], onDelete: SetNull)
+  replies       ForumComment[] @relation("ForumCommentReplies")
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([threadId, createdAt])
+  @@index([threadId, parentCommentId, createdAt])
+  @@index([parentCommentId, createdAt])
   @@index([status, createdAt])
   @@index([userId, createdAt])
 }

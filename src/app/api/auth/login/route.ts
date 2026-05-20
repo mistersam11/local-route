@@ -1,28 +1,38 @@
 import { NextResponse } from "next/server";
-import { createSession, isAdminEmail, setSessionCookie } from "@/lib/auth";
+import {
+  getRequestSessionToken,
+  isAdminEmail,
+  rotateSession
+} from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { verifyPassword } from "@/lib/password";
-
-function safeRedirect(value: unknown, fallback = "/") {
-  const redirectTo = String(value ?? "").trim();
-  return redirectTo.startsWith("/") && !redirectTo.startsWith("//")
-    ? redirectTo
-    : fallback;
-}
+import { hashPassword, needsPasswordRehash, verifyPassword } from "@/lib/password";
+import { verifyCsrfToken } from "@/lib/security/csrf";
+import { normalizeIdentifier } from "@/lib/security/identity";
+import { errorRedirect as redirectWithError, safeRedirect } from "@/lib/security/http";
+import {
+  authRateLimitKeys,
+  clearAuthFailures,
+  consumeAuthRateLimit,
+  recordAuthFailure
+} from "@/lib/security/rate-limit";
 
 function errorRedirect(request: Request) {
-  const url = new URL("/login", request.url);
-  url.searchParams.set("error", "credentials");
-  return NextResponse.redirect(url, { status: 303 });
+  return redirectWithError(request, "/login", "credentials");
 }
 
 export async function POST(request: Request) {
   const formData = await request.formData();
-  const identifier = String(formData.get("identifier") ?? "")
-    .trim()
-    .toLowerCase();
+  const identifier = normalizeIdentifier(String(formData.get("identifier") ?? ""));
   const password = String(formData.get("password") ?? "");
   const redirectTo = safeRedirect(formData.get("redirectTo"));
+  const csrfToken = String(formData.get("csrfToken") ?? "");
+  const rateLimitKeys = authRateLimitKeys("login", request, identifier);
+  const rateLimit = await consumeAuthRateLimit("login", rateLimitKeys);
+
+  if (rateLimit.limited || !verifyCsrfToken(csrfToken)) {
+    await recordAuthFailure("login", rateLimitKeys);
+    return errorRedirect(request);
+  }
 
   const user = await prisma.user.findFirst({
     where: {
@@ -37,6 +47,7 @@ export async function POST(request: Request) {
   });
 
   if (!user || !(await verifyPassword(password, user.passwordHash))) {
+    await recordAuthFailure("login", rateLimitKeys);
     return errorRedirect(request);
   }
 
@@ -47,12 +58,19 @@ export async function POST(request: Request) {
     });
   }
 
-  const { token, expiresAt } = await createSession(user.id);
+  if (needsPasswordRehash(user.passwordHash)) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash: await hashPassword(password) }
+    });
+  }
+
   const response = NextResponse.redirect(new URL(redirectTo, request.url), {
     status: 303
   });
 
-  setSessionCookie(response, token, expiresAt);
+  await clearAuthFailures("login", rateLimitKeys);
+  await rotateSession(response, user.id, getRequestSessionToken(request));
 
   return response;
 }

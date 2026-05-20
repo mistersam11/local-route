@@ -5,10 +5,14 @@ const prisma = new PrismaClient();
 
 async function main() {
   await prisma.session.deleteMany();
+  await prisma.notification.deleteMany();
   await prisma.adminModerationAction.deleteMany();
   await prisma.contentReport.deleteMany();
   await prisma.forumComment.deleteMany();
   await prisma.forumThread.deleteMany();
+  await prisma.courseEventRsvp.deleteMany();
+  await prisma.courseEvent.deleteMany();
+  await prisma.courseFollow.deleteMany();
   await prisma.courseListItem.deleteMany();
   await prisma.courseList.deleteMany();
   await prisma.courseMark.deleteMany();
@@ -361,6 +365,15 @@ async function main() {
     ]
   });
 
+  await prisma.courseFollow.createMany({
+    data: [
+      { courseId: cedar.id, userId: nate.id },
+      { courseId: cedar.id, userId: maya.id },
+      { courseId: pine.id, userId: sam.id },
+      { courseId: pine.id, userId: ellis.id }
+    ]
+  });
+
   await prisma.courseList.create({
     data: {
       userId: sam.id,
@@ -375,9 +388,119 @@ async function main() {
     }
   });
 
+  const cedarLeague = await prisma.courseEvent.create({
+    data: {
+      title: "Cedar Ridge Wednesday League",
+      description:
+        "Weekly singles league with rotating cards, ace pot, and a short post-round hang by hole 1.",
+      hostId: sam.id,
+      courseId: cedar.id,
+      type: "leagueNight",
+      startTime: new Date("2026-05-27T22:00:00.000Z"),
+      endTime: new Date("2026-05-28T00:30:00.000Z"),
+      timezone: "America/New_York",
+      recurrenceFrequency: "weekly",
+      recurrenceInterval: 1,
+      recurrenceEndsAt: new Date("2026-08-26T22:00:00.000Z"),
+      maxPlayers: 72,
+      visibility: "public",
+      tags: ["league", "singles", "ace pot"],
+      imageUrl:
+        "https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?auto=format&fit=crop&w=1200&q=80",
+      rsvps: {
+        create: [
+          { userId: nate.id, status: "going" },
+          { userId: maya.id, status: "interested" },
+          { userId: ellis.id, status: "going" }
+        ]
+      }
+    }
+  });
+
+  await prisma.forumThread.create({
+    data: {
+      userId: sam.id,
+      courseId: cedar.id,
+      eventId: cedarLeague.id,
+      flair: "League night",
+      title: cedarLeague.title,
+      body: "Cedar Ridge league is back on Wednesdays. Post card requests, ace pot questions, and week-to-week updates here.",
+      comments: {
+        create: [
+          {
+            userId: nate.id,
+            body: "I can help check cards in if the first week gets busy."
+          }
+        ]
+      }
+    }
+  });
+
+  const pineDoubles = await prisma.courseEvent.create({
+    data: {
+      title: "Pine Hollow Random Draw Doubles",
+      description:
+        "Casual random draw doubles with mixed skill cards and optional cash side pool.",
+      hostId: maya.id,
+      courseId: pine.id,
+      type: "doubles",
+      startTime: new Date("2026-05-30T14:00:00.000Z"),
+      endTime: new Date("2026-05-30T17:00:00.000Z"),
+      timezone: "America/New_York",
+      maxPlayers: 40,
+      visibility: "public",
+      tags: ["doubles", "random draw"],
+      rsvps: {
+        create: [
+          { userId: sam.id, status: "going" },
+          { userId: ellis.id, status: "interested" }
+        ]
+      }
+    }
+  });
+
+  await prisma.forumThread.create({
+    data: {
+      userId: maya.id,
+      courseId: pine.id,
+      eventId: pineDoubles.id,
+      flair: "Doubles",
+      title: pineDoubles.title,
+      body: "Use this thread for partner questions, side pool details, and weather calls."
+    }
+  });
+
+  const cedarGlow = await prisma.courseEvent.create({
+    data: {
+      title: "Cedar Glow Round",
+      description:
+        "Low-key glow round. Bring LEDs, a backup putter, and a small flashlight.",
+      hostId: ellis.id,
+      courseId: cedar.id,
+      type: "glowRound",
+      startTime: new Date("2026-06-05T01:00:00.000Z"),
+      timezone: "America/New_York",
+      visibility: "public",
+      tags: ["glow", "casual"]
+    }
+  });
+
+  await prisma.forumThread.create({
+    data: {
+      userId: ellis.id,
+      courseId: cedar.id,
+      eventId: cedarGlow.id,
+      flair: "Glow round",
+      title: cedarGlow.title,
+      body: "Glow setup and card coordination can live here."
+    }
+  });
+
   const roadTripThread = await prisma.forumThread.create({
     data: {
       userId: nate.id,
+      courseId: pine.id,
+      flair: "Travel",
       title: "Best two-course day near Asheville?",
       body: "I have one open Saturday and want a woods-heavy morning round plus something friendlier in the afternoon. Pine Hollow is on the list. What pairs well with it?",
       comments: {
@@ -398,6 +521,8 @@ async function main() {
   await prisma.forumThread.create({
     data: {
       userId: sam.id,
+      courseId: cedar.id,
+      flair: "Conditions",
       title: "Cedar Ridge conditions this week",
       body: "Fairways are playing great, but the rough is tall on holes 2 and 4. Bring a spotter if you are testing new drivers.",
       photos: {

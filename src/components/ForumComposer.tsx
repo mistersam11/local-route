@@ -4,7 +4,12 @@ import { useState } from "react";
 import { Link2 } from "lucide-react";
 import { ForumThreadForm } from "@/components/ForumThreadForm";
 
-export function ForumComposer() {
+type ForumComposerProps = {
+  courseId?: number;
+  courseName?: string;
+};
+
+export function ForumComposer({ courseId, courseName }: ForumComposerProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -19,7 +24,11 @@ export function ForumComposer() {
           Start a Chain
         </button>
       ) : (
-        <ForumThreadForm onCancel={() => setOpen(false)} />
+        <ForumThreadForm
+          courseId={courseId}
+          courseName={courseName}
+          onCancel={() => setOpen(false)}
+        />
       )}
     </section>
   );

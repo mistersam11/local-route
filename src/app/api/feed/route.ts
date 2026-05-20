@@ -1,6 +1,11 @@
 import { ContentStatus } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { getFollowingIds, getRequestUser } from "@/lib/current-user";
+import {
+  getFollowingCourseIds,
+  getFollowingIds,
+  getRequestUser
+} from "@/lib/current-user";
+import { courseThreadFeedWhere } from "@/lib/course-communities";
 import { prisma } from "@/lib/db";
 import { serializeCourseReview, serializeHoleReview, serializeLine } from "@/lib/social-data";
 
@@ -12,8 +17,9 @@ export async function GET(request: Request) {
   const followedOnly = searchParams.get("following") === "true";
 
   const followingIds = await getFollowingIds(currentUser?.id);
+  const followedCourseIds = await getFollowingCourseIds(currentUser?.id);
 
-  const [lines, reviews, holeReviews] = await Promise.all([
+  const [lines, reviews, holeReviews, coursePosts] = await Promise.all([
     prisma.line.findMany({
       where: {
         status: ContentStatus.visible,
@@ -72,6 +78,24 @@ export async function GET(request: Request) {
       },
       orderBy: { createdAt: "desc" },
       take: 15
+    }),
+    prisma.forumThread.findMany({
+      where: courseThreadFeedWhere({
+        courseId,
+        followedOnly,
+        followedCourseIds
+      }),
+      include: {
+        user: {
+          select: { id: true, username: true, profileImageUrl: true }
+        },
+        course: { select: { id: true, name: true } },
+        _count: {
+          select: { comments: { where: { status: ContentStatus.visible } } }
+        }
+      },
+      orderBy: { createdAt: "desc" },
+      take: 15
     })
   ]);
 
@@ -95,7 +119,30 @@ export async function GET(request: Request) {
       review: serializeHoleReview(review),
       holeNumber: review.hole.holeNumber,
       course: review.hole.course
-    }))
+    })),
+    ...coursePosts.flatMap((thread) =>
+      thread.course
+        ? [
+            {
+              type: "course-post" as const,
+              createdAt: thread.createdAt.toISOString(),
+              thread: {
+                id: thread.id,
+                title: thread.title,
+                body: thread.body,
+                flair: thread.flair,
+                commentCount: thread._count.comments,
+                author: {
+                  id: thread.user.id,
+                  username: thread.user.username,
+                  profileImageUrl: thread.user.profileImageUrl
+                }
+              },
+              course: thread.course
+            }
+          ]
+        : []
+    )
   ]
     .sort((first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime())
     .slice(0, 30);

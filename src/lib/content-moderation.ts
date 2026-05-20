@@ -218,7 +218,7 @@ export async function getModerationTargetCard(
     title: `Comment on ${comment.thread.title}`,
     body: comment.body,
     context: "Forum",
-    href: `/forum/${comment.thread.id}`,
+    href: `/forum/${comment.thread.id}#comment-${comment.id}`,
     createdAt: comment.createdAt,
     hiddenReason: comment.hiddenReason,
     author: comment.user

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import {
+  CalendarDays,
   List,
   LogIn,
   MessageSquare,
@@ -30,14 +31,19 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const currentUser = await getCurrentUser();
-  const pendingAdminNotifications = currentUser?.isAdmin
-    ? (
-        await Promise.all([
-          prisma.course.count({ where: { status: "pending" } }),
-          prisma.contentReport.count({ where: { status: ReportStatus.open } })
-        ])
-      ).reduce((total, count) => total + count, 0)
-    : 0;
+  const [pendingAdminNotifications, unreadNotifications] = currentUser
+    ? await Promise.all([
+        currentUser.isAdmin
+          ? Promise.all([
+              prisma.course.count({ where: { status: "pending" } }),
+              prisma.contentReport.count({ where: { status: ReportStatus.open } })
+            ]).then((counts) => counts.reduce((total, count) => total + count, 0))
+          : Promise.resolve(0),
+        prisma.notification.count({
+          where: { userId: currentUser.id, isRead: false }
+        })
+      ])
+    : [0, 0];
   const adminNotificationLabel =
     pendingAdminNotifications > 99 ? "99+" : String(pendingAdminNotifications);
 
@@ -77,6 +83,13 @@ export default async function RootLayout({
                 Lists
               </Link>
               <Link
+                href="/events"
+                className="flex shrink-0 items-center gap-2 rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"
+              >
+                <CalendarDays size={16} aria-hidden />
+                Events
+              </Link>
+              <Link
                 href="/forum"
                 className="flex shrink-0 items-center gap-2 rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"
               >
@@ -107,7 +120,10 @@ export default async function RootLayout({
                       </span>
                     </Link>
                   ) : null}
-                  <UserMenu user={currentUser} />
+                  <UserMenu
+                    unreadNotificationCount={unreadNotifications}
+                    user={currentUser}
+                  />
                 </>
               ) : (
                 <>

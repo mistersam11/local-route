@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
-    "test": "tsx src/lib/importers/udisc.test.ts",
+    "test": "tsx src/lib/importers/udisc.test.ts && tsx src/lib/security/auth-security.test.ts && tsx src/lib/forum-comments.test.ts && tsx src/lib/course-communities.test.ts && tsx src/lib/forum-feed.test.ts && tsx src/lib/events.test.ts",
     "lint": "next lint",
     "prisma:generate": "prisma generate",
     "db:push": "prisma db push",
@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",
+    "bcryptjs": "^3.0.3",
     "cheerio": "1.0.0",
     "clsx": "2.1.1",
     "lucide-react": "0.468.0",
