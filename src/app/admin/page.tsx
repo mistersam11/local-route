@@ -7,6 +7,7 @@ import {
   Clock3,
   Disc3,
   MapPin,
+  PencilLine,
   ShieldCheck,
   XCircle
 } from "lucide-react";
@@ -64,10 +65,22 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
   }
 
   const activeFilter = selectedFilter(searchParams?.status);
-  const [statusCounts, courses] = await Promise.all([
+  const [statusCounts, pendingEditProposals, courses] = await Promise.all([
     prisma.course.groupBy({
       by: ["status"],
       _count: { _all: true }
+    }),
+    prisma.courseEditProposal.findMany({
+      where: { status: "pending" },
+      include: {
+        course: {
+          select: { id: true, name: true, locationName: true, coverPhotoUrl: true }
+        },
+        submittedBy: {
+          select: { id: true, username: true, profileImageUrl: true }
+        }
+      },
+      orderBy: { createdAt: "desc" }
     }),
     prisma.course.findMany({
       where: activeFilter === "all" ? {} : { status: activeFilter },
@@ -150,10 +163,15 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         </div>
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-5">
+      <section className="grid gap-3 sm:grid-cols-6">
         <Stat label="Total" value={total} />
         <Stat label="Draft" value={counts.draft} />
         <Stat icon={<Clock3 size={18} aria-hidden />} label="Pending" value={counts.pending} />
+        <Stat
+          icon={<PencilLine size={18} aria-hidden />}
+          label="Edits"
+          value={pendingEditProposals.length}
+        />
         <Stat icon={<CheckCircle2 size={18} aria-hidden />} label="Approved" value={counts.approved} />
         <Stat icon={<XCircle size={18} aria-hidden />} label="Rejected" value={counts.rejected} />
       </section>
@@ -173,6 +191,54 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
           </Link>
         ))}
       </section>
+
+      {pendingEditProposals.length ? (
+        <section className="grid gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-2xl font-black text-ink">Pending edit proposals</h2>
+            <span className="rounded-full bg-water-100 px-3 py-1 text-sm font-bold text-water-700">
+              {pendingEditProposals.length}
+            </span>
+          </div>
+          <div className="grid gap-3">
+            {pendingEditProposals.map((proposal) => (
+              <Link
+                className="group flex flex-wrap items-center gap-4 rounded-lg border border-canopy-900/10 bg-white p-4 shadow-sm transition hover:bg-canopy-50"
+                href={`/admin/course-edits/${proposal.id}`}
+                key={proposal.id}
+              >
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-water-100 text-water-700">
+                  <PencilLine size={20} aria-hidden />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate text-lg font-black text-ink">
+                    {proposal.course.name}
+                  </h3>
+                  <p className="mt-1 flex flex-wrap items-center gap-2 text-sm font-semibold text-ink/60">
+                    <MapPin size={15} aria-hidden />
+                    {proposal.course.locationName}
+                    <span>{formatDate(proposal.createdAt)}</span>
+                  </p>
+                </div>
+                {proposal.submittedBy ? (
+                  <div className="flex items-center gap-2 text-sm font-bold text-ink/65">
+                    <Avatar
+                      name={proposal.submittedBy.username}
+                      size="sm"
+                      src={proposal.submittedBy.profileImageUrl}
+                    />
+                    @{proposal.submittedBy.username}
+                  </div>
+                ) : null}
+                <span className="flex items-center gap-2 text-sm font-black text-canopy-700 transition group-hover:translate-x-1">
+                  Review
+                  <ArrowRight size={16} aria-hidden />
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="grid gap-4">
         {courses.length ? (

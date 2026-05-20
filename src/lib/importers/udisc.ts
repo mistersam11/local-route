@@ -3,6 +3,10 @@ import type { AnyNode } from "domhandler";
 
 export type UdiscImportResult = {
   courseName?: string;
+  locationName?: string;
+  locationAddress?: string;
+  latitude?: number;
+  longitude?: number;
   layoutName?: string;
   sourceUrl: string;
   holes: {
@@ -26,6 +30,10 @@ export type ImportedLayout = {
 
 type UdiscParsePartial = {
   courseName?: string;
+  locationName?: string;
+  locationAddress?: string;
+  latitude?: number;
+  longitude?: number;
   layoutName?: string;
   expectedHoles?: number;
   holes: ImportedHole[];
@@ -235,6 +243,11 @@ export function parseUdiscHtml(html: string, sourceUrl: string): UdiscImportResu
   const jsonResult = parseEmbeddedData($, diagnostics);
   const htmlResult = parseVisibleHtml($, diagnostics);
   const courseName = jsonResult.courseName ?? htmlResult.courseName;
+  const locationName = jsonResult.locationName ?? htmlResult.locationName;
+  const locationAddress =
+    jsonResult.locationAddress ?? htmlResult.locationAddress;
+  const latitude = jsonResult.latitude ?? htmlResult.latitude;
+  const longitude = jsonResult.longitude ?? htmlResult.longitude;
   let layouts = normalizeLayouts([
     ...jsonResult.layouts,
     ...htmlResult.layouts
@@ -290,6 +303,10 @@ export function parseUdiscHtml(html: string, sourceUrl: string): UdiscImportResu
 
   return {
     courseName,
+    locationName,
+    locationAddress,
+    latitude,
+    longitude,
     layoutName,
     sourceUrl,
     holes,
@@ -645,6 +662,8 @@ function collectMetadataFromRecord(
     keyHint.includes("course") ||
     Boolean(recordType && /sportsactivitylocation|course/i.test(recordType));
 
+  collectLocationFromRecord(record, keyHint, isCourseRecord, result);
+
   Object.entries(record).forEach(([key, value]) => {
     const normalizedKey = normalizeKey(key);
     const text = textFromUnknown(value);
@@ -685,6 +704,121 @@ function collectMetadataFromRecord(
       result.layoutName = cleanTitle(text);
     }
   });
+}
+
+function collectLocationFromRecord(
+  record: Record<string, unknown>,
+  keyHint: string,
+  isCourseRecord: boolean,
+  result: UdiscParsePartial
+) {
+  const addressRecord =
+    recordValue(record.address) ??
+    (looksLikeAddressRecord(record) ? record : undefined);
+  const address = addressRecord ? parsePostalAddress(addressRecord) : null;
+
+  if (address) {
+    result.locationName ??= address.locationName;
+    result.locationAddress ??= address.locationAddress;
+  }
+
+  const coordinates = parseCoordinates(record);
+
+  if (
+    coordinates &&
+    (isCourseRecord ||
+      keyHint.includes("location") ||
+      Boolean(address) ||
+      recordValue(record.location))
+  ) {
+    result.latitude ??= coordinates.latitude;
+    result.longitude ??= coordinates.longitude;
+  }
+}
+
+function parsePostalAddress(record: Record<string, unknown>) {
+  const streetAddress = textFromUnknown(record.streetAddress);
+  const locality =
+    textFromUnknown(record.addressLocality) ??
+    textFromUnknown(record.city) ??
+    textFromUnknown(record.town);
+  const region =
+    textFromUnknown(record.addressRegion) ??
+    textFromUnknown(record.state) ??
+    textFromUnknown(record.region);
+  const postalCode = textFromUnknown(record.postalCode);
+  const locationName = [locality, region].filter(Boolean).join(", ");
+  const locationAddress = [
+    streetAddress,
+    locality,
+    region,
+    postalCode
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  if (!locationName && !locationAddress) {
+    return null;
+  }
+
+  return {
+    locationName: locationName || locationAddress || undefined,
+    locationAddress: streetAddress ? locationAddress : undefined
+  };
+}
+
+function looksLikeAddressRecord(record: Record<string, unknown>) {
+  const keys = Object.keys(record).map(normalizeKey);
+
+  return keys.some((key) =>
+    [
+      "streetaddress",
+      "addresslocality",
+      "addressregion",
+      "postalcode"
+    ].includes(key)
+  );
+}
+
+function parseCoordinates(
+  record: Record<string, unknown>
+): { latitude: number; longitude: number } | null {
+  const nestedGeo = recordValue(record.geo) ?? recordValue(record.location);
+
+  if (nestedGeo && nestedGeo !== record) {
+    const coordinates = parseCoordinates(nestedGeo);
+
+    if (coordinates) {
+      return coordinates;
+    }
+  }
+
+  const latitude =
+    numberFromUnknown(record.latitude) ??
+    numberFromUnknown(record.lat) ??
+    numberFromUnknown(record.y);
+  const longitude =
+    numberFromUnknown(record.longitude) ??
+    numberFromUnknown(record.lng) ??
+    numberFromUnknown(record.lon) ??
+    numberFromUnknown(record.x);
+
+  if (
+    latitude === undefined ||
+    longitude === undefined ||
+    Math.abs(latitude) > 90 ||
+    Math.abs(longitude) > 180
+  ) {
+    return null;
+  }
+
+  return { latitude, longitude };
+}
+
+function recordValue(value: unknown) {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
 }
 
 function parseHoleArray(
@@ -874,6 +1008,19 @@ function parseVisibleHtml(
     $("meta[name='twitter:title']").attr("content"),
     $("title").first().text()
   ]);
+  result.locationName = pickFirstText([
+    $("meta[property='og:title']").attr("content"),
+    $("meta[name='twitter:title']").attr("content"),
+    $("title").first().text()
+  ])
+    ? locationNameFromTitle(
+        pickFirstText([
+          $("meta[property='og:title']").attr("content"),
+          $("meta[name='twitter:title']").attr("content"),
+          $("title").first().text()
+        ]) ?? ""
+      )
+    : undefined;
 
   if (bestLayout) {
     result.layoutName = bestLayout.layoutName;
@@ -963,6 +1110,14 @@ function pickFirstText(values: Array<string | undefined>) {
   }
 
   return undefined;
+}
+
+function locationNameFromTitle(value: string) {
+  const title = cleanTitle(value);
+  const match = title.match(/\s+-\s+([^|]+)$/);
+  const locationName = match ? cleanTitle(match[1]) : "";
+
+  return locationName && locationName.length <= 120 ? locationName : undefined;
 }
 
 function findLayoutName($: cheerio.CheerioAPI) {

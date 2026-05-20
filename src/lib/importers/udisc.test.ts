@@ -25,6 +25,7 @@ test("extracts all holes from the captured Squamanagonic UDisc fixture", () => {
   const result = parse(fixture("squamanagonic.html"));
 
   assert.equal(result.courseName, "Squamanagonic");
+  assert.equal(result.locationName, "Rochester, New Hampshire");
   assert.equal(result.holes.length, 18);
   assert.deepEqual(result.holes.slice(0, 3), [
     { number: 1, par: 3, distanceFeet: 193 },
@@ -49,6 +50,9 @@ test("extracts all holes from the captured Maple Hill UDisc fixture", () => {
   );
 
   assert.equal(result.courseName, "Maple Hill");
+  assert.equal(result.locationName, "Leicester, Massachusetts");
+  assert.equal(Number(result.latitude?.toFixed(3)), 42.276);
+  assert.equal(Number(result.longitude?.toFixed(3)), -71.896);
   assert.equal(result.layoutName, "Maple Hill Reds");
   assert.equal(result.holes.length, 18);
   assert.deepEqual(
@@ -81,6 +85,7 @@ test("uses the displayed layout hole count for North Cove Boulders", () => {
   );
 
   assert.equal(result.courseName, "North Cove Disc Golf: Boulders");
+  assert.equal(result.locationName, "Marion, North Carolina");
   assert.equal(result.layoutName, "Boulders River");
   assert.equal(result.holes.length, 20);
   assert.equal(result.layouts.length, 1);
@@ -137,6 +142,49 @@ test("extracts recursive embedded JSON hole arrays before HTML fallback", () => 
     distanceFeet: 306,
     description: "Line 9"
   });
+});
+
+test("extracts embedded JSON-LD city state and street address", () => {
+  const html = `
+    <title>Address Pines - Durham, North Carolina | UDisc</title>
+    <script type="application/ld+json">
+      ${JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "SportsActivityLocation",
+        name: "Address Pines",
+        address: {
+          "@type": "PostalAddress",
+          streetAddress: "123 Basket Lane",
+          addressLocality: "Durham",
+          addressRegion: "North Carolina",
+          postalCode: "27701",
+          addressCountry: "US"
+        },
+        geo: {
+          latitude: 35.99,
+          longitude: -78.9
+        }
+      })}
+    </script>
+    <script type="application/json">
+      ${JSON.stringify({
+        course: {
+          courseName: "Address Pines",
+          holes: Array.from({ length: 3 }, (_item, index) => ({
+            holeNumber: index + 1,
+            par: 3,
+            distanceFeet: 200 + index * 10
+          }))
+        }
+      })}
+    </script>
+  `;
+  const result = parse(html);
+
+  assert.equal(result.locationName, "Durham, North Carolina");
+  assert.equal(result.locationAddress, "123 Basket Lane, Durham, North Carolina, 27701");
+  assert.equal(result.latitude, 35.99);
+  assert.equal(result.longitude, -78.9);
 });
 
 test("keeps multiple embedded layouts separate", () => {

@@ -71,6 +71,7 @@ export async function POST(request: Request) {
 
   const name = String(body.name ?? "").trim();
   const locationName = String(body.locationName ?? "").trim();
+  const locationAddress = String(body.locationAddress ?? "").trim();
   const coverPhotoUrl = String(body.coverPhotoUrl ?? "").trim();
   const rawDifficulty = String(body.difficulty ?? "");
   const difficulty = Object.values(CourseDifficulty).includes(
@@ -120,6 +121,7 @@ export async function POST(request: Request) {
     data: {
       name,
       locationName,
+      locationAddress: locationAddress || null,
       latitude,
       longitude,
       coverPhotoUrl: coverPhotoUrl || null,

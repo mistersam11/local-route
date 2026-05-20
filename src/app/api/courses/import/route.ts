@@ -176,10 +176,13 @@ async function createImportedCourse({
   ];
   const course = await prisma.$transaction(async (tx) => {
     const createdCourse = await tx.course.create({
-      data: {
-        name: result.courseName ?? "Imported UDisc course",
-        locationName: "Imported from UDisc",
-        difficulty: CourseDifficulty.mixed,
+        data: {
+          name: result.courseName ?? "Imported UDisc course",
+          locationName: result.locationName ?? "Imported from UDisc",
+          locationAddress: result.locationAddress ?? null,
+          latitude: result.latitude ?? null,
+          longitude: result.longitude ?? null,
+          difficulty: CourseDifficulty.mixed,
         status: "draft",
         layoutName: firstLayout?.name ?? result.layoutName ?? null,
         importSourceUrl: result.sourceUrl,

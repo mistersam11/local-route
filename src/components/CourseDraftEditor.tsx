@@ -49,6 +49,7 @@ export type CourseDraftEditorCourse = {
   id: number;
   name: string;
   locationName: string;
+  locationAddress: string | null;
   layoutName: string | null;
   latitude: number | null;
   longitude: number | null;
@@ -109,11 +110,14 @@ async function uploadPhoto(file: File | undefined, onLoad: (value: string) => vo
 }
 
 export function CourseDraftEditor({
-  initialCourse
+  initialCourse,
+  mode = "draft"
 }: {
   initialCourse: CourseDraftEditorCourse;
+  mode?: "draft" | "proposal";
 }) {
   const router = useRouter();
+  const isProposalMode = mode === "proposal";
   const initialLayouts =
     initialCourse.layouts?.map((layout) => ({
       id: layout.id,
@@ -122,6 +126,9 @@ export function CourseDraftEditor({
     })) ?? [];
   const [name, setName] = useState(initialCourse.name);
   const [locationName, setLocationName] = useState(initialCourse.locationName);
+  const [locationAddress, setLocationAddress] = useState(
+    initialCourse.locationAddress ?? ""
+  );
   const [layoutName, setLayoutName] = useState(initialCourse.layoutName ?? "");
   const [layoutDrafts, setLayoutDrafts] = useState<LayoutDraft[]>(initialLayouts);
   const [selectedLayoutIndex, setSelectedLayoutIndex] = useState(0);
@@ -248,33 +255,52 @@ export function CourseDraftEditor({
 
     void (async () => {
       try {
-        const response = await fetch(`/api/courses/${initialCourse.id}/draft`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            name,
-            locationName,
-            layoutName: layoutDrafts[0]?.name || layoutName,
-            difficulty,
-            ...facts,
-            latitude,
-            longitude,
-            coverPhotoUrl,
-            holes: legacyHoles,
-            layouts: layoutDrafts.map((layout) => ({
-              id: layout.id,
-              name: layout.name,
-              holes: layout.holes
-            })),
-            submitForReview
-          })
-        });
+        const response = await fetch(
+          isProposalMode
+            ? `/api/courses/${initialCourse.id}/edit-proposals`
+            : `/api/courses/${initialCourse.id}/draft`,
+          {
+            method: isProposalMode ? "POST" : "PATCH",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              name,
+              locationName,
+              locationAddress,
+              layoutName: layoutDrafts[0]?.name || layoutName,
+              difficulty,
+              ...facts,
+              latitude,
+              longitude,
+              coverPhotoUrl,
+              holes: legacyHoles,
+              layouts: layoutDrafts.map((layout) => ({
+                id: layout.id,
+                name: layout.name,
+                holes: layout.holes
+              })),
+              submitForReview
+            })
+          }
+        );
         const payload = (await response.json()) as {
           course?: { status: CourseStatusValue };
+          proposal?: { id: number };
+          redirectTo?: string;
           error?: string;
         };
+
+        if (isProposalMode) {
+          if (!response.ok || !payload.proposal) {
+            setError(payload.error ?? "This edit proposal could not be submitted");
+            return;
+          }
+
+          router.push(payload.redirectTo ?? `/courses/${initialCourse.id}`);
+          router.refresh();
+          return;
+        }
 
         if (!response.ok || !payload.course) {
           setError(payload.error ?? "This course could not be saved");
@@ -297,7 +323,17 @@ export function CourseDraftEditor({
 
   return (
     <div className="grid gap-6">
-      {initialCourse.importSourceUrl || initialCourse.importWarnings.length ? (
+      {isProposalMode ? (
+        <section className="grid gap-2 rounded-lg border border-water-500/30 bg-water-100 p-4 text-sm font-bold text-ink shadow-sm">
+          <p className="text-xs font-black uppercase text-water-700">
+            Edit proposal
+          </p>
+          <p>
+            Your changes will be sent to admins for review before this approved
+            course is updated.
+          </p>
+        </section>
+      ) : initialCourse.importSourceUrl || initialCourse.importWarnings.length ? (
         <section className="grid gap-3 rounded-lg border border-water-500/30 bg-water-100 p-4 text-sm font-bold text-ink shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span className="text-xs font-black uppercase text-water-700">
@@ -337,14 +373,14 @@ export function CourseDraftEditor({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-sm font-black uppercase text-clay-700">
-              Review course details
+              {isProposalMode ? "Propose course edits" : "Review course details"}
             </p>
             <h1 className="mt-1 text-3xl font-black text-ink">
-              Edit before publishing
+              {isProposalMode ? "Edit proposal" : "Edit before publishing"}
             </h1>
           </div>
           <span className="rounded-full bg-white px-3 py-1 text-xs font-black uppercase text-ink/60 shadow-sm">
-            {statusLabels[status]}
+            {isProposalMode ? "Pending after submit" : statusLabels[status]}
           </span>
         </div>
 
@@ -367,6 +403,16 @@ export function CourseDraftEditor({
             />
           </label>
         </div>
+
+        <label className="grid gap-2 text-sm font-bold text-ink/70">
+          Street address
+          <input
+            className="h-11 rounded-lg border border-canopy-900/10 bg-white px-3 font-semibold outline-none"
+            onChange={(event) => setLocationAddress(event.target.value)}
+            placeholder="Optional"
+            value={locationAddress}
+          />
+        </label>
 
         <div className="grid gap-4 md:grid-cols-4">
           {layoutDrafts.length > 1 ? (
@@ -587,19 +633,21 @@ export function CourseDraftEditor({
       ) : null}
 
       <div className="flex flex-wrap gap-3">
-        <button
-          className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-white px-6 text-sm font-black text-ink shadow-sm transition hover:bg-canopy-50 disabled:text-ink/35"
-          disabled={Boolean(savingAction) || isUploading}
-          onClick={() => save(false)}
-          type="button"
-        >
-          {savingAction === "draft" ? (
-            <Loader2 size={17} className="animate-spin" aria-hidden />
-          ) : (
-            <Save size={17} aria-hidden />
-          )}
-          Save draft
-        </button>
+        {!isProposalMode ? (
+          <button
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-white px-6 text-sm font-black text-ink shadow-sm transition hover:bg-canopy-50 disabled:text-ink/35"
+            disabled={Boolean(savingAction) || isUploading}
+            onClick={() => save(false)}
+            type="button"
+          >
+            {savingAction === "draft" ? (
+              <Loader2 size={17} className="animate-spin" aria-hidden />
+            ) : (
+              <Save size={17} aria-hidden />
+            )}
+            Save draft
+          </button>
+        ) : null}
         <button
           className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-ink px-6 text-sm font-black text-white shadow-sm transition hover:bg-canopy-700 disabled:bg-ink/35"
           disabled={Boolean(savingAction) || isUploading}
@@ -611,7 +659,7 @@ export function CourseDraftEditor({
           ) : (
             <Send size={17} aria-hidden />
           )}
-          Submit for review
+          {isProposalMode ? "Submit proposal" : "Submit for review"}
         </button>
       </div>
     </div>

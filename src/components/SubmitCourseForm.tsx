@@ -39,6 +39,7 @@ export function SubmitCourseForm() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [locationName, setLocationName] = useState("");
+  const [locationAddress, setLocationAddress] = useState("");
   const [difficulty, setDifficulty] = useState<CourseDifficultyValue>("mixed");
   const [facts, setFacts] = useState<Record<CourseFactKey, boolean>>({
     hasParking: false,
@@ -122,6 +123,7 @@ export function SubmitCourseForm() {
           body: JSON.stringify({
             name,
             locationName,
+            locationAddress,
             difficulty,
             ...facts,
             latitude,
@@ -169,6 +171,16 @@ export function SubmitCourseForm() {
             />
           </label>
         </div>
+
+        <label className="grid gap-2 text-sm font-bold text-ink/70">
+          Street address
+          <input
+            className="h-11 rounded-lg border border-canopy-900/10 bg-white px-3 font-semibold outline-none"
+            onChange={(event) => setLocationAddress(event.target.value)}
+            placeholder="Optional"
+            value={locationAddress}
+          />
+        </label>
 
         <div className="grid gap-4 md:grid-cols-4">
           <label className="grid gap-2 text-sm font-bold text-ink/70">

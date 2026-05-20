@@ -37,6 +37,12 @@ enum CourseStatus {
   rejected
 }
 
+enum CourseEditProposalStatus {
+  pending
+  approved
+  rejected
+}
+
 enum CourseDifficulty {
   beginner
   mixed
@@ -85,21 +91,23 @@ model User {
   isAdmin         Boolean  @default(false)
   createdAt       DateTime @default(now())
 
-  courseReviews     CourseReview[]
-  holeReviews       HoleReview[]
-  lines             Line[]
-  submittedCourses  Course[]                @relation("SubmittedCourses")
-  following         Follow[]                @relation("Follower")
-  followers         Follow[]                @relation("Following")
-  lineVotes         LineVote[]
-  sessions          Session[]
-  contentReports    ContentReport[]         @relation("ContentReporter")
-  resolvedReports   ContentReport[]         @relation("ReportResolver")
-  moderationActions AdminModerationAction[] @relation("ModerationActor")
-  courseMarks       CourseMark[]
-  courseLists       CourseList[]
-  forumThreads      ForumThread[]
-  forumComments     ForumComment[]
+  courseReviews                CourseReview[]
+  holeReviews                  HoleReview[]
+  lines                        Line[]
+  submittedCourses             Course[]                @relation("SubmittedCourses")
+  submittedCourseEditProposals CourseEditProposal[]    @relation("SubmittedCourseEditProposals")
+  reviewedCourseEditProposals  CourseEditProposal[]    @relation("ReviewedCourseEditProposals")
+  following                    Follow[]                @relation("Follower")
+  followers                    Follow[]                @relation("Following")
+  lineVotes                    LineVote[]
+  sessions                     Session[]
+  contentReports               ContentReport[]         @relation("ContentReporter")
+  resolvedReports              ContentReport[]         @relation("ReportResolver")
+  moderationActions            AdminModerationAction[] @relation("ModerationActor")
+  courseMarks                  CourseMark[]
+  courseLists                  CourseList[]
+  forumThreads                 ForumThread[]
+  forumComments                ForumComment[]
 }
 
 model Session {
@@ -119,6 +127,7 @@ model Course {
   id               Int              @id @default(autoincrement())
   name             String
   locationName     String
+  locationAddress  String?
   latitude         Float?
   longitude        Float?
   coverPhotoUrl    String?
@@ -137,16 +146,36 @@ model Course {
   submittedById    Int?
   createdAt        DateTime         @default(now())
 
-  holes       Hole[]
-  layouts     CourseLayout[]
-  reviews     CourseReview[]
-  submittedBy User?            @relation("SubmittedCourses", fields: [submittedById], references: [id], onDelete: SetNull)
-  marks       CourseMark[]
-  listItems   CourseListItem[]
+  holes         Hole[]
+  layouts       CourseLayout[]
+  editProposals CourseEditProposal[]
+  reviews       CourseReview[]
+  submittedBy   User?                @relation("SubmittedCourses", fields: [submittedById], references: [id], onDelete: SetNull)
+  marks         CourseMark[]
+  listItems     CourseListItem[]
 
   @@index([difficulty])
   @@index([status])
   @@index([submittedById])
+}
+
+model CourseEditProposal {
+  id            Int                      @id @default(autoincrement())
+  courseId      Int
+  submittedById Int?
+  reviewedById  Int?
+  status        CourseEditProposalStatus @default(pending)
+  proposedData  Json
+  createdAt     DateTime                 @default(now())
+  reviewedAt    DateTime?
+
+  course      Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  submittedBy User?  @relation("SubmittedCourseEditProposals", fields: [submittedById], references: [id], onDelete: SetNull)
+  reviewedBy  User?  @relation("ReviewedCourseEditProposals", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([courseId, status])
+  @@index([submittedById, createdAt])
+  @@index([status, createdAt])
 }
 
 model CourseLayout {

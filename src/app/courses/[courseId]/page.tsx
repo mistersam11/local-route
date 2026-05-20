@@ -6,9 +6,11 @@ import {
   ArrowRight,
   Disc3,
   Flag,
+  ExternalLink,
   LogIn,
   MapPin,
   MessageSquare,
+  PencilLine,
   Star
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
@@ -103,6 +105,11 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
         },
         submittedBy: {
           select: { id: true, username: true, profileImageUrl: true }
+        },
+        editProposals: {
+          where: { status: "pending" },
+          select: { id: true, submittedById: true },
+          orderBy: { createdAt: "desc" }
         }
       }
     })
@@ -178,6 +185,22 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
     holeCount: layout.holes.length
   }));
   const selectedLayoutName = selectedLayout?.name ?? course.layoutName;
+  const mapQuery =
+    course.latitude !== null && course.longitude !== null
+      ? `${course.latitude},${course.longitude}`
+      : `${course.locationAddress ?? course.locationName} ${course.name}`;
+  const encodedMapQuery = encodeURIComponent(mapQuery);
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedMapQuery}`;
+  const appleMapsUrl = `https://maps.apple.com/?q=${encodedMapQuery}`;
+  const canProposeEdits =
+    course.status === "approved" &&
+    Boolean(currentUser) &&
+    currentUser?.id === course.submittedById;
+  const pendingOwnEditProposal = currentUser
+    ? course.editProposals.find(
+        (proposal) => proposal.submittedById === currentUser.id
+      )
+    : null;
 
   return (
     <main className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:py-10">
@@ -205,7 +228,14 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
             <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
               <p className="flex items-center gap-2 text-sm font-bold uppercase text-white/75">
                 <MapPin size={16} aria-hidden />
-                {course.locationName}
+                <a
+                  className="underline-offset-4 hover:underline"
+                  href={googleMapsUrl}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  {course.locationName}
+                </a>
               </p>
               {course.status !== "approved" ? (
                 <span className="mt-3 inline-flex rounded-full bg-clay-100 px-3 py-1 text-xs font-black uppercase text-clay-700">
@@ -306,6 +336,43 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
           </div>
         </section>
 
+        <section className="grid gap-3 rounded-lg border border-canopy-900/10 bg-white p-4 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-black text-ink">Location</h2>
+              <p className="mt-2 flex items-center gap-2 text-sm font-bold text-ink/65">
+                <MapPin size={16} aria-hidden />
+                {course.locationAddress ?? course.locationName}
+              </p>
+              {course.locationAddress ? (
+                <p className="mt-1 text-sm font-semibold text-ink/55">
+                  {course.locationName}
+                </p>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <a
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-ink px-4 text-sm font-black text-white transition hover:bg-canopy-700"
+                href={googleMapsUrl}
+                rel="noreferrer"
+                target="_blank"
+              >
+                <ExternalLink size={15} aria-hidden />
+                Google Maps
+              </a>
+              <a
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-canopy-50 px-4 text-sm font-black text-canopy-700 transition hover:bg-canopy-100"
+                href={appleMapsUrl}
+                rel="noreferrer"
+                target="_blank"
+              >
+                <ExternalLink size={15} aria-hidden />
+                Apple Maps
+              </a>
+            </div>
+          </div>
+        </section>
+
         {course.status !== "approved" && canEditDraft ? (
           <Link
             className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-full bg-ink px-5 text-sm font-black text-white transition hover:bg-canopy-700"
@@ -313,6 +380,22 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
           >
             Edit draft
           </Link>
+        ) : null}
+
+        {canProposeEdits ? (
+          pendingOwnEditProposal ? (
+            <p className="rounded-lg bg-water-100 p-3 text-sm font-bold text-water-700">
+              Your edit proposal is pending admin review.
+            </p>
+          ) : (
+            <Link
+              className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-full bg-white px-5 text-sm font-black text-ink shadow-sm transition hover:bg-canopy-50"
+              href={`/courses/${course.id}/edit`}
+            >
+              <PencilLine size={16} aria-hidden />
+              Propose edits
+            </Link>
+          )
         ) : null}
 
         {course.status === "approved" && currentUser ? (

@@ -53,7 +53,12 @@ export default async function CourseEditPage({ params }: CourseEditPageProps) {
     notFound();
   }
 
-  if (course.status === "approved") {
+  const isProposalMode =
+    course.status === "approved" &&
+    course.submittedById === currentUser.id &&
+    !currentUser.isAdmin;
+
+  if (course.status === "approved" && !isProposalMode) {
     redirect(`/courses/${course.id}`);
   }
 
@@ -62,6 +67,7 @@ export default async function CourseEditPage({ params }: CourseEditPageProps) {
     id: course.id,
     name: course.name,
     locationName: course.locationName,
+    locationAddress: course.locationAddress,
     layoutName: course.layouts[0]?.name ?? course.layoutName,
     latitude: course.latitude,
     longitude: course.longitude,
@@ -109,7 +115,10 @@ export default async function CourseEditPage({ params }: CourseEditPageProps) {
         Course page
       </Link>
 
-      <CourseDraftEditor initialCourse={editorCourse} />
+      <CourseDraftEditor
+        initialCourse={editorCourse}
+        mode={isProposalMode ? "proposal" : "draft"}
+      />
     </main>
   );
 }
