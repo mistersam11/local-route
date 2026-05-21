@@ -147,6 +147,7 @@ model User {
   courseLists                  CourseList[]
   forumThreads                 ForumThread[]
   forumComments                ForumComment[]
+  forumCommentLikes            ForumCommentLike[]
   oauthAccounts                OauthAccount[]
   courseFollows                CourseFollow[]
   notifications                Notification[]          @relation("NotificationRecipient")
@@ -460,24 +461,24 @@ model ForumThread {
 }
 
 model CourseEvent {
-  id                   Int                             @id @default(autoincrement())
-  title                String
-  description          String
-  hostId               Int
-  courseId             Int
-  type                 CourseEventType
-  startTime            DateTime
-  endTime              DateTime?
-  timezone             String                          @default("America/New_York")
-  recurrenceFrequency  CourseEventRecurrenceFrequency?
-  recurrenceInterval   Int                             @default(1)
-  recurrenceEndsAt     DateTime?
-  maxPlayers           Int?
-  visibility           CourseEventVisibility           @default(public)
-  tags                 String[]                        @default([])
-  imageUrl             String?
-  createdAt            DateTime                        @default(now())
-  updatedAt            DateTime                        @updatedAt
+  id                  Int                             @id @default(autoincrement())
+  title               String
+  description         String
+  hostId              Int
+  courseId            Int
+  type                CourseEventType
+  startTime           DateTime
+  endTime             DateTime?
+  timezone            String                          @default("America/New_York")
+  recurrenceFrequency CourseEventRecurrenceFrequency?
+  recurrenceInterval  Int                             @default(1)
+  recurrenceEndsAt    DateTime?
+  maxPlayers          Int?
+  visibility          CourseEventVisibility           @default(public)
+  tags                String[]                        @default([])
+  imageUrl            String?
+  createdAt           DateTime                        @default(now())
+  updatedAt           DateTime                        @updatedAt
 
   host             User              @relation("HostedCourseEvents", fields: [hostId], references: [id], onDelete: Cascade)
   course           Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -518,8 +519,8 @@ model Notification {
   readAt         DateTime?
   createdAt      DateTime               @default(now())
 
-  user   User  @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
-  actor  User? @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  user   User   @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor  User?  @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([userId, type, targetType, targetRecordId])
@@ -547,21 +548,37 @@ model ForumComment {
   parentCommentId Int?
   userId          Int
   body            String
+  likeCount       Int           @default(0)
   status          ContentStatus @default(visible)
   hiddenAt        DateTime?
   hiddenReason    String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  thread        ForumThread    @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  parentComment ForumComment?  @relation("ForumCommentReplies", fields: [parentCommentId], references: [id], onDelete: SetNull)
-  replies       ForumComment[] @relation("ForumCommentReplies")
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  thread        ForumThread        @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  parentComment ForumComment?      @relation("ForumCommentReplies", fields: [parentCommentId], references: [id], onDelete: SetNull)
+  replies       ForumComment[]     @relation("ForumCommentReplies")
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes         ForumCommentLike[]
 
   @@index([threadId, createdAt])
   @@index([threadId, parentCommentId, createdAt])
   @@index([parentCommentId, createdAt])
   @@index([status, createdAt])
+  @@index([userId, createdAt])
+}
+
+model ForumCommentLike {
+  id        Int      @id @default(autoincrement())
+  commentId Int
+  userId    Int
+  createdAt DateTime @default(now())
+
+  comment ForumComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+  @@index([commentId, createdAt])
   @@index([userId, createdAt])
 }
 

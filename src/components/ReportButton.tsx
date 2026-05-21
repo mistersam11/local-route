@@ -13,9 +13,14 @@ type ReportableTargetType =
 type ReportButtonProps = {
   targetType: ReportableTargetType;
   targetId: number;
+  variant?: "pill" | "icon";
 };
 
-export function ReportButton({ targetType, targetId }: ReportButtonProps) {
+export function ReportButton({
+  targetType,
+  targetId,
+  variant = "pill"
+}: ReportButtonProps) {
   const [saving, setSaving] = useState(false);
   const [reported, setReported] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +60,18 @@ export function ReportButton({ targetType, targetId }: ReportButtonProps) {
   }
 
   if (reported) {
+    if (variant === "icon") {
+      return (
+        <span
+          aria-label="Reported"
+          className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-water-100 text-water-700"
+          title="Reported"
+        >
+          <Flag size={13} aria-hidden />
+        </span>
+      );
+    }
+
     return (
       <span className="inline-flex h-8 items-center justify-center rounded-full bg-water-100 px-3 text-xs font-black text-water-700">
         Reported
@@ -65,13 +82,19 @@ export function ReportButton({ targetType, targetId }: ReportButtonProps) {
   return (
     <span className="inline-flex flex-col items-end gap-1">
       <button
-        className="inline-flex h-8 items-center justify-center gap-1.5 rounded-full bg-white px-3 text-xs font-black text-ink/55 shadow-sm transition hover:bg-clay-100 hover:text-clay-700 disabled:opacity-50"
+        aria-label={variant === "icon" ? "Report" : undefined}
+        className={
+          variant === "icon"
+            ? "inline-flex h-7 w-7 items-center justify-center rounded-full text-ink/35 transition hover:bg-clay-100 hover:text-clay-700 disabled:opacity-50"
+            : "inline-flex h-8 items-center justify-center gap-1.5 rounded-full bg-white px-3 text-xs font-black text-ink/55 shadow-sm transition hover:bg-clay-100 hover:text-clay-700 disabled:opacity-50"
+        }
         disabled={saving}
         onClick={report}
+        title="Report"
         type="button"
       >
         <Flag size={13} aria-hidden />
-        {saving ? "Reporting" : "Report"}
+        {variant === "pill" ? (saving ? "Reporting" : "Report") : null}
       </button>
       {error ? <span className="text-xs font-bold text-clay-700">{error}</span> : null}
     </span>

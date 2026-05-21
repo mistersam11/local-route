@@ -44,14 +44,20 @@ type EventPageProps = {
 
 type ForumCommentRecord = ForumCommentTreeSource & {
   createdAt: Date;
+  likeCount: number;
+  likes?: Array<{ id: number }>;
 };
 
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("en", {
-    day: "numeric",
-    month: "short",
-    year: "numeric"
-  }).format(date);
+function formatCommentDate(date: Date) {
+  const secondsAgo = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+
+  if (secondsAgo < 60) return "now";
+  if (secondsAgo < 3600) return `${Math.floor(secondsAgo / 60)}m ago`;
+  if (secondsAgo < 86400) return `${Math.floor(secondsAgo / 3600)}h ago`;
+  if (secondsAgo < 2592000) return `${Math.floor(secondsAgo / 86400)}d ago`;
+  if (secondsAgo < 31536000) return `${Math.floor(secondsAgo / 2592000)}mo ago`;
+
+  return `${Math.floor(secondsAgo / 31536000)}y ago`;
 }
 
 function optionEntries(labels: Record<string, string>) {
@@ -65,7 +71,9 @@ function serializeCommentTree(
     id: comment.id,
     parentCommentId: comment.parentCommentId,
     body: comment.body,
-    createdAtLabel: formatDate(comment.createdAt),
+    createdAtLabel: formatCommentDate(comment.createdAt),
+    likedByCurrentUser: Boolean(comment.likes?.length),
+    likeCount: comment.likeCount,
     replyCount: comment.replyCount,
     user: comment.user,
     replies: serializeCommentTree(comment.replies)
@@ -109,7 +117,15 @@ export default async function EventPage({ params }: EventPageProps) {
               include: {
                 user: {
                   select: { id: true, username: true, profileImageUrl: true }
-                }
+                },
+                ...(currentUser
+                  ? {
+                      likes: {
+                        where: { userId: currentUser.id },
+                        select: { id: true }
+                      }
+                    }
+                  : {})
               },
               orderBy: { createdAt: "asc" }
             },
