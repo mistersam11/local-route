@@ -12,6 +12,7 @@ import {
 import { Avatar } from "@/components/Avatar";
 import { EventForm } from "@/components/EventForm";
 import { EventRsvpButtons } from "@/components/EventRsvpButtons";
+import { PageCoverHeader } from "@/components/PageCoverHeader";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
 import {
@@ -24,6 +25,7 @@ import {
   formatEventDateTime,
   normalizeCourseEventType
 } from "@/lib/events";
+import { getCoursePlaceholderImage } from "@/lib/placeholder-images";
 
 export const dynamic = "force-dynamic";
 
@@ -123,6 +125,13 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
       searchParams?.lng ||
       searchParams?.distance
   );
+  const eventCoverPlaceholder = getCoursePlaceholderImage({
+    id: "events-cover",
+    name: "LocalRoute disc golf calendar",
+    locationName: "League nights and tournaments",
+    difficulty: "mixed",
+    beginnerFriendly: true
+  });
   const [currentUser, courses, rawEvents] = await Promise.all([
     getCurrentUser(),
     prisma.course.findMany({
@@ -198,16 +207,14 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-6 lg:py-10">
-      <section className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
-        <div>
-          <p className="text-sm font-bold uppercase text-clay-700">Events</p>
-          <h1 className="mt-3 text-4xl font-black leading-tight text-ink sm:text-5xl">
-            Local disc golf calendar
-          </h1>
-        </div>
+      <PageCoverHeader
+        eyebrow="Events"
+        placeholder={eventCoverPlaceholder}
+        title="Local disc golf calendar"
+      >
         {currentUser ? (
           <Link
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-ink px-5 text-sm font-black text-white transition hover:bg-canopy-700"
+            className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-full bg-white px-5 text-sm font-black text-ink shadow-sm transition hover:bg-canopy-50 hover:text-canopy-700 lg:ml-auto"
             href={createHref}
           >
             <Plus size={16} aria-hidden />
@@ -215,14 +222,14 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
           </Link>
         ) : (
           <Link
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-ink px-5 text-sm font-black text-white transition hover:bg-canopy-700"
+            className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-full bg-white px-5 text-sm font-black text-ink shadow-sm transition hover:bg-canopy-50 hover:text-canopy-700 lg:ml-auto"
             href="/login?redirectTo=/events?create=1"
           >
             <Plus size={16} aria-hidden />
             Create event
           </Link>
         )}
-      </section>
+      </PageCoverHeader>
 
       {showCreateForm && currentUser ? (
         <EventForm

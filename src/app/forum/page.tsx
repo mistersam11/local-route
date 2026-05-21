@@ -6,12 +6,14 @@ import {
 } from "@/components/ForumFeedList";
 import { ForumComposer } from "@/components/ForumComposer";
 import { ForumRulesModal } from "@/components/ForumRulesModal";
+import { PageCoverHeader } from "@/components/PageCoverHeader";
 import { getCurrentUser } from "@/lib/current-user";
 import {
   getPersonalizedForumFeed,
   normalizeForumFeedPage,
   serializeForumFeedItem
 } from "@/lib/forum-feed";
+import { getCoursePlaceholderImage } from "@/lib/placeholder-images";
 
 export const dynamic = "force-dynamic";
 
@@ -33,21 +35,26 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
     query,
     page
   });
+  const forumCoverPlaceholder = getCoursePlaceholderImage({
+    id: "forum-cover",
+    name: "LocalRoute disc golf conversations",
+    locationName: "Community chains",
+    dogFriendly: true,
+    hasParking: true
+  });
 
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6 lg:py-10">
       <ForumRulesModal userKey={currentUser ? String(currentUser.id) : "guest"} />
 
-      <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
-        <div>
-          <p className="text-sm font-bold uppercase text-clay-700">Chains</p>
-          <h1 className="mt-3 max-w-2xl text-4xl font-black leading-tight text-ink sm:text-5xl">
-            Talk disc golf
-          </h1>
-        </div>
+      <PageCoverHeader
+        eyebrow="Chains"
+        placeholder={forumCoverPlaceholder}
+        title="Talk disc golf"
+      >
         <form
           action="/forum"
-          className="flex min-h-14 overflow-hidden rounded-full border border-canopy-900/10 bg-white shadow-panel"
+          className="flex min-h-14 overflow-hidden rounded-full border border-white/15 bg-white/95 shadow-panel backdrop-blur"
         >
           <label className="flex flex-1 items-center gap-3 px-5">
             <Search size={20} className="shrink-0 text-canopy-700" aria-hidden />
@@ -65,7 +72,7 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
             Search
           </button>
         </form>
-      </section>
+      </PageCoverHeader>
 
       {currentUser ? (
         <ForumComposer

@@ -84,7 +84,6 @@ export default async function ListsPage({ searchParams }: ListsPageProps) {
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:py-10">
       <PageCoverHeader
-        description="Build mini-guides for road trips, beginner days, tournament prep, or the courses worth a detour."
         eyebrow="Lists"
         placeholder={listCoverPlaceholder}
         title="Course lists from the community"
