@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { ListPlus } from "lucide-react";
+import { ListPlus, Plus } from "lucide-react";
 
 type CourseOption = {
   id: number;
@@ -10,8 +10,15 @@ type CourseOption = {
   locationName: string;
 };
 
-export function CourseListForm({ courses }: { courses: CourseOption[] }) {
+export function CourseListForm({
+  courses,
+  collapsed = false
+}: {
+  courses: CourseOption[];
+  collapsed?: boolean;
+}) {
   const router = useRouter();
+  const [isOpen, setIsOpen] = useState(!collapsed);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -58,6 +65,27 @@ export function CourseListForm({ courses }: { courses: CourseOption[] }) {
         setSaving(false);
       }
     })();
+  }
+
+  if (!isOpen) {
+    return (
+      <section className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-canopy-900/10 bg-white p-4 shadow-sm">
+        <div>
+          <h2 className="text-xl font-black text-ink">Make your own list</h2>
+          <p className="mt-1 text-sm font-semibold text-ink/60">
+            Curate a road-trip loop, beginner day, or tournament prep set.
+          </p>
+        </div>
+        <button
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-ink px-5 text-sm font-black text-white transition hover:bg-canopy-700"
+          onClick={() => setIsOpen(true)}
+          type="button"
+        >
+          <Plus size={16} aria-hidden />
+          Create a list
+        </button>
+      </section>
+    );
   }
 
   return (

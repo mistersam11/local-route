@@ -68,6 +68,32 @@ function buildEventsHref(params: Record<string, string | number | null | undefin
   return query ? `/events?${query}` : "/events";
 }
 
+function eventTime(value: Date | string) {
+  return value instanceof Date ? value.getTime() : new Date(value).getTime();
+}
+
+function sortDefaultCalendarEvents<T extends { id: number; startTime: Date | string }>(
+  events: T[]
+) {
+  const now = Date.now();
+
+  return [...events].sort((first, second) => {
+    const firstTime = eventTime(first.startTime);
+    const secondTime = eventTime(second.startTime);
+    const firstPast = firstTime < now;
+    const secondPast = secondTime < now;
+
+    if (firstPast !== secondPast) {
+      return firstPast ? 1 : -1;
+    }
+
+    return (
+      (firstPast ? secondTime - firstTime : firstTime - secondTime) ||
+      first.id - second.id
+    );
+  });
+}
+
 export default async function EventsPage({ searchParams }: EventsPageProps) {
   const query = searchParams?.q?.trim() ?? "";
   const location = searchParams?.location?.trim() ?? "";
@@ -87,6 +113,16 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
   const originLatitude = numberParam(searchParams?.lat);
   const originLongitude = numberParam(searchParams?.lng);
   const maxDistanceMiles = numberParam(searchParams?.distance);
+  const hasAdvancedEventSearch = Boolean(
+    location ||
+      date ||
+      courseId ||
+      type ||
+      sort !== "date" ||
+      searchParams?.lat ||
+      searchParams?.lng ||
+      searchParams?.distance
+  );
   const [currentUser, courses, rawEvents] = await Promise.all([
     getCurrentUser(),
     prisma.course.findMany({
@@ -97,8 +133,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
     }),
     prisma.courseEvent.findMany({
       where: {
-        visibility: CourseEventVisibility.public,
-        ...(date ? {} : { startTime: { gte: new Date() } })
+        visibility: CourseEventVisibility.public
       },
       include: {
         host: { select: { id: true, username: true, profileImageUrl: true } },
@@ -123,10 +158,10 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
         rsvps: { select: { userId: true, status: true } }
       },
       orderBy: [{ startTime: "asc" }, { id: "asc" }],
-      take: 200
+      take: 400
     })
   ]);
-  const events = filterAndSortEvents(
+  const filteredEvents = filterAndSortEvents(
     rawEvents.map((event) => ({
       ...event,
       rsvpCounts: countEventRsvps(event.rsvps)
@@ -143,6 +178,10 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
       maxDistanceMiles
     }
   );
+  const events =
+    sort === "date" && !date
+      ? sortDefaultCalendarEvents(filteredEvents)
+      : filteredEvents;
   const createHref = buildEventsHref({
     q: query,
     location,
@@ -196,137 +235,139 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
 
       <form
         action="/events"
-        className="grid gap-3 rounded-lg border border-canopy-900/10 bg-white p-3 shadow-sm lg:grid-cols-[1fr_1fr_150px_180px_170px_auto]"
+        className="grid gap-3 rounded-lg border border-canopy-900/10 bg-white p-3 shadow-sm"
       >
-        <label className="flex min-h-11 items-center gap-3 rounded-full border border-canopy-900/10 px-4">
-          <Search size={18} className="shrink-0 text-canopy-700" aria-hidden />
-          <input
-            className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:text-ink/45"
-            defaultValue={query}
-            name="q"
-            placeholder="Search events"
-          />
-        </label>
-        <label className="flex min-h-11 items-center gap-3 rounded-full border border-canopy-900/10 px-4">
-          <MapPin size={18} className="shrink-0 text-canopy-700" aria-hidden />
-          <input
-            className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:text-ink/45"
-            defaultValue={location}
-            name="location"
-            placeholder="Location"
-          />
-        </label>
-        <label className="grid gap-1 text-xs font-black uppercase text-ink/45">
-          Date
-          <input
-            className="h-11 rounded-lg border border-canopy-900/10 px-3 text-sm font-bold normal-case text-ink outline-none"
-            defaultValue={date}
-            name="date"
-            type="date"
-          />
-        </label>
-        <label className="grid gap-1 text-xs font-black uppercase text-ink/45">
-          Course
-          <select
-            className="h-11 rounded-lg border border-canopy-900/10 px-3 text-sm font-bold normal-case text-ink outline-none"
-            defaultValue={courseId ?? ""}
-            name="courseId"
-          >
-            <option value="">Any course</option>
-            {courses.map((course) => (
-              <option key={course.id} value={course.id}>
-                {course.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="grid gap-1 text-xs font-black uppercase text-ink/45">
-          Type
-          <select
-            className="h-11 rounded-lg border border-canopy-900/10 px-3 text-sm font-bold normal-case text-ink outline-none"
-            defaultValue={type ?? ""}
-            name="type"
-          >
-            <option value="">Any type</option>
-            {courseEventTypeOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="flex items-end gap-2">
+        <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+          <label className="flex min-h-12 min-w-0 items-center gap-3 rounded-full border border-canopy-900/10 px-5">
+            <Search size={20} className="shrink-0 text-canopy-700" aria-hidden />
+            <input
+              className="min-w-0 flex-1 bg-transparent text-base font-semibold outline-none placeholder:text-ink/45"
+              defaultValue={query}
+              name="q"
+              placeholder="Search events"
+            />
+          </label>
           <button
-            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-canopy-700 px-4 text-sm font-black text-white transition hover:bg-canopy-900"
+            className="inline-flex h-12 items-center justify-center rounded-full bg-ink px-5 text-sm font-bold text-white transition hover:bg-canopy-700"
             type="submit"
           >
-            <SlidersHorizontal size={16} aria-hidden />
-            Filter
+            Search
           </button>
-          <Link
-            className="inline-flex h-11 items-center justify-center rounded-full bg-canopy-50 px-4 text-sm font-black text-canopy-700 transition hover:bg-canopy-100"
-            href="/events"
+          <details
+            className="group sm:contents"
+            open={hasAdvancedEventSearch}
           >
-            Clear
-          </Link>
+            <summary className="inline-flex h-12 cursor-pointer list-none items-center justify-center gap-2 rounded-full bg-canopy-50 px-5 text-sm font-black text-canopy-700 transition hover:bg-canopy-100 [&::-webkit-details-marker]:hidden">
+              <SlidersHorizontal size={16} aria-hidden />
+              Advanced search
+            </summary>
+            <div className="grid gap-3 rounded-lg border border-canopy-900/10 bg-[#fffdf7] p-3 sm:col-span-3">
+              <div className="grid gap-3 lg:grid-cols-[1fr_150px_1fr_170px_150px]">
+                <label className="flex min-h-11 items-center gap-3 rounded-full border border-canopy-900/10 bg-white px-4">
+                  <MapPin size={18} className="shrink-0 text-canopy-700" aria-hidden />
+                  <input
+                    className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:text-ink/45"
+                    defaultValue={location}
+                    name="location"
+                    placeholder="Location"
+                  />
+                </label>
+                <label className="grid gap-1 text-xs font-black uppercase text-ink/45">
+                  Date
+                  <input
+                    className="h-11 rounded-lg border border-canopy-900/10 bg-white px-3 text-sm font-bold normal-case text-ink outline-none"
+                    defaultValue={date}
+                    name="date"
+                    type="date"
+                  />
+                </label>
+                <label className="grid gap-1 text-xs font-black uppercase text-ink/45">
+                  Course
+                  <select
+                    className="h-11 rounded-lg border border-canopy-900/10 bg-white px-3 text-sm font-bold normal-case text-ink outline-none"
+                    defaultValue={courseId ?? ""}
+                    name="courseId"
+                  >
+                    <option value="">Any course</option>
+                    {courses.map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-1 text-xs font-black uppercase text-ink/45">
+                  Type
+                  <select
+                    className="h-11 rounded-lg border border-canopy-900/10 bg-white px-3 text-sm font-bold normal-case text-ink outline-none"
+                    defaultValue={type ?? ""}
+                    name="type"
+                  >
+                    <option value="">Any type</option>
+                    {courseEventTypeOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-1 text-xs font-black uppercase text-ink/45">
+                  Sort
+                  <select
+                    className="h-11 rounded-lg border border-canopy-900/10 bg-white px-3 text-sm font-bold normal-case text-ink outline-none"
+                    defaultValue={sort}
+                    name="sort"
+                  >
+                    <option value="date">Date</option>
+                    <option value="popularity">Popularity</option>
+                    <option value="distance">Distance</option>
+                  </select>
+                </label>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-[130px_130px_130px_auto_auto]">
+                <label className="grid gap-1 text-xs font-black uppercase text-ink/45">
+                  Lat
+                  <input
+                    className="h-10 rounded-lg border border-canopy-900/10 bg-white px-3 text-sm font-semibold normal-case text-ink outline-none"
+                    defaultValue={searchParams?.lat ?? ""}
+                    name="lat"
+                  />
+                </label>
+                <label className="grid gap-1 text-xs font-black uppercase text-ink/45">
+                  Lng
+                  <input
+                    className="h-10 rounded-lg border border-canopy-900/10 bg-white px-3 text-sm font-semibold normal-case text-ink outline-none"
+                    defaultValue={searchParams?.lng ?? ""}
+                    name="lng"
+                  />
+                </label>
+                <label className="grid gap-1 text-xs font-black uppercase text-ink/45">
+                  Miles
+                  <input
+                    className="h-10 rounded-lg border border-canopy-900/10 bg-white px-3 text-sm font-semibold normal-case text-ink outline-none"
+                    defaultValue={searchParams?.distance ?? ""}
+                    name="distance"
+                    type="number"
+                  />
+                </label>
+                <button
+                  className="mt-auto inline-flex h-10 items-center justify-center gap-2 rounded-full bg-canopy-700 px-4 text-sm font-black text-white transition hover:bg-canopy-900"
+                  type="submit"
+                >
+                  <SlidersHorizontal size={16} aria-hidden />
+                  Apply filters
+                </button>
+                <Link
+                  className="mt-auto inline-flex h-10 items-center justify-center rounded-full bg-white px-4 text-sm font-black text-canopy-700 shadow-sm transition hover:bg-canopy-50"
+                  href="/events"
+                >
+                  Clear
+                </Link>
+              </div>
+            </div>
+          </details>
         </div>
-        <input defaultValue={sort} name="sort" type="hidden" />
       </form>
-
-      <section className="grid gap-3 rounded-lg border border-canopy-900/10 bg-white p-3 shadow-sm lg:grid-cols-[160px_130px_130px_130px_auto]">
-        <label className="grid gap-1 text-xs font-black uppercase text-ink/45">
-          Sort
-          <select
-            className="h-10 rounded-lg border border-canopy-900/10 px-3 text-sm font-bold normal-case text-ink outline-none"
-            defaultValue={sort}
-            form="event-distance-form"
-            name="sort"
-          >
-            <option value="date">Date</option>
-            <option value="popularity">Popularity</option>
-            <option value="distance">Distance</option>
-          </select>
-        </label>
-        <form action="/events" className="contents" id="event-distance-form">
-          <input defaultValue={query} name="q" type="hidden" />
-          <input defaultValue={location} name="location" type="hidden" />
-          <input defaultValue={date} name="date" type="hidden" />
-          <input defaultValue={courseId ?? ""} name="courseId" type="hidden" />
-          <input defaultValue={type ?? ""} name="type" type="hidden" />
-          <label className="grid gap-1 text-xs font-black uppercase text-ink/45">
-            Lat
-            <input
-              className="h-10 rounded-lg border border-canopy-900/10 px-3 text-sm font-semibold normal-case text-ink outline-none"
-              defaultValue={searchParams?.lat ?? ""}
-              name="lat"
-            />
-          </label>
-          <label className="grid gap-1 text-xs font-black uppercase text-ink/45">
-            Lng
-            <input
-              className="h-10 rounded-lg border border-canopy-900/10 px-3 text-sm font-semibold normal-case text-ink outline-none"
-              defaultValue={searchParams?.lng ?? ""}
-              name="lng"
-            />
-          </label>
-          <label className="grid gap-1 text-xs font-black uppercase text-ink/45">
-            Miles
-            <input
-              className="h-10 rounded-lg border border-canopy-900/10 px-3 text-sm font-semibold normal-case text-ink outline-none"
-              defaultValue={searchParams?.distance ?? ""}
-              name="distance"
-              type="number"
-            />
-          </label>
-          <button
-            className="mt-auto inline-flex h-10 items-center justify-center gap-2 rounded-full bg-white px-4 text-sm font-black text-ink shadow-sm transition hover:bg-canopy-50 hover:text-canopy-700"
-            type="submit"
-          >
-            <MapPin size={15} aria-hidden />
-            Nearby
-          </button>
-        </form>
-      </section>
 
       <section className="grid gap-3 lg:grid-cols-2">
         {events.map((event) => {

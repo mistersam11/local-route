@@ -50,11 +50,36 @@ function serializeEvent(event: Awaited<ReturnType<typeof eventListQuery>>[number
   };
 }
 
-async function eventListQuery(dateFilter: string | null) {
+function eventTime(value: Date | string) {
+  return value instanceof Date ? value.getTime() : new Date(value).getTime();
+}
+
+function sortDefaultCalendarEvents<T extends { id: number; startTime: Date | string }>(
+  events: T[]
+) {
+  const now = Date.now();
+
+  return [...events].sort((first, second) => {
+    const firstTime = eventTime(first.startTime);
+    const secondTime = eventTime(second.startTime);
+    const firstPast = firstTime < now;
+    const secondPast = secondTime < now;
+
+    if (firstPast !== secondPast) {
+      return firstPast ? 1 : -1;
+    }
+
+    return (
+      (firstPast ? secondTime - firstTime : firstTime - secondTime) ||
+      first.id - second.id
+    );
+  });
+}
+
+async function eventListQuery() {
   return prisma.courseEvent.findMany({
     where: {
-      visibility: CourseEventVisibility.public,
-      ...(dateFilter ? {} : { startTime: { gte: new Date() } })
+      visibility: CourseEventVisibility.public
     },
     include: {
       host: { select: { id: true, username: true, profileImageUrl: true } },
@@ -71,7 +96,7 @@ async function eventListQuery(dateFilter: string | null) {
       rsvps: { select: { status: true } }
     },
     orderBy: [{ startTime: "asc" }, { id: "asc" }],
-    take: 200
+    take: 400
   });
 }
 
@@ -92,7 +117,7 @@ export async function GET(request: Request) {
   const originLatitude = numberParam(searchParams.get("lat"));
   const originLongitude = numberParam(searchParams.get("lng"));
   const maxDistanceMiles = numberParam(searchParams.get("distance"));
-  const events = await eventListQuery(date);
+  const events = await eventListQuery();
   const filteredEvents = filterAndSortEvents(
     events.map((event) => ({
       ...event,
@@ -110,9 +135,13 @@ export async function GET(request: Request) {
       maxDistanceMiles
     }
   );
+  const sortedEvents =
+    sort === "date" && !date
+      ? sortDefaultCalendarEvents(filteredEvents)
+      : filteredEvents;
 
   return NextResponse.json({
-    events: filteredEvents.map(serializeEvent)
+    events: sortedEvents.map(serializeEvent)
   });
 }
 

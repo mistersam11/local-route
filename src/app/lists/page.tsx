@@ -1,7 +1,9 @@
+import { Prisma } from "@prisma/client";
 import Link from "next/link";
-import { ArrowRight, LogIn, Star } from "lucide-react";
+import { ArrowRight, LogIn, Search, Star } from "lucide-react";
 import { CourseListForm } from "@/components/CourseListForm";
 import { Avatar } from "@/components/Avatar";
+import { PageCoverHeader } from "@/components/PageCoverHeader";
 import { PaginationControls } from "@/components/PaginationControls";
 import { PlaceholderBackedImage } from "@/components/PlaceholderBackedImage";
 import { getCurrentUser } from "@/lib/current-user";
@@ -13,15 +15,39 @@ export const dynamic = "force-dynamic";
 
 type ListsPageProps = {
   searchParams?: {
+    q?: string;
     page?: string;
   };
 };
 
 export default async function ListsPage({ searchParams }: ListsPageProps) {
+  const query = searchParams?.q?.trim() ?? "";
+  const listWhere = {
+    isPublic: true,
+    AND: [
+      ...(query
+        ? [
+            {
+              OR: [
+                { title: { contains: query } },
+                { description: { contains: query } }
+              ]
+            }
+          ]
+        : [])
+    ]
+  } satisfies Prisma.CourseListWhereInput;
+  const listCoverPlaceholder = getCoursePlaceholderImage({
+    id: "lists-cover",
+    name: "LocalRoute community lists",
+    locationName: "Disc golf road trips",
+    cartFriendly: true,
+    hasParking: true
+  });
   const requestedPage = normalizePage(searchParams?.page);
   const [currentUser, totalLists, courses] = await Promise.all([
     getCurrentUser(),
-    prisma.courseList.count({ where: { isPublic: true } }),
+    prisma.courseList.count({ where: listWhere }),
     prisma.course.findMany({
       where: { status: "approved" },
       select: { id: true, name: true, locationName: true },
@@ -31,7 +57,7 @@ export default async function ListsPage({ searchParams }: ListsPageProps) {
   ]);
   const page = clampPage(requestedPage, totalLists);
   const lists = await prisma.courseList.findMany({
-    where: { isPublic: true },
+    where: listWhere,
     include: {
       user: { select: { id: true, username: true, profileImageUrl: true } },
       _count: { select: { items: true } },
@@ -57,21 +83,44 @@ export default async function ListsPage({ searchParams }: ListsPageProps) {
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:py-10">
-      <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-bold uppercase text-clay-700">Lists</p>
-          <h1 className="mt-3 max-w-2xl text-4xl font-black leading-tight text-ink sm:text-5xl">
-            Course lists from the community
-          </h1>
-        </div>
-        <p className="max-w-xl text-sm font-semibold leading-6 text-ink/60">
-          Build mini-guides for road trips, beginner days, tournament prep, or the
-          courses worth a detour.
-        </p>
-      </section>
+      <PageCoverHeader
+        description="Build mini-guides for road trips, beginner days, tournament prep, or the courses worth a detour."
+        eyebrow="Lists"
+        placeholder={listCoverPlaceholder}
+        title="Course lists from the community"
+      >
+        <form
+          action="/lists"
+          className="grid gap-2 rounded-lg border border-white/15 bg-white/95 p-3 shadow-panel backdrop-blur sm:grid-cols-[1fr_auto_auto]"
+        >
+          <label className="flex min-h-12 min-w-0 items-center gap-3 rounded-full border border-canopy-900/10 px-5">
+            <Search size={20} className="shrink-0 text-canopy-700" aria-hidden />
+            <input
+              className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-ink/45"
+              defaultValue={query}
+              name="q"
+              placeholder="Search lists"
+            />
+          </label>
+          <button
+            className="inline-flex h-12 items-center justify-center rounded-full bg-ink px-5 text-sm font-bold text-white transition hover:bg-canopy-700"
+            type="submit"
+          >
+            Search
+          </button>
+          {query ? (
+            <Link
+              className="inline-flex h-12 items-center justify-center rounded-full bg-canopy-50 px-5 text-sm font-black text-canopy-700 transition hover:bg-canopy-100"
+              href="/lists"
+            >
+              Clear
+            </Link>
+          ) : null}
+        </form>
+      </PageCoverHeader>
 
       {currentUser ? (
-        <CourseListForm courses={courses} />
+        <CourseListForm collapsed courses={courses} />
       ) : (
         <section className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-canopy-900/10 bg-white p-4 shadow-sm">
           <div>
@@ -166,10 +215,12 @@ export default async function ListsPage({ searchParams }: ListsPageProps) {
         <section className="rounded-lg bg-white p-8 text-center shadow-sm">
           <Star className="mx-auto text-canopy-700" size={32} aria-hidden />
           <h2 className="mt-4 text-2xl font-black text-ink">
-            Build the first community list.
+            {query ? "No matching lists yet." : "Build the first community list."}
           </h2>
           <p className="mt-2 text-sm font-semibold text-ink/55">
-            Share a starter route, road-trip loop, or tournament warmup set.
+            {query
+              ? "Try another list name or clear the search."
+              : "Share a starter route, road-trip loop, or tournament warmup set."}
           </p>
         </section>
       ) : null}

@@ -9,6 +9,7 @@ import {
   SlidersHorizontal,
   Star
 } from "lucide-react";
+import { PageCoverHeader } from "@/components/PageCoverHeader";
 import { PaginationControls } from "@/components/PaginationControls";
 import { PlaceholderBackedImage } from "@/components/PlaceholderBackedImage";
 import { Stars } from "@/components/Stars";
@@ -51,6 +52,24 @@ export default async function Home({ searchParams }: HomeProps) {
   const dogFriendly = booleanInput(searchParams?.dogs);
   const beginnerFriendly = booleanInput(searchParams?.beginner);
   const freeOnly = booleanInput(searchParams?.free);
+  const hasAdvancedCourseSearch = Boolean(
+    difficulty ||
+      holesFilter ||
+      hasParking ||
+      hasBathrooms ||
+      hasWater ||
+      cartFriendly ||
+      dogFriendly ||
+      beginnerFriendly ||
+      freeOnly
+  );
+  const courseCoverPlaceholder = getCoursePlaceholderImage({
+    id: "courses-cover",
+    name: "LocalRoute course directory",
+    locationName: "Disc golf courses",
+    difficulty: "challenging",
+    hasParking: true
+  });
   const requestedPage = normalizePage(searchParams?.page);
   const minHoles =
     holesFilter && Number.isInteger(Number(holesFilter))
@@ -146,20 +165,17 @@ export default async function Home({ searchParams }: HomeProps) {
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:py-10">
-      <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
-        <div>
-          <p className="text-sm font-bold uppercase text-clay-700">Courses</p>
-          <h1 className="mt-3 max-w-2xl text-4xl font-black leading-tight text-ink sm:text-5xl">
-            Explore Courses
-          </h1>
-        </div>
-        <div className="grid gap-3">
-          <form
-            action="/"
-            className="grid gap-3 rounded-lg border border-canopy-900/10 bg-white p-3 shadow-panel"
-          >
-            <div className="flex min-h-12 overflow-hidden rounded-full border border-canopy-900/10">
-              <label className="flex flex-1 items-center gap-3 px-5">
+      <PageCoverHeader
+        eyebrow="Courses"
+        placeholder={courseCoverPlaceholder}
+        title="Explore Courses"
+      >
+        <form
+          action="/"
+          className="grid gap-3 rounded-lg border border-white/15 bg-white/95 p-3 shadow-panel backdrop-blur"
+        >
+          <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+            <label className="flex min-h-12 min-w-0 items-center gap-3 rounded-full border border-canopy-900/10 px-5">
                 <Search size={20} className="shrink-0 text-canopy-700" aria-hidden />
                 <input
                   className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-ink/45"
@@ -167,87 +183,97 @@ export default async function Home({ searchParams }: HomeProps) {
                   name="q"
                   placeholder="Search courses or cities"
                 />
-              </label>
-              <button
-                className="m-1 inline-flex items-center justify-center rounded-full bg-ink px-5 text-sm font-bold text-white transition hover:bg-canopy-700"
-                type="submit"
-              >
-                Search
-              </button>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-3">
-              <label className="grid gap-1 text-xs font-black uppercase text-ink/45">
-                Difficulty
-                <select
-                  className="h-10 rounded-lg border border-canopy-900/10 px-3 text-sm font-bold normal-case text-ink outline-none"
-                  defaultValue={difficulty}
-                  name="difficulty"
-                >
-                  <option value="">Any</option>
-                  {courseDifficultyOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
+            </label>
+            <button
+              className="inline-flex h-12 items-center justify-center rounded-full bg-ink px-5 text-sm font-bold text-white transition hover:bg-canopy-700"
+              type="submit"
+            >
+              Search
+            </button>
+            <details
+              className="group sm:contents"
+              open={hasAdvancedCourseSearch}
+            >
+              <summary className="inline-flex h-12 cursor-pointer list-none items-center justify-center gap-2 rounded-full bg-canopy-50 px-5 text-sm font-black text-canopy-700 transition hover:bg-canopy-100 [&::-webkit-details-marker]:hidden">
+                <SlidersHorizontal size={16} aria-hidden />
+                Advanced search
+              </summary>
+              <div className="grid gap-3 rounded-lg border border-canopy-900/10 bg-[#fffdf7] p-3 sm:col-span-3">
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <label className="grid gap-1 text-xs font-black uppercase text-ink/45">
+                    Difficulty
+                    <select
+                      className="h-10 rounded-lg border border-canopy-900/10 px-3 text-sm font-bold normal-case text-ink outline-none"
+                      defaultValue={difficulty}
+                      name="difficulty"
+                    >
+                      <option value="">Any</option>
+                      {courseDifficultyOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="grid gap-1 text-xs font-black uppercase text-ink/45">
+                    Holes
+                    <select
+                      className="h-10 rounded-lg border border-canopy-900/10 px-3 text-sm font-bold normal-case text-ink outline-none"
+                      defaultValue={holesFilter}
+                      name="holes"
+                    >
+                      <option value="">Any</option>
+                      <option value="9">9+</option>
+                      <option value="18">18+</option>
+                      <option value="27">27+</option>
+                    </select>
+                  </label>
+                  <div className="flex items-end gap-2">
+                    <button
+                      className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-canopy-700 px-4 text-sm font-black text-white transition hover:bg-canopy-900"
+                      type="submit"
+                    >
+                      <SlidersHorizontal size={16} aria-hidden />
+                      Apply filters
+                    </button>
+                    <Link
+                      className="inline-flex h-10 items-center justify-center rounded-full bg-white px-4 text-sm font-black text-canopy-700 shadow-sm transition hover:bg-canopy-50"
+                      href="/"
+                    >
+                      Clear
+                    </Link>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    ["parking", "Parking", hasParking],
+                    ["bathrooms", "Bathrooms", hasBathrooms],
+                    ["water", "Water", hasWater],
+                    ["cart", "Cart friendly", cartFriendly],
+                    ["dogs", "Dog friendly", dogFriendly],
+                    ["beginner", "Beginner friendly", beginnerFriendly],
+                    ["free", "Free", freeOnly]
+                  ].map(([name, label, checked]) => (
+                    <label
+                      className="flex h-9 cursor-pointer items-center gap-2 rounded-full bg-canopy-50 px-3 text-xs font-black text-canopy-700"
+                      key={String(name)}
+                    >
+                      <input
+                        className="accent-canopy-700"
+                        defaultChecked={Boolean(checked)}
+                        name={String(name)}
+                        type="checkbox"
+                        value="true"
+                      />
+                      {label}
+                    </label>
                   ))}
-                </select>
-              </label>
-              <label className="grid gap-1 text-xs font-black uppercase text-ink/45">
-                Holes
-                <select
-                  className="h-10 rounded-lg border border-canopy-900/10 px-3 text-sm font-bold normal-case text-ink outline-none"
-                  defaultValue={holesFilter}
-                  name="holes"
-                >
-                  <option value="">Any</option>
-                  <option value="9">9+</option>
-                  <option value="18">18+</option>
-                  <option value="27">27+</option>
-                </select>
-              </label>
-              <div className="flex items-end gap-2">
-                <button
-                  className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-full bg-canopy-700 px-4 text-sm font-black text-white transition hover:bg-canopy-900"
-                  type="submit"
-                >
-                  <SlidersHorizontal size={16} aria-hidden />
-                  Filter
-                </button>
-                <Link
-                  className="inline-flex h-10 items-center justify-center rounded-full bg-canopy-50 px-4 text-sm font-black text-canopy-700 transition hover:bg-canopy-100"
-                  href="/"
-                >
-                  Clear
-                </Link>
+                </div>
               </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {[
-                ["parking", "Parking", hasParking],
-                ["bathrooms", "Bathrooms", hasBathrooms],
-                ["water", "Water", hasWater],
-                ["cart", "Cart friendly", cartFriendly],
-                ["dogs", "Dog friendly", dogFriendly],
-                ["beginner", "Beginner friendly", beginnerFriendly],
-                ["free", "Free", freeOnly]
-              ].map(([name, label, checked]) => (
-                <label
-                  className="flex h-9 cursor-pointer items-center gap-2 rounded-full bg-canopy-50 px-3 text-xs font-black text-canopy-700"
-                  key={String(name)}
-                >
-                  <input
-                    className="accent-canopy-700"
-                    defaultChecked={Boolean(checked)}
-                    name={String(name)}
-                    type="checkbox"
-                    value="true"
-                  />
-                  {label}
-                </label>
-              ))}
-            </div>
-          </form>
-        </div>
-      </section>
+            </details>
+          </div>
+        </form>
+      </PageCoverHeader>
 
       <PaginationControls
         basePath="/"
