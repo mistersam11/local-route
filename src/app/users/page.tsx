@@ -3,51 +3,59 @@ import Link from "next/link";
 import { MapPin, Search, UsersRound } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { FollowButton } from "@/components/FollowButton";
+import { PaginationControls } from "@/components/PaginationControls";
 import { getCurrentUser, getFollowingIds } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
+import { PAGE_SIZE, clampPage, normalizePage, pageSkip } from "@/lib/pagination";
 
 export const dynamic = "force-dynamic";
 
 type UsersPageProps = {
   searchParams?: {
     q?: string;
+    page?: string;
   };
 };
 
 export default async function UsersPage({ searchParams }: UsersPageProps) {
   const query = searchParams?.q?.trim() ?? "";
+  const requestedPage = normalizePage(searchParams?.page);
   const currentUser = await getCurrentUser();
-  const [followingIds, users] = await Promise.all([
+  const userWhere = query
+    ? {
+        OR: [
+          { username: { contains: query } },
+          { homeCourseName: { contains: query } },
+          { bio: { contains: query } }
+        ]
+      }
+    : {};
+  const [followingIds, totalUsers] = await Promise.all([
     getFollowingIds(currentUser?.id),
-    prisma.user.findMany({
-      where: query
-        ? {
-            OR: [
-              { username: { contains: query } },
-              { homeCourseName: { contains: query } },
-              { bio: { contains: query } }
-            ]
-          }
-        : {},
-      select: {
-        id: true,
-        username: true,
-        profileImageUrl: true,
-        bio: true,
-        homeCourseName: true,
-        _count: {
-          select: {
-            followers: true,
-            courseReviews: { where: { status: ContentStatus.visible } },
-            holeReviews: { where: { status: ContentStatus.visible } },
-            lines: { where: { status: ContentStatus.visible } }
-          }
-        }
-      },
-      orderBy: { username: "asc" },
-      take: 60
-    })
+    prisma.user.count({ where: userWhere })
   ]);
+  const page = clampPage(requestedPage, totalUsers);
+  const users = await prisma.user.findMany({
+    where: userWhere,
+    select: {
+      id: true,
+      username: true,
+      profileImageUrl: true,
+      bio: true,
+      homeCourseName: true,
+      _count: {
+        select: {
+          followers: true,
+          courseReviews: { where: { status: ContentStatus.visible } },
+          holeReviews: { where: { status: ContentStatus.visible } },
+          lines: { where: { status: ContentStatus.visible } }
+        }
+      }
+    },
+    orderBy: [{ username: "asc" }, { id: "asc" }],
+    skip: pageSkip(page),
+    take: PAGE_SIZE
+  });
 
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6 lg:py-10">
@@ -79,6 +87,14 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
           </button>
         </form>
       </section>
+
+      <PaginationControls
+        basePath="/users"
+        currentPage={page}
+        itemLabel="players"
+        searchParams={searchParams}
+        totalItems={totalUsers}
+      />
 
       <section className="grid gap-4 md:grid-cols-2">
         {users.map((user) => (
@@ -133,6 +149,14 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
           </article>
         ))}
       </section>
+
+      <PaginationControls
+        basePath="/users"
+        currentPage={page}
+        itemLabel="players"
+        searchParams={searchParams}
+        totalItems={totalUsers}
+      />
 
       {!users.length ? (
         <section className="rounded-lg bg-white p-8 text-center shadow-sm">

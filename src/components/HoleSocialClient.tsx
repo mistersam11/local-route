@@ -13,9 +13,11 @@ import {
   Trophy
 } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
+import { PlaceholderBackedImage } from "@/components/PlaceholderBackedImage";
 import { ReportButton } from "@/components/ReportButton";
 import { Stars } from "@/components/Stars";
 import { uploadImage } from "@/lib/cloudinary-upload";
+import { getHolePlaceholderImage } from "@/lib/placeholder-images";
 import type {
   BestLine,
   Difficulty,
@@ -190,15 +192,21 @@ export function HoleSocialClient({ initialPayload }: { initialPayload: HoleSocia
 
         <div className="overflow-hidden rounded-lg bg-[#fffdf7] shadow-panel">
           <div className="relative min-h-[340px] bg-ink">
-            {hole.teePhotoUrl ? (
-              <img
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover"
-                src={hole.teePhotoUrl}
-              />
-            ) : (
-              <div className="fallback-map field-grid absolute inset-0" />
-            )}
+            <PlaceholderBackedImage
+              loading="eager"
+              placeholder={getHolePlaceholderImage({
+                courseId: course.id,
+                courseName: course.name,
+                distanceFeet: hole.distanceFeet,
+                id: hole.id,
+                holeNumber: hole.holeNumber,
+                par: hole.par,
+                teePhotoUrl: hole.teePhotoUrl
+              })}
+              sizes="(min-width: 1024px) 720px, 100vw"
+              uploadedAlt={`Tee view for hole ${hole.holeNumber}`}
+              uploadedSrc={hole.teePhotoUrl}
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/10 to-transparent" />
             <div className="absolute bottom-0 left-0 right-0 p-5 text-white sm:p-7">
               <p className="flex items-center gap-2 text-sm font-bold uppercase text-white/75">

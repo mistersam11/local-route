@@ -11,18 +11,51 @@ const maxThreadPhotos = 10;
 type ForumThreadFormProps = {
   courseId?: number;
   courseName?: string;
+  intent?: string;
   onCancel?: () => void;
 };
+
+function composerDraft(intent: string | undefined, courseName?: string) {
+  const target = courseName ? ` at ${courseName}` : "";
+
+  if (intent === "photo") {
+    return {
+      title: `Photo update${target}`,
+      body: "",
+      flair: "Photo"
+    };
+  }
+
+  if (intent === "conditions") {
+    return {
+      title: `Current conditions${target}`,
+      body: "Played today. Conditions update:",
+      flair: "Conditions"
+    };
+  }
+
+  if (intent === "basket") {
+    return {
+      title: `Basket update${target}`,
+      body: "Basket or tee update:",
+      flair: "Basket update"
+    };
+  }
+
+  return { title: "", body: "", flair: "" };
+}
 
 export function ForumThreadForm({
   courseId,
   courseName,
+  intent,
   onCancel
 }: ForumThreadFormProps) {
   const router = useRouter();
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const [flair, setFlair] = useState("");
+  const draft = composerDraft(intent, courseName);
+  const [title, setTitle] = useState(draft.title);
+  const [body, setBody] = useState(draft.body);
+  const [flair, setFlair] = useState(draft.flair);
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [uploadingCount, setUploadingCount] = useState(0);
   const [saving, setSaving] = useState(false);

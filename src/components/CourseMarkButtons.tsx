@@ -29,10 +29,33 @@ export function CourseMarkButtons({
   const [wantToPlayCount, setWantToPlayCount] = useState(initialWantToPlayCount);
   const [saving, setSaving] = useState<CourseMarkType | null>(null);
 
-  function toggle(type: CourseMarkType) {
-    if (!currentUserId) return;
+  function transitionCount(current: number, wasActive: boolean, nextActive: boolean) {
+    if (wasActive === nextActive) {
+      return current;
+    }
 
+    return Math.max(0, current + (nextActive ? 1 : -1));
+  }
+
+  function toggle(type: CourseMarkType) {
+    if (!currentUserId || saving) return;
+
+    const previous = {
+      played,
+      wantToPlay,
+      playedCount,
+      wantToPlayCount
+    };
+    const nextPlayed = type === "played" ? !played : played;
+    const nextWantToPlay = type === "wantToPlay" ? !wantToPlay : wantToPlay;
     setSaving(type);
+    setPlayed(nextPlayed);
+    setWantToPlay(nextWantToPlay);
+    setPlayedCount((current) => transitionCount(current, played, nextPlayed));
+    setWantToPlayCount((current) =>
+      transitionCount(current, wantToPlay, nextWantToPlay)
+    );
+
     void (async () => {
       try {
         const response = await fetch(`/api/courses/${courseId}/marks`, {
@@ -43,7 +66,13 @@ export function CourseMarkButtons({
           body: JSON.stringify({ type })
         });
 
-        if (!response.ok) return;
+        if (!response.ok) {
+          setPlayed(previous.played);
+          setWantToPlay(previous.wantToPlay);
+          setPlayedCount(previous.playedCount);
+          setWantToPlayCount(previous.wantToPlayCount);
+          return;
+        }
 
         const payload = (await response.json()) as {
           played: boolean;
@@ -55,6 +84,11 @@ export function CourseMarkButtons({
         setWantToPlay(payload.wantToPlay);
         setPlayedCount(payload.playedCount);
         setWantToPlayCount(payload.wantToPlayCount);
+      } catch {
+        setPlayed(previous.played);
+        setWantToPlay(previous.wantToPlay);
+        setPlayedCount(previous.playedCount);
+        setWantToPlayCount(previous.wantToPlayCount);
       } finally {
         setSaving(null);
       }

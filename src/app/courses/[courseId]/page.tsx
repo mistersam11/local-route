@@ -1,7 +1,8 @@
 import {
   ContentStatus,
   CourseEventVisibility,
-  CourseMarkType
+  CourseMarkType,
+  Prisma
 } from "@prisma/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -22,6 +23,8 @@ import { Avatar } from "@/components/Avatar";
 import { CourseMarkButtons } from "@/components/CourseMarkButtons";
 import { CourseReviewForm } from "@/components/CourseReviewForm";
 import { LayoutSelector } from "@/components/LayoutSelector";
+import { PaginationControls } from "@/components/PaginationControls";
+import { PlaceholderBackedImage } from "@/components/PlaceholderBackedImage";
 import { ReportButton } from "@/components/ReportButton";
 import { Stars } from "@/components/Stars";
 import {
@@ -38,6 +41,11 @@ import {
   formatEventDateTime,
   groupCourseEventsForCommunity
 } from "@/lib/events";
+import { PAGE_SIZE, clampPage, normalizePage, pageSkip } from "@/lib/pagination";
+import {
+  getCoursePlaceholderImage,
+  getHolePlaceholderImage
+} from "@/lib/placeholder-images";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +55,8 @@ type CoursePageProps = {
   };
   searchParams?: {
     layout?: string;
+    holesPage?: string;
+    reviewsPage?: string;
   };
 };
 
@@ -62,57 +72,8 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
     prisma.course.findUnique({
       where: { id: courseId },
       include: {
-        reviews: {
-          where: { status: ContentStatus.visible },
-          include: {
-            user: { select: { id: true, username: true, profileImageUrl: true } }
-          },
-          orderBy: { createdAt: "desc" }
-        },
-        holes: {
-          where: { layoutId: null },
-          include: {
-            _count: {
-              select: {
-                lines: { where: { status: ContentStatus.visible } },
-                reviews: { where: { status: ContentStatus.visible } }
-              }
-            },
-            lines: {
-              where: { status: ContentStatus.visible },
-              orderBy: [{ upvotes: "desc" }, { downvotes: "asc" }],
-              take: 1
-            },
-            reviews: {
-              where: { status: ContentStatus.visible },
-              select: { rating: true }
-            }
-          },
-          orderBy: { holeNumber: "asc" }
-        },
         layouts: {
-          include: {
-            holes: {
-              include: {
-                _count: {
-                  select: {
-                    lines: { where: { status: ContentStatus.visible } },
-                    reviews: { where: { status: ContentStatus.visible } }
-                  }
-                },
-                lines: {
-                  where: { status: ContentStatus.visible },
-                  orderBy: [{ upvotes: "desc" }, { downvotes: "asc" }],
-                  take: 1
-                },
-                reviews: {
-                  where: { status: ContentStatus.visible },
-                  select: { rating: true }
-                }
-              },
-              orderBy: { holeNumber: "asc" }
-            }
-          },
+          include: { _count: { select: { holes: true } } },
           orderBy: { sortOrder: "asc" }
         },
         submittedBy: {
@@ -141,21 +102,73 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
   const requestedLayoutId = Number(searchParams?.layout);
   const selectedLayout =
     Number.isInteger(requestedLayoutId) && requestedLayoutId > 0
-      ? course.layouts.find((layout) => layout.id === requestedLayoutId)
+      ? course.layouts.find((layout) => layout.id === requestedLayoutId) ??
+        course.layouts[0]
       : course.layouts[0];
-  const displayHoles = selectedLayout?.holes ?? course.holes;
-  const displayHoleIds = displayHoles.map((hole) => hole.id);
+  const holeWhere = {
+    courseId,
+    layoutId: selectedLayout?.id ?? null
+  } satisfies Prisma.HoleWhereInput;
+  const requestedHolesPage = normalizePage(searchParams?.holesPage);
+  const requestedReviewsPage = normalizePage(searchParams?.reviewsPage);
+  const [displayHoleCount, reviewAggregate] = await Promise.all([
+    prisma.hole.count({ where: holeWhere }),
+    prisma.courseReview.aggregate({
+      where: { courseId, status: ContentStatus.visible },
+      _avg: { rating: true },
+      _count: { _all: true }
+    })
+  ]);
+  const reviewCount = reviewAggregate._count._all;
+  const holesPage = clampPage(requestedHolesPage, displayHoleCount);
+  const reviewsPage = clampPage(requestedReviewsPage, reviewCount);
   const [
+    displayHoles,
+    pagedReviews,
     recentActivity,
     markCounts,
     currentMarks,
     courseThreadCount,
-    upcomingEvents
+    upcomingEvents,
+    totalLines,
+    totalHoleReviews
   ] = await Promise.all([
+      prisma.hole.findMany({
+        where: holeWhere,
+        include: {
+          _count: {
+            select: {
+              lines: { where: { status: ContentStatus.visible } },
+              reviews: { where: { status: ContentStatus.visible } }
+            }
+          },
+          lines: {
+            where: { status: ContentStatus.visible },
+            orderBy: [{ upvotes: "desc" }, { downvotes: "asc" }],
+            take: 1
+          },
+          reviews: {
+            where: { status: ContentStatus.visible },
+            select: { rating: true }
+          }
+        },
+        orderBy: [{ holeNumber: "asc" }, { id: "asc" }],
+        skip: pageSkip(holesPage),
+        take: PAGE_SIZE
+      }),
+      prisma.courseReview.findMany({
+        where: { courseId, status: ContentStatus.visible },
+        include: {
+          user: { select: { id: true, username: true, profileImageUrl: true } }
+        },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        skip: pageSkip(reviewsPage),
+        take: PAGE_SIZE
+      }),
       prisma.holeReview.findMany({
         where: {
           status: ContentStatus.visible,
-          holeId: displayHoleIds.length ? { in: displayHoleIds } : -1
+          hole: holeWhere
         },
         include: {
           user: { select: { id: true, username: true, profileImageUrl: true } },
@@ -204,22 +217,22 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
         },
         orderBy: [{ startTime: "asc" }, { id: "asc" }],
         take: 12
+      }),
+      prisma.line.count({
+        where: {
+          status: ContentStatus.visible,
+          hole: holeWhere
+        }
+      }),
+      prisma.holeReview.count({
+        where: {
+          status: ContentStatus.visible,
+          hole: holeWhere
+        }
       })
     ]);
 
-  const averageRating =
-    course.reviews.length > 0
-      ? course.reviews.reduce((total, review) => total + review.rating, 0) /
-        course.reviews.length
-      : 0;
-  const totalLines = displayHoles.reduce(
-    (total, hole) => total + hole._count.lines,
-    0
-  );
-  const totalHoleReviews = displayHoles.reduce(
-    (total, hole) => total + hole._count.reviews,
-    0
-  );
+  const averageRating = reviewAggregate._avg.rating ?? 0;
   const courseFacts = selectedCourseFacts(course);
   const currentMarkTypes = new Set(currentMarks.map((mark) => mark.type));
   const playedCount =
@@ -230,7 +243,7 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
   const layoutOptions = course.layouts.map((layout) => ({
     id: layout.id,
     name: layout.name,
-    holeCount: layout.holes.length
+    holeCount: layout._count.holes
   }));
   const selectedLayoutName = selectedLayout?.name ?? course.layoutName;
   const mapQuery =
@@ -264,15 +277,13 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
 
         <div className="overflow-hidden rounded-lg bg-[#fffdf7] shadow-panel">
           <div className="relative min-h-[340px] bg-ink">
-            {course.coverPhotoUrl ? (
-              <img
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover"
-                src={course.coverPhotoUrl}
-              />
-            ) : (
-              <div className="fallback-map field-grid absolute inset-0" />
-            )}
+            <PlaceholderBackedImage
+              loading="eager"
+              placeholder={getCoursePlaceholderImage(course)}
+              sizes="(min-width: 1024px) 48vw, 100vw"
+              uploadedAlt={`Photo of ${course.name}`}
+              uploadedSrc={course.coverPhotoUrl}
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/20 to-transparent" />
             <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
               <p className="flex items-center gap-2 text-sm font-bold uppercase text-white/75">
@@ -305,7 +316,7 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
               ) : null}
               <p className="mt-3 flex items-center gap-2 text-sm font-bold">
                 <Stars rating={averageRating} />
-                <span>{course.reviews.length ? averageRating.toFixed(1) : "No reviews yet"}</span>
+                <span>{reviewCount ? averageRating.toFixed(1) : "No reviews yet"}</span>
               </p>
             </div>
           </div>
@@ -319,7 +330,7 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="rounded-lg bg-white p-4 shadow-sm">
             <p className="text-sm font-semibold text-ink/55">Holes</p>
-            <p className="mt-1 text-2xl font-black">{displayHoles.length}</p>
+            <p className="mt-1 text-2xl font-black">{displayHoleCount}</p>
           </div>
           <div className="rounded-lg bg-white p-4 shadow-sm">
             <p className="text-sm font-semibold text-ink/55">Lines</p>
@@ -471,10 +482,18 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
           </Link>
         ) : null}
 
-        <section>
-          <h2 className="mb-3 text-2xl font-black text-ink">Reviews</h2>
+        <section className="grid gap-3">
+          <h2 className="text-2xl font-black text-ink">Reviews</h2>
+          <PaginationControls
+            basePath={`/courses/${course.id}`}
+            currentPage={reviewsPage}
+            itemLabel="reviews"
+            pageParam="reviewsPage"
+            searchParams={searchParams}
+            totalItems={reviewCount}
+          />
           <div className="grid gap-3">
-            {course.reviews.map((review) => (
+            {pagedReviews.map((review) => (
               <article
                 className="rounded-lg border border-canopy-900/10 bg-[#fffdf7] p-4 shadow-sm"
                 key={review.id}
@@ -516,6 +535,25 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
               </article>
             ))}
           </div>
+          <PaginationControls
+            basePath={`/courses/${course.id}`}
+            currentPage={reviewsPage}
+            itemLabel="reviews"
+            pageParam="reviewsPage"
+            searchParams={searchParams}
+            totalItems={reviewCount}
+          />
+          {!pagedReviews.length ? (
+            <section className="rounded-lg bg-white p-6 text-center shadow-sm">
+              <Star className="mx-auto text-canopy-700" size={28} aria-hidden />
+              <h3 className="mt-3 text-xl font-black text-ink">
+                Be the first to review this course.
+              </h3>
+              <p className="mt-2 text-sm font-semibold text-ink/55">
+                Share pace, conditions, and what first-timers should know.
+              </p>
+            </section>
+          ) : null}
         </section>
       </section>
 
@@ -572,13 +610,21 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
           </div>
         </section>
 
-        <section>
+        <section className="grid gap-3">
           <div className="mb-4 flex items-center justify-between">
           <h2 className="text-2xl font-black text-ink">Holes</h2>
           <span className="rounded-full bg-water-100 px-3 py-1 text-sm font-bold text-water-700">
             Discuss each hole
           </span>
           </div>
+          <PaginationControls
+            basePath={`/courses/${course.id}`}
+            currentPage={holesPage}
+            itemLabel="holes"
+            pageParam="holesPage"
+            searchParams={searchParams}
+            totalItems={displayHoleCount}
+          />
           <div className="grid gap-3">
           {displayHoles.map((hole) => {
             const bestLine = hole.lines[0] ?? null;
@@ -596,15 +642,21 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
               >
                 <div className="grid gap-4 sm:grid-cols-[160px_1fr]">
                   <div className="relative min-h-36 bg-ink">
-                    {hole.teePhotoUrl ? (
-                      <img
-                        alt=""
-                        className="absolute inset-0 h-full w-full object-cover"
-                        src={hole.teePhotoUrl}
-                      />
-                    ) : (
-                      <div className="fallback-map field-grid absolute inset-0" />
-                    )}
+                    <PlaceholderBackedImage
+                      loading="lazy"
+                      placeholder={getHolePlaceholderImage({
+                        courseId: course.id,
+                        courseName: course.name,
+                        distanceFeet: hole.distanceFeet,
+                        id: hole.id,
+                        holeNumber: hole.holeNumber,
+                        par: hole.par,
+                        teePhotoUrl: hole.teePhotoUrl
+                      })}
+                      sizes="(min-width: 640px) 160px, 100vw"
+                      uploadedAlt={`Tee view for hole ${hole.holeNumber}`}
+                      uploadedSrc={hole.teePhotoUrl}
+                    />
                     <span className="absolute left-3 top-3 flex h-11 w-11 items-center justify-center rounded-full bg-canopy-700 text-lg font-black text-white">
                       {hole.holeNumber}
                     </span>
@@ -655,6 +707,27 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
             );
           })}
           </div>
+          <div>
+            <PaginationControls
+              basePath={`/courses/${course.id}`}
+              currentPage={holesPage}
+              itemLabel="holes"
+              pageParam="holesPage"
+              searchParams={searchParams}
+              totalItems={displayHoleCount}
+            />
+          </div>
+          {!displayHoles.length ? (
+            <section className="rounded-lg bg-white p-6 text-center shadow-sm">
+              <Flag className="mx-auto text-canopy-700" size={28} aria-hidden />
+              <h3 className="mt-3 text-xl font-black text-ink">
+                Hole details are ready to be added.
+              </h3>
+              <p className="mt-2 text-sm font-semibold text-ink/55">
+                Report tee, basket, and distance updates so players know what changed.
+              </p>
+            </section>
+          ) : null}
         </section>
 
         <div className="mt-8">

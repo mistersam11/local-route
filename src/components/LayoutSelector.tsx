@@ -33,6 +33,7 @@ export function LayoutSelector({
         onChange={(event) => {
           const params = new URLSearchParams(searchParams.toString());
           params.set("layout", event.target.value);
+          params.delete("holesPage");
           router.push(`${pathname}?${params.toString()}`);
         }}
         value={selectedLayoutId ? String(selectedLayoutId) : String(layouts[0]?.id)}

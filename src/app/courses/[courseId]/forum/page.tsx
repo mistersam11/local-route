@@ -1,4 +1,4 @@
-import { ContentStatus, CourseEventVisibility } from "@prisma/client";
+import { ContentStatus, CourseEventVisibility, Prisma } from "@prisma/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -14,6 +14,8 @@ import {
 import { Avatar } from "@/components/Avatar";
 import { CourseFollowButton } from "@/components/CourseFollowButton";
 import { ForumComposer } from "@/components/ForumComposer";
+import { PaginationControls } from "@/components/PaginationControls";
+import { PlaceholderBackedImage } from "@/components/PlaceholderBackedImage";
 import { Stars } from "@/components/Stars";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
@@ -22,6 +24,8 @@ import {
   countEventRsvps,
   formatEventDateTime
 } from "@/lib/events";
+import { PAGE_SIZE, clampPage, normalizePage, pageSkip } from "@/lib/pagination";
+import { getCoursePlaceholderImage } from "@/lib/placeholder-images";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +37,9 @@ type CourseForumPageProps = {
     q?: string;
     sort?: string;
     flair?: string;
+    page?: string;
+    compose?: string;
+    intent?: string;
   };
 };
 
@@ -57,16 +64,16 @@ export default async function CourseForumPage({
   const query = searchParams?.q?.trim() ?? "";
   const sort = searchParams?.sort === "discussed" ? "discussed" : "newest";
   const flair = searchParams?.flair?.trim() ?? "";
-  const [currentUser, course] = await Promise.all([
+  const requestedPage = normalizePage(searchParams?.page);
+  const [currentUser, course, reviewAggregate] = await Promise.all([
     getCurrentUser(),
     prisma.course.findFirst({
-      where: { id: courseId, status: "approved" },
-      include: {
-        reviews: {
-          where: { status: ContentStatus.visible },
-          select: { rating: true }
-        }
-      }
+      where: { id: courseId, status: "approved" }
+    }),
+    prisma.courseReview.aggregate({
+      where: { courseId, status: ContentStatus.visible },
+      _avg: { rating: true },
+      _count: { _all: true }
     })
   ]);
 
@@ -80,59 +87,41 @@ export default async function CourseForumPage({
       { event: { visibility: CourseEventVisibility.public } }
     ]
   };
-  const [threads, flairs, followerCount, currentFollow, postCount, upcomingEvents] =
-    await Promise.all([
-      prisma.forumThread.findMany({
-        where: {
-          AND: [
-            { courseId, status: ContentStatus.visible, ...(flair ? { flair } : {}) },
-            visibleThreadScope,
-            ...(query
-              ? [
-                  {
-                    OR: [
-                      { title: { contains: query } },
-                      { body: { contains: query } },
-                      { flair: { contains: query } },
-                      { user: { username: { contains: query } } }
-                    ]
-                  }
-                ]
-              : [])
-          ]
-        },
-        include: {
-          user: { select: { id: true, username: true, profileImageUrl: true } },
-          _count: {
-            select: { comments: { where: { status: ContentStatus.visible } } }
-          },
-          comments: {
-            where: { status: ContentStatus.visible },
-            select: {
-              id: true,
-              body: true,
-              createdAt: true,
-              user: { select: { username: true } }
-            },
-            orderBy: { createdAt: "desc" },
-            take: 1
-          },
-          photos: {
-            orderBy: { sortOrder: "asc" },
-            take: 4
-          },
-          event: {
-            select: {
-              id: true,
-              type: true,
-              startTime: true,
-              timezone: true
+  const threadWhere = {
+    AND: [
+      { courseId, status: ContentStatus.visible, ...(flair ? { flair } : {}) },
+      visibleThreadScope,
+      ...(query
+        ? [
+            {
+              OR: [
+                { title: { contains: query } },
+                { body: { contains: query } },
+                { flair: { contains: query } },
+                { user: { username: { contains: query } } }
+              ]
             }
-          }
-        },
-        orderBy: { createdAt: "desc" },
-        take: 60
-      }),
+          ]
+        : [])
+    ]
+  } satisfies Prisma.ForumThreadWhereInput;
+  const threadOrderBy: Prisma.ForumThreadOrderByWithRelationInput[] =
+    sort === "discussed"
+      ? [
+          { comments: { _count: "desc" } },
+          { createdAt: "desc" },
+          { id: "desc" }
+        ]
+      : [{ createdAt: "desc" }, { id: "desc" }];
+  const [
+    totalThreads,
+    flairs,
+    followerCount,
+    currentFollow,
+    postCount,
+    upcomingEvents
+  ] = await Promise.all([
+      prisma.forumThread.count({ where: threadWhere }),
       prisma.forumThread.findMany({
         where: {
           AND: [
@@ -177,20 +166,45 @@ export default async function CourseForumPage({
         take: 5
       })
     ]);
+  const page = clampPage(requestedPage, totalThreads);
+  const threads = await prisma.forumThread.findMany({
+    where: threadWhere,
+    include: {
+      user: { select: { id: true, username: true, profileImageUrl: true } },
+      _count: {
+        select: { comments: { where: { status: ContentStatus.visible } } }
+      },
+      comments: {
+        where: { status: ContentStatus.visible },
+        select: {
+          id: true,
+          body: true,
+          createdAt: true,
+          user: { select: { username: true } }
+        },
+        orderBy: { createdAt: "desc" },
+        take: 1
+      },
+      photos: {
+        orderBy: { sortOrder: "asc" },
+        take: 4
+      },
+      event: {
+        select: {
+          id: true,
+          type: true,
+          startTime: true,
+          timezone: true
+        }
+      }
+    },
+    orderBy: threadOrderBy,
+    skip: pageSkip(page),
+    take: PAGE_SIZE
+  });
 
-  const sortedThreads =
-    sort === "discussed"
-      ? [...threads].sort(
-          (first, second) =>
-            second._count.comments - first._count.comments ||
-            second.createdAt.getTime() - first.createdAt.getTime()
-        )
-      : threads;
-  const averageRating =
-    course.reviews.length > 0
-      ? course.reviews.reduce((total, review) => total + review.rating, 0) /
-        course.reviews.length
-      : 0;
+  const reviewCount = reviewAggregate._count._all;
+  const averageRating = reviewAggregate._avg.rating ?? 0;
 
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 lg:py-10">
@@ -204,15 +218,13 @@ export default async function CourseForumPage({
 
       <section className="overflow-hidden rounded-lg bg-[#fffdf7] shadow-panel">
         <div className="relative min-h-[300px] bg-ink">
-          {course.coverPhotoUrl ? (
-            <img
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover"
-              src={course.coverPhotoUrl}
-            />
-          ) : (
-            <div className="fallback-map field-grid absolute inset-0" />
-          )}
+          <PlaceholderBackedImage
+            loading="eager"
+            placeholder={getCoursePlaceholderImage(course)}
+            sizes="(min-width: 1024px) 896px, 100vw"
+            uploadedAlt={`Photo of ${course.name}`}
+            uploadedSrc={course.coverPhotoUrl}
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/35 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 grid gap-4 p-5 text-white sm:p-6 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
@@ -226,7 +238,7 @@ export default async function CourseForumPage({
               <p className="mt-3 flex flex-wrap items-center gap-3 text-sm font-bold">
                 <span className="flex items-center gap-2">
                   <Stars rating={averageRating} />
-                  {course.reviews.length ? averageRating.toFixed(1) : "No reviews yet"}
+                  {reviewCount ? averageRating.toFixed(1) : "No reviews yet"}
                 </span>
                 <span className="flex items-center gap-1">
                   <MessageSquare size={15} aria-hidden />
@@ -343,7 +355,12 @@ export default async function CourseForumPage({
       </form>
 
       {currentUser ? (
-        <ForumComposer courseId={course.id} courseName={course.name} />
+        <ForumComposer
+          courseId={course.id}
+          courseName={course.name}
+          initialOpen={searchParams?.compose === "1"}
+          intent={searchParams?.intent}
+        />
       ) : (
         <section className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-canopy-900/10 bg-white p-4 shadow-sm">
           <div>
@@ -362,8 +379,16 @@ export default async function CourseForumPage({
         </section>
       )}
 
+      <PaginationControls
+        basePath={`/courses/${course.id}/forum`}
+        currentPage={page}
+        itemLabel="posts"
+        searchParams={{ q: query, flair, sort }}
+        totalItems={totalThreads}
+      />
+
       <section className="grid gap-3">
-        {sortedThreads.map((thread) => {
+        {threads.map((thread) => {
           const latestComment = thread.comments[0] ?? null;
 
           return (
@@ -451,13 +476,49 @@ export default async function CourseForumPage({
         })}
       </section>
 
-      {!sortedThreads.length ? (
+      <PaginationControls
+        basePath={`/courses/${course.id}/forum`}
+        currentPage={page}
+        itemLabel="posts"
+        searchParams={{ q: query, flair, sort }}
+        totalItems={totalThreads}
+      />
+
+      {!threads.length ? (
         <section className="rounded-lg bg-white p-8 text-center shadow-sm">
           <MessageSquare className="mx-auto text-canopy-700" size={32} aria-hidden />
-          <h2 className="mt-4 text-2xl font-black text-ink">No posts found</h2>
+          <h2 className="mt-4 text-2xl font-black text-ink">
+            {query || flair
+              ? "No posts found"
+              : `Be the first to post about ${course.name}.`}
+          </h2>
           <p className="mt-2 text-sm font-semibold text-ink/55">
-            Start the first course post or clear your filters.
+            {query || flair
+              ? "Try another search or clear your filters."
+              : "Share conditions, photos, league plans, or a quick local question."}
           </p>
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            {query || flair ? (
+              <Link
+                className="inline-flex h-10 items-center justify-center rounded-full bg-canopy-50 px-4 text-sm font-black text-canopy-700 transition hover:bg-canopy-100"
+                href={`/courses/${course.id}/forum`}
+              >
+                Clear filters
+              </Link>
+            ) : null}
+            <Link
+              className="inline-flex h-10 items-center justify-center rounded-full bg-ink px-4 text-sm font-black text-white transition hover:bg-canopy-700"
+              href={
+                currentUser
+                  ? `/courses/${course.id}/forum?compose=1`
+                  : `/login?redirectTo=${encodeURIComponent(
+                      `/courses/${course.id}/forum?compose=1`
+                    )}`
+              }
+            >
+              Start a chain
+            </Link>
+          </div>
         </section>
       ) : null}
     </main>

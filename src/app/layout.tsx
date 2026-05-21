@@ -11,6 +11,9 @@ import {
   UserPlus,
   UsersRound
 } from "lucide-react";
+import { MobileQuickActions } from "@/components/MobileQuickActions";
+import { PlaceholderImageAttribution } from "@/components/PlaceholderImageAttribution";
+import { RouteTransitionBar } from "@/components/RouteTransitionBar";
 import { UserMenu } from "@/components/UserMenu";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
@@ -50,6 +53,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body>
+        <RouteTransitionBar />
         <header className="sticky top-0 z-50 border-b border-canopy-900/10 bg-[#fffdf7]/90 backdrop-blur">
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
             <Link href="/" className="flex min-w-0 shrink-0 items-center gap-3">
@@ -147,6 +151,8 @@ export default async function RootLayout({
           </div>
         </header>
         {children}
+        <PlaceholderImageAttribution />
+        <MobileQuickActions isAuthenticated={Boolean(currentUser)} />
       </body>
     </html>
   );

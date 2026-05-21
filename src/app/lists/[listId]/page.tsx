@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, MapPin, MessageSquare, Star } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
+import { PaginationControls } from "@/components/PaginationControls";
+import { PlaceholderBackedImage } from "@/components/PlaceholderBackedImage";
 import { Stars } from "@/components/Stars";
 import { getCurrentUser } from "@/lib/current-user";
 import {
@@ -10,6 +12,8 @@ import {
   type CourseDifficultyValue
 } from "@/lib/course-facts";
 import { prisma } from "@/lib/db";
+import { PAGE_SIZE, clampPage, normalizePage, pageSkip } from "@/lib/pagination";
+import { getCoursePlaceholderImage } from "@/lib/placeholder-images";
 
 export const dynamic = "force-dynamic";
 
@@ -17,70 +21,79 @@ type ListPageProps = {
   params: {
     listId: string;
   };
+  searchParams?: {
+    page?: string;
+  };
 };
 
-export default async function ListPage({ params }: ListPageProps) {
+export default async function ListPage({ params, searchParams }: ListPageProps) {
   const listId = Number(params.listId);
 
   if (!Number.isInteger(listId)) {
     notFound();
   }
 
-  const [currentUser, list] = await Promise.all([
-    getCurrentUser(),
-    prisma.courseList.findUnique({
-      where: { id: listId },
-      include: {
-        user: { select: { id: true, username: true, profileImageUrl: true } },
-        items: {
-          where: { course: { status: CourseStatus.approved } },
-          include: {
-            course: {
-              include: {
-                reviews: {
-                  where: { status: ContentStatus.visible },
-                  select: { rating: true }
-                },
-                holes: {
-                  where: { layoutId: null },
-                  select: {
-                    id: true,
-                    _count: {
-                      select: {
-                        lines: { where: { status: ContentStatus.visible } },
-                        reviews: { where: { status: ContentStatus.visible } }
-                      }
-                    }
-                  }
-                },
-                layouts: {
-                  include: {
-                    holes: {
-                      select: {
-                        id: true,
-                        _count: {
-                          select: {
-                            lines: { where: { status: ContentStatus.visible } },
-                            reviews: { where: { status: ContentStatus.visible } }
-                          }
-                        }
-                      }
-                    }
-                  },
-                  orderBy: { sortOrder: "asc" }
-                }
-              }
-            }
-          },
-          orderBy: { rank: "asc" }
-        }
-      }
-    })
-  ]);
+  const currentUser = await getCurrentUser();
+  const list = await prisma.courseList.findUnique({
+    where: { id: listId },
+    include: {
+      user: { select: { id: true, username: true, profileImageUrl: true } }
+    }
+  });
 
   if (!list || (!list.isPublic && list.userId !== currentUser?.id)) {
     notFound();
   }
+
+  const requestedPage = normalizePage(searchParams?.page);
+  const totalItems = await prisma.courseListItem.count({
+    where: { listId, course: { status: CourseStatus.approved } }
+  });
+  const page = clampPage(requestedPage, totalItems);
+  const items = await prisma.courseListItem.findMany({
+    where: { listId, course: { status: CourseStatus.approved } },
+    include: {
+      course: {
+        include: {
+          reviews: {
+            where: { status: ContentStatus.visible },
+            select: { rating: true }
+          },
+          holes: {
+            where: { layoutId: null },
+            select: {
+              id: true,
+              _count: {
+                select: {
+                  lines: { where: { status: ContentStatus.visible } },
+                  reviews: { where: { status: ContentStatus.visible } }
+                }
+              }
+            }
+          },
+          layouts: {
+            include: {
+              holes: {
+                select: {
+                  id: true,
+                  _count: {
+                    select: {
+                      lines: { where: { status: ContentStatus.visible } },
+                      reviews: { where: { status: ContentStatus.visible } }
+                    }
+                  }
+                }
+              }
+            },
+            orderBy: { sortOrder: "asc" }
+          }
+        }
+      }
+    },
+    orderBy: [{ rank: "asc" }, { id: "asc" }],
+    skip: pageSkip(page),
+    take: PAGE_SIZE
+  });
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:py-10">
@@ -115,8 +128,16 @@ export default async function ListPage({ params }: ListPageProps) {
         </Link>
       </section>
 
+      <PaginationControls
+        basePath={`/lists/${list.id}`}
+        currentPage={page}
+        itemLabel="courses"
+        searchParams={searchParams}
+        totalItems={totalItems}
+      />
+
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {list.items.map((item) => {
+        {items.map((item) => {
           const course = item.course;
           const displayHoles = course.layouts[0]?.holes ?? course.holes;
           const reviewCount = course.reviews.length;
@@ -140,15 +161,13 @@ export default async function ListPage({ params }: ListPageProps) {
               key={item.id}
             >
               <div className="relative h-40 bg-ink">
-                {course.coverPhotoUrl ? (
-                  <img
-                    alt=""
-                    className="absolute inset-0 h-full w-full object-cover"
-                    src={course.coverPhotoUrl}
-                  />
-                ) : (
-                  <div className="fallback-map field-grid absolute inset-0" />
-                )}
+                <PlaceholderBackedImage
+                  loading="lazy"
+                  placeholder={getCoursePlaceholderImage(course)}
+                  sizes="(min-width: 1280px) 31vw, (min-width: 768px) 46vw, 100vw"
+                  uploadedAlt={`Photo of ${course.name}`}
+                  uploadedSrc={course.coverPhotoUrl}
+                />
                 <span className="absolute bottom-3 left-3 rounded-full bg-[#fffdf7]/90 px-3 py-1 text-sm font-bold text-ink">
                   #{item.rank}
                 </span>
@@ -185,6 +204,26 @@ export default async function ListPage({ params }: ListPageProps) {
           );
         })}
       </section>
+
+      <PaginationControls
+        basePath={`/lists/${list.id}`}
+        currentPage={page}
+        itemLabel="courses"
+        searchParams={searchParams}
+        totalItems={totalItems}
+      />
+
+      {!items.length ? (
+        <section className="rounded-lg bg-white p-8 text-center shadow-sm">
+          <Star className="mx-auto text-canopy-700" size={32} aria-hidden />
+          <h2 className="mt-4 text-2xl font-black text-ink">
+            This list is ready for its first course.
+          </h2>
+          <p className="mt-2 text-sm font-semibold text-ink/55">
+            Public, approved courses will appear here as the list grows.
+          </p>
+        </section>
+      ) : null}
     </main>
   );
 }

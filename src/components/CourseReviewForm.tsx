@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Camera, Send } from "lucide-react";
 import { uploadImage } from "@/lib/cloudinary-upload";
@@ -14,6 +15,7 @@ export function CourseReviewForm({
   courseId,
   onCreated
 }: CourseReviewFormProps) {
+  const router = useRouter();
   const [rating, setRating] = useState(4);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -63,6 +65,7 @@ export function CourseReviewForm({
         setBody("");
         setPhotoUrl("");
         onCreated?.(payload.review);
+        router.refresh();
       } finally {
         setSaving(false);
       }

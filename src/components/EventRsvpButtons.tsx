@@ -32,11 +32,54 @@ export function EventRsvpButtons({
     maxPlayers && status !== "going" && goingCount >= maxPlayers
   );
 
+  function applyTransition(
+    counts: { going: number; interested: number },
+    currentStatus: EventRsvpStatus,
+    nextStatus: EventRsvpStatus
+  ) {
+    const next = { ...counts };
+
+    if (currentStatus === nextStatus) {
+      return next;
+    }
+
+    if (currentStatus === "going") {
+      next.going = Math.max(0, next.going - 1);
+    }
+
+    if (currentStatus === "interested") {
+      next.interested = Math.max(0, next.interested - 1);
+    }
+
+    if (nextStatus === "going") {
+      next.going += 1;
+    }
+
+    if (nextStatus === "interested") {
+      next.interested += 1;
+    }
+
+    return next;
+  }
+
   function updateRsvp(nextStatus: EventRsvpStatus) {
     if (!currentUserId || saving) return;
 
+    const previous = {
+      status,
+      goingCount,
+      interestedCount
+    };
+    const optimisticCounts = applyTransition(
+      { going: goingCount, interested: interestedCount },
+      status,
+      nextStatus
+    );
     setSaving(nextStatus ?? "none");
     setError(null);
+    setStatus(nextStatus);
+    setGoingCount(optimisticCounts.going);
+    setInterestedCount(optimisticCounts.interested);
 
     void (async () => {
       try {
@@ -52,6 +95,9 @@ export function EventRsvpButtons({
         };
 
         if (!response.ok || !payload.rsvpCounts) {
+          setStatus(previous.status);
+          setGoingCount(previous.goingCount);
+          setInterestedCount(previous.interestedCount);
           setError(payload.error ?? "RSVP could not be saved");
           return;
         }
@@ -59,6 +105,11 @@ export function EventRsvpButtons({
         setStatus(payload.currentStatus ?? null);
         setGoingCount(payload.rsvpCounts.going);
         setInterestedCount(payload.rsvpCounts.interested);
+      } catch {
+        setStatus(previous.status);
+        setGoingCount(previous.goingCount);
+        setInterestedCount(previous.interestedCount);
+        setError("RSVP could not be saved");
       } finally {
         setSaving(null);
       }

@@ -2,43 +2,58 @@ import Link from "next/link";
 import { ArrowRight, LogIn, Star } from "lucide-react";
 import { CourseListForm } from "@/components/CourseListForm";
 import { Avatar } from "@/components/Avatar";
+import { PaginationControls } from "@/components/PaginationControls";
+import { PlaceholderBackedImage } from "@/components/PlaceholderBackedImage";
 import { getCurrentUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
+import { PAGE_SIZE, clampPage, normalizePage, pageSkip } from "@/lib/pagination";
+import { getCoursePlaceholderImage } from "@/lib/placeholder-images";
 
 export const dynamic = "force-dynamic";
 
-export default async function ListsPage() {
-  const [currentUser, lists, courses] = await Promise.all([
+type ListsPageProps = {
+  searchParams?: {
+    page?: string;
+  };
+};
+
+export default async function ListsPage({ searchParams }: ListsPageProps) {
+  const requestedPage = normalizePage(searchParams?.page);
+  const [currentUser, totalLists, courses] = await Promise.all([
     getCurrentUser(),
-    prisma.courseList.findMany({
-      where: { isPublic: true },
-      include: {
-        user: { select: { id: true, username: true, profileImageUrl: true } },
-        _count: { select: { items: true } },
-        items: {
-          include: {
-            course: {
-              select: {
-                id: true,
-                name: true,
-                locationName: true,
-                coverPhotoUrl: true
-              }
-            }
-          },
-          orderBy: { rank: "asc" },
-          take: 4
-        }
-      },
-      orderBy: { createdAt: "desc" },
-      take: 30
-    }),
+    prisma.courseList.count({ where: { isPublic: true } }),
     prisma.course.findMany({
       where: { status: "approved" },
       select: { id: true, name: true, locationName: true },
-      orderBy: { name: "asc" }
+      orderBy: { name: "asc" },
+      take: 200
     })
   ]);
+  const page = clampPage(requestedPage, totalLists);
+  const lists = await prisma.courseList.findMany({
+    where: { isPublic: true },
+    include: {
+      user: { select: { id: true, username: true, profileImageUrl: true } },
+      _count: { select: { items: true } },
+      items: {
+        include: {
+          course: {
+            select: {
+              id: true,
+              name: true,
+              locationName: true,
+              coverPhotoUrl: true
+            }
+          }
+        },
+        orderBy: { rank: "asc" },
+        take: 4
+      }
+    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    skip: pageSkip(page),
+    take: PAGE_SIZE
+  });
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:py-10">
@@ -75,6 +90,14 @@ export default async function ListsPage() {
         </section>
       )}
 
+      <PaginationControls
+        basePath="/lists"
+        currentPage={page}
+        itemLabel="lists"
+        searchParams={searchParams}
+        totalItems={totalLists}
+      />
+
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {lists.map((list) => (
           <Link
@@ -98,15 +121,13 @@ export default async function ListsPage() {
             <div className="grid grid-cols-4 gap-2">
               {list.items.map((item) => (
                 <div className="relative h-20 overflow-hidden rounded-lg bg-ink" key={item.id}>
-                  {item.course.coverPhotoUrl ? (
-                    <img
-                      alt=""
-                      className="absolute inset-0 h-full w-full object-cover"
-                      src={item.course.coverPhotoUrl}
-                    />
-                  ) : (
-                    <div className="fallback-map field-grid absolute inset-0" />
-                  )}
+                  <PlaceholderBackedImage
+                    loading="lazy"
+                    placeholder={getCoursePlaceholderImage(item.course)}
+                    sizes="120px"
+                    uploadedAlt={`Photo of ${item.course.name}`}
+                    uploadedSrc={item.course.coverPhotoUrl}
+                  />
                 </div>
               ))}
               {!list.items.length ? (
@@ -133,12 +154,22 @@ export default async function ListsPage() {
         ))}
       </section>
 
+      <PaginationControls
+        basePath="/lists"
+        currentPage={page}
+        itemLabel="lists"
+        searchParams={searchParams}
+        totalItems={totalLists}
+      />
+
       {!lists.length ? (
         <section className="rounded-lg bg-white p-8 text-center shadow-sm">
           <Star className="mx-auto text-canopy-700" size={32} aria-hidden />
-          <h2 className="mt-4 text-2xl font-black text-ink">No lists yet</h2>
+          <h2 className="mt-4 text-2xl font-black text-ink">
+            Build the first community list.
+          </h2>
           <p className="mt-2 text-sm font-semibold text-ink/55">
-            Be the first to make one.
+            Share a starter route, road-trip loop, or tournament warmup set.
           </p>
         </section>
       ) : null}

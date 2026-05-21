@@ -20,19 +20,28 @@ export function FollowButton({
   const isSelf = targetUserId === currentUserId;
 
   function toggleFollow() {
-    if (isSelf || !currentUserId) return;
+    if (isSelf || !currentUserId || isPending) return;
 
+    const previous = isFollowing;
+    const nextFollowing = !isFollowing;
     setIsPending(true);
+    setIsFollowing(nextFollowing);
+
     void (async () => {
       try {
         const response = await fetch(`/api/users/${targetUserId}/follow`, {
-          method: isFollowing ? "DELETE" : "POST"
+          method: nextFollowing ? "POST" : "DELETE"
         });
 
-        if (response.ok) {
-          const payload = (await response.json()) as { following: boolean };
-          setIsFollowing(payload.following);
+        if (!response.ok) {
+          setIsFollowing(previous);
+          return;
         }
+
+        const payload = (await response.json()) as { following: boolean };
+        setIsFollowing(payload.following);
+      } catch {
+        setIsFollowing(previous);
       } finally {
         setIsPending(false);
       }

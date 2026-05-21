@@ -108,3 +108,50 @@ textarea {
     linear-gradient(90deg, rgba(255, 253, 247, 0.12) 1px, transparent 1px);
   background-size: 48px 48px;
 }
+
+.placeholder-image-shell {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.placeholder-image-element {
+  position: absolute;
+  inset: 0;
+  display: block;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  transition:
+    opacity 420ms ease,
+    transform 500ms ease,
+    filter 500ms ease;
+}
+
+.placeholder-image-skeleton {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(110deg, transparent 0 22%, rgba(255, 253, 247, 0.17) 35%, transparent 48%),
+    linear-gradient(135deg, rgba(20, 55, 37, 0.92), rgba(31, 157, 146, 0.58), rgba(168, 93, 49, 0.35));
+  background-size: 220% 100%, cover;
+  transition: opacity 300ms ease;
+  animation: placeholder-shimmer 1.55s ease-in-out infinite;
+}
+
+.placeholder-image-unavailable::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(23, 33, 28, 0.1), rgba(23, 33, 28, 0.55));
+  content: "";
+}
+
+@keyframes placeholder-shimmer {
+  from {
+    background-position: 180% 0, center;
+  }
+
+  to {
+    background-position: -60% 0, center;
+  }
+}

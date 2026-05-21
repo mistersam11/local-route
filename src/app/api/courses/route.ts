@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { booleanInput } from "@/lib/course-facts";
 import { getRequestUser } from "@/lib/current-user";
 import { prisma } from "@/lib/db";
+import { PAGE_SIZE, normalizePage, pageSkip } from "@/lib/pagination";
 
 function optionalNumber(value: unknown) {
   if (value === null || value === undefined || value === "") {
@@ -24,41 +25,56 @@ export async function GET(request: Request) {
   const dogFriendly = booleanInput(searchParams.get("dogs"));
   const beginnerFriendly = booleanInput(searchParams.get("beginner"));
   const freeOnly = booleanInput(searchParams.get("free"));
+  const page = normalizePage(searchParams.get("page"));
+  const where = {
+    status: "approved",
+    ...(Object.values(CourseDifficulty).includes(difficulty as CourseDifficulty)
+      ? { difficulty: difficulty as CourseDifficulty }
+      : {}),
+    ...(hasParking ? { hasParking: true } : {}),
+    ...(hasBathrooms ? { hasBathrooms: true } : {}),
+    ...(hasWater ? { hasWater: true } : {}),
+    ...(cartFriendly ? { cartFriendly: true } : {}),
+    ...(dogFriendly ? { dogFriendly: true } : {}),
+    ...(beginnerFriendly ? { beginnerFriendly: true } : {}),
+    ...(freeOnly ? { isPayToPlay: false } : {}),
+    ...(query
+      ? {
+          OR: [
+            { name: { contains: query } },
+            { locationName: { contains: query } }
+          ]
+        }
+      : {})
+  } satisfies Prisma.CourseWhereInput;
 
-  const courses = await prisma.course.findMany({
-    where: {
-      status: "approved",
-      ...(Object.values(CourseDifficulty).includes(difficulty as CourseDifficulty)
-        ? { difficulty: difficulty as CourseDifficulty }
-        : {}),
-      ...(hasParking ? { hasParking: true } : {}),
-      ...(hasBathrooms ? { hasBathrooms: true } : {}),
-      ...(hasWater ? { hasWater: true } : {}),
-      ...(cartFriendly ? { cartFriendly: true } : {}),
-      ...(dogFriendly ? { dogFriendly: true } : {}),
-      ...(beginnerFriendly ? { beginnerFriendly: true } : {}),
-      ...(freeOnly ? { isPayToPlay: false } : {}),
-      ...(query
-        ? {
-            OR: [
-              { name: { contains: query } },
-              { locationName: { contains: query } }
-            ]
-          }
-        : {})
-    },
-    include: {
-      submittedBy: {
-        select: { id: true, username: true, profileImageUrl: true }
+  const [courses, total] = await Promise.all([
+    prisma.course.findMany({
+      where,
+      include: {
+        submittedBy: {
+          select: { id: true, username: true, profileImageUrl: true }
+        },
+        _count: {
+          select: { holes: true }
+        }
       },
-      _count: {
-        select: { holes: true }
-      }
-    },
-    orderBy: { name: "asc" }
-  });
+      orderBy: [{ name: "asc" }, { id: "asc" }],
+      skip: pageSkip(page),
+      take: PAGE_SIZE
+    }),
+    prisma.course.count({ where })
+  ]);
 
-  return NextResponse.json({ courses });
+  return NextResponse.json({
+    courses,
+    pagination: {
+      page,
+      pageSize: PAGE_SIZE,
+      total,
+      nextPage: page * PAGE_SIZE < total ? page + 1 : null
+    }
+  });
 }
 
 export async function POST(request: Request) {

@@ -22,6 +22,7 @@ export function ReportButton({ targetType, targetId }: ReportButtonProps) {
 
   function report() {
     setSaving(true);
+    setReported(true);
     setError(null);
 
     void (async () => {
@@ -40,11 +41,13 @@ export function ReportButton({ targetType, targetId }: ReportButtonProps) {
 
         if (!response.ok) {
           const payload = (await response.json()) as { error?: string };
+          setReported(false);
           setError(payload.error ?? "Report could not be saved");
           return;
         }
-
-        setReported(true);
+      } catch {
+        setReported(false);
+        setError("Report could not be saved");
       } finally {
         setSaving(false);
       }

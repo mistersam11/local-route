@@ -8,7 +8,7 @@ import {
 import { prisma } from "@/lib/db";
 
 const DEFAULT_PAGE_SIZE = 20;
-const MAX_PAGE_SIZE = 50;
+const MAX_PAGE_SIZE = 20;
 const SUGGESTED_CANDIDATE_FLOOR = 80;
 
 const forumFeedThreadInclude = Prisma.validator<Prisma.ForumThreadDefaultArgs>()({

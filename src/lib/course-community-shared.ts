@@ -4,7 +4,9 @@ export const courseForumFlairs = [
   "League",
   "Lost disc",
   "Travel",
-  "Event"
+  "Event",
+  "Photo",
+  "Basket update"
 ] as const;
 
 export type CourseForumFlair = (typeof courseForumFlairs)[number];

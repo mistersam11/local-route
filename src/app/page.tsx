@@ -1,15 +1,26 @@
-import { ContentStatus, CourseDifficulty } from "@prisma/client";
+import { ContentStatus, CourseDifficulty, Prisma } from "@prisma/client";
 import Link from "next/link";
-import { ArrowRight, MapPin, MessageSquare, Search, SlidersHorizontal, Star } from "lucide-react";
+import {
+  ArrowRight,
+  MapPin,
+  MessageSquare,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  Star
+} from "lucide-react";
+import { PaginationControls } from "@/components/PaginationControls";
+import { PlaceholderBackedImage } from "@/components/PlaceholderBackedImage";
 import { Stars } from "@/components/Stars";
 import {
   booleanInput,
   courseDifficultyLabels,
   courseDifficultyOptions,
-  courseFactDefinitions,
   selectedCourseFacts
 } from "@/lib/course-facts";
 import { prisma } from "@/lib/db";
+import { PAGE_SIZE, clampPage, normalizePage, pageSkip } from "@/lib/pagination";
+import { getCoursePlaceholderImage } from "@/lib/placeholder-images";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +36,7 @@ type HomeProps = {
     dogs?: string;
     beginner?: string;
     free?: string;
+    page?: string;
   };
 };
 
@@ -39,28 +51,60 @@ export default async function Home({ searchParams }: HomeProps) {
   const dogFriendly = booleanInput(searchParams?.dogs);
   const beginnerFriendly = booleanInput(searchParams?.beginner);
   const freeOnly = booleanInput(searchParams?.free);
-  const courses = await prisma.course.findMany({
-    where: {
-      status: "approved",
-      ...(Object.values(CourseDifficulty).includes(difficulty as CourseDifficulty)
-        ? { difficulty: difficulty as CourseDifficulty }
-        : {}),
-      ...(hasParking ? { hasParking: true } : {}),
-      ...(hasBathrooms ? { hasBathrooms: true } : {}),
-      ...(hasWater ? { hasWater: true } : {}),
-      ...(cartFriendly ? { cartFriendly: true } : {}),
-      ...(dogFriendly ? { dogFriendly: true } : {}),
-      ...(beginnerFriendly ? { beginnerFriendly: true } : {}),
-      ...(freeOnly ? { isPayToPlay: false } : {}),
+  const requestedPage = normalizePage(searchParams?.page);
+  const minHoles =
+    holesFilter && Number.isInteger(Number(holesFilter))
+      ? Number(holesFilter)
+      : null;
+  const courseWhere = {
+    status: "approved",
+    ...(Object.values(CourseDifficulty).includes(difficulty as CourseDifficulty)
+      ? { difficulty: difficulty as CourseDifficulty }
+      : {}),
+    ...(hasParking ? { hasParking: true } : {}),
+    ...(hasBathrooms ? { hasBathrooms: true } : {}),
+    ...(hasWater ? { hasWater: true } : {}),
+    ...(cartFriendly ? { cartFriendly: true } : {}),
+    ...(dogFriendly ? { dogFriendly: true } : {}),
+    ...(beginnerFriendly ? { beginnerFriendly: true } : {}),
+    ...(freeOnly ? { isPayToPlay: false } : {}),
+    AND: [
+      ...(minHoles
+        ? [
+            {
+              OR: [
+                {
+                  holes: {
+                    some: { layoutId: null, holeNumber: { gte: minHoles } }
+                  }
+                },
+                {
+                  layouts: {
+                    some: {
+                      holes: { some: { holeNumber: { gte: minHoles } } }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        : []),
       ...(query
-        ? {
-            OR: [
-              { name: { contains: query } },
-              { locationName: { contains: query } }
-            ]
-          }
-        : {})
-    },
+        ? [
+            {
+              OR: [
+                { name: { contains: query } },
+                { locationName: { contains: query } }
+              ]
+            }
+          ]
+        : [])
+    ]
+  } satisfies Prisma.CourseWhereInput;
+  const totalCourses = await prisma.course.count({ where: courseWhere });
+  const page = clampPage(requestedPage, totalCourses);
+  const courses = await prisma.course.findMany({
+    where: courseWhere,
     include: {
       reviews: {
         where: { status: ContentStatus.visible },
@@ -95,15 +139,10 @@ export default async function Home({ searchParams }: HomeProps) {
         orderBy: { sortOrder: "asc" }
       }
     },
-    orderBy: { name: "asc" }
+    orderBy: [{ name: "asc" }, { id: "asc" }],
+    skip: pageSkip(page),
+    take: PAGE_SIZE
   });
-  const filteredCourses =
-    holesFilter && Number.isInteger(Number(holesFilter))
-      ? courses.filter((course) => {
-          const displayHoles = course.layouts[0]?.holes ?? course.holes;
-          return displayHoles.length >= Number(holesFilter);
-        })
-      : courses;
 
   return (
     <main className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:py-10">
@@ -210,8 +249,16 @@ export default async function Home({ searchParams }: HomeProps) {
         </div>
       </section>
 
+      <PaginationControls
+        basePath="/"
+        currentPage={page}
+        itemLabel="courses"
+        searchParams={searchParams}
+        totalItems={totalCourses}
+      />
+
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {filteredCourses.map((course) => {
+        {courses.map((course) => {
           const displayHoles = course.layouts[0]?.holes ?? course.holes;
           const reviewCount = course.reviews.length;
           const averageRating =
@@ -236,15 +283,13 @@ export default async function Home({ searchParams }: HomeProps) {
               key={course.id}
             >
               <div className="relative h-40 bg-ink">
-                {course.coverPhotoUrl ? (
-                  <img
-                    alt=""
-                    className="absolute inset-0 h-full w-full object-cover"
-                    src={course.coverPhotoUrl}
-                  />
-                ) : (
-                  <div className="fallback-map field-grid absolute inset-0" />
-                )}
+                <PlaceholderBackedImage
+                  loading="lazy"
+                  placeholder={getCoursePlaceholderImage(course)}
+                  sizes="(min-width: 1280px) 31vw, (min-width: 768px) 46vw, 100vw"
+                  uploadedAlt={`Photo of ${course.name}`}
+                  uploadedSrc={course.coverPhotoUrl}
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-ink/70 to-transparent" />
                 <span className="absolute bottom-3 left-3 rounded-full bg-[#fffdf7]/90 px-3 py-1 text-sm font-bold text-ink">
                   {displayHoles.length} holes
@@ -310,6 +355,41 @@ export default async function Home({ searchParams }: HomeProps) {
           );
         })}
       </section>
+
+      <PaginationControls
+        basePath="/"
+        currentPage={page}
+        itemLabel="courses"
+        searchParams={searchParams}
+        totalItems={totalCourses}
+      />
+
+      {!courses.length ? (
+        <section className="rounded-lg bg-white p-8 text-center shadow-sm">
+          <MapPin className="mx-auto text-canopy-700" size={32} aria-hidden />
+          <h2 className="mt-4 text-2xl font-black text-ink">
+            No matching courses yet
+          </h2>
+          <p className="mt-2 text-sm font-semibold text-ink/55">
+            Clear filters or add the local course everyone should know about.
+          </p>
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            <Link
+              className="inline-flex h-10 items-center justify-center rounded-full bg-canopy-50 px-4 text-sm font-black text-canopy-700 transition hover:bg-canopy-100"
+              href="/"
+            >
+              Clear filters
+            </Link>
+            <Link
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-ink px-4 text-sm font-black text-white transition hover:bg-canopy-700"
+              href="/courses/new"
+            >
+              <Plus size={15} aria-hidden />
+              Submit course
+            </Link>
+          </div>
+        </section>
+      ) : null}
     </main>
   );
 }
