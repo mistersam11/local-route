@@ -283,7 +283,7 @@ export default async function LandingPage() {
               Coming up
             </p>
             <h2 className="mt-2 text-3xl font-black text-ink">
-              Events near the course page
+              Events happening out on the course
             </h2>
           </div>
           <div className="grid gap-3">
