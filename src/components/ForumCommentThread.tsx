@@ -36,6 +36,7 @@ type ForumCommentThreadProps = {
   comments: ForumCommentView[];
   threadId: number;
   currentUserId: number | null;
+  variant?: "card" | "inline";
 };
 
 type ForumCommentBranchProps = {
@@ -337,7 +338,8 @@ function ForumCommentBranch({
 export function ForumCommentThread({
   comments,
   threadId,
-  currentUserId
+  currentUserId,
+  variant = "card"
 }: ForumCommentThreadProps) {
   const [collapsedCommentIds, setCollapsedCommentIds] = useState<Set<number>>(
     () => new Set()
@@ -362,7 +364,14 @@ export function ForumCommentThread({
 
   if (!comments.length) {
     return (
-      <section className="rounded-lg bg-white p-6 text-center shadow-sm">
+      <section
+        className={clsx(
+          "text-center",
+          variant === "card"
+            ? "rounded-lg bg-white p-6 shadow-sm"
+            : "px-4 pb-5 pt-3"
+        )}
+      >
         <MessageCircle className="mx-auto text-canopy-700" size={28} aria-hidden />
         <h3 className="mt-3 text-xl font-black text-ink">No comments yet</h3>
         <p className="mt-2 text-sm font-semibold text-ink/55">
@@ -373,7 +382,14 @@ export function ForumCommentThread({
   }
 
   return (
-    <div className="grid gap-2 rounded-lg border border-canopy-900/10 bg-[#fffdf7] p-3 shadow-sm sm:p-4">
+    <div
+      className={clsx(
+        "grid gap-2",
+        variant === "card"
+          ? "rounded-lg border border-canopy-900/10 bg-[#fffdf7] p-3 shadow-sm sm:p-4"
+          : "px-3 pb-4 pt-2 sm:px-4"
+      )}
+    >
       {comments.map((comment) => (
         <ForumCommentBranch
           collapsedCommentIds={collapsedCommentIds}

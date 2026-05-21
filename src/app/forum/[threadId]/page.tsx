@@ -150,98 +150,101 @@ export default async function ForumThreadPage({ params }: ForumThreadPageProps) 
             : "Forum"}
       </Link>
 
-      <article className="rounded-lg border border-canopy-900/10 bg-[#fffdf7] p-5 shadow-panel">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="flex items-center gap-2 text-sm font-bold text-ink/60">
-              <Avatar
-                name={thread.user.username}
-                size="sm"
-                src={thread.user.profileImageUrl}
-              />
-              @{thread.user.username} - {formatDate(thread.createdAt)}
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {thread.course ? (
-                <Link
-                  className="rounded-full bg-canopy-50 px-3 py-1 text-xs font-black uppercase text-canopy-700 transition hover:bg-canopy-100"
-                  href={`/courses/${thread.course.id}/forum`}
-                >
-                  {thread.course.name}
-                </Link>
-              ) : null}
-              {thread.flair ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-water-100 px-3 py-1 text-xs font-black uppercase text-water-700">
-                  <Tag size={13} aria-hidden />
-                  {thread.flair}
-                </span>
-              ) : null}
+      <div className="overflow-hidden rounded-lg border border-canopy-900/10 bg-[#fffdf7] shadow-panel">
+        <article className="p-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="flex items-center gap-2 text-sm font-bold text-ink/60">
+                <Avatar
+                  name={thread.user.username}
+                  size="sm"
+                  src={thread.user.profileImageUrl}
+                />
+                @{thread.user.username} - {formatDate(thread.createdAt)}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {thread.course ? (
+                  <Link
+                    className="rounded-full bg-canopy-50 px-3 py-1 text-xs font-black uppercase text-canopy-700 transition hover:bg-canopy-100"
+                    href={`/courses/${thread.course.id}/forum`}
+                  >
+                    {thread.course.name}
+                  </Link>
+                ) : null}
+                {thread.flair ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-water-100 px-3 py-1 text-xs font-black uppercase text-water-700">
+                    <Tag size={13} aria-hidden />
+                    {thread.flair}
+                  </span>
+                ) : null}
+                {thread.event ? (
+                  <Link
+                    className="inline-flex items-center gap-1 rounded-full bg-clay-100 px-3 py-1 text-xs font-black uppercase text-clay-700 transition hover:bg-clay-300/45"
+                    href={`/events/${thread.event.id}`}
+                  >
+                    <CalendarClock size={13} aria-hidden />
+                    {courseEventTypeLabels[thread.event.type]}
+                  </Link>
+                ) : null}
+              </div>
+              <h1 className="mt-4 text-4xl font-black leading-tight text-ink">
+                {thread.title}
+              </h1>
               {thread.event ? (
-                <Link
-                  className="inline-flex items-center gap-1 rounded-full bg-clay-100 px-3 py-1 text-xs font-black uppercase text-clay-700 transition hover:bg-clay-300/45"
-                  href={`/events/${thread.event.id}`}
-                >
-                  <CalendarClock size={13} aria-hidden />
-                  {courseEventTypeLabels[thread.event.type]}
-                </Link>
+                <p className="mt-2 text-sm font-black uppercase text-ink/45">
+                  {formatEventDateTime(
+                    thread.event.startTime,
+                    thread.event.timezone
+                  )}
+                </p>
               ) : null}
             </div>
-            <h1 className="mt-4 text-4xl font-black leading-tight text-ink">
-              {thread.title}
-            </h1>
-            {thread.event ? (
-              <p className="mt-2 text-sm font-black uppercase text-ink/45">
-                {formatEventDateTime(
-                  thread.event.startTime,
-                  thread.event.timezone
-                )}
-              </p>
+            {currentUser && currentUser.id !== thread.user.id ? (
+              <ReportButton targetId={thread.id} targetType="forumThread" />
             ) : null}
           </div>
-          {currentUser && currentUser.id !== thread.user.id ? (
-            <ReportButton targetId={thread.id} targetType="forumThread" />
+          <p className="mt-5 whitespace-pre-wrap text-base font-semibold leading-7 text-ink/70">
+            {thread.body}
+          </p>
+          {thread.photos.length ? (
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {thread.photos.map((photo, index) => (
+                <a
+                  className={`relative overflow-hidden rounded-lg bg-ink ${
+                    thread.photos.length === 1 || index === 0
+                      ? "min-h-80 sm:col-span-2"
+                      : "min-h-56"
+                  }`}
+                  href={photo.url}
+                  key={photo.id}
+                  target="_blank"
+                >
+                  <img
+                    alt=""
+                    className="absolute inset-0 h-full w-full object-cover"
+                    src={photo.url}
+                  />
+                </a>
+              ))}
+            </div>
           ) : null}
-        </div>
-        <p className="mt-5 whitespace-pre-wrap text-base font-semibold leading-7 text-ink/70">
-          {thread.body}
-        </p>
-        {thread.photos.length ? (
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            {thread.photos.map((photo, index) => (
-              <a
-                className={`relative overflow-hidden rounded-lg bg-ink ${
-                  thread.photos.length === 1 || index === 0
-                    ? "min-h-80 sm:col-span-2"
-                    : "min-h-56"
-                }`}
-                href={photo.url}
-                key={photo.id}
-                target="_blank"
-              >
-                <img
-                  alt=""
-                  className="absolute inset-0 h-full w-full object-cover"
-                  src={photo.url}
-                />
-              </a>
-            ))}
-          </div>
-        ) : null}
-      </article>
+        </article>
 
-      <section className="grid gap-4">
-        <ForumCommentComposerToggle
-          isAuthenticated={Boolean(currentUser)}
-          loginHref={`/login?redirectTo=/forum/${thread.id}`}
-          threadId={thread.id}
-        />
+        <section>
+          <ForumCommentComposerToggle
+            isAuthenticated={Boolean(currentUser)}
+            loginHref={`/login?redirectTo=/forum/${thread.id}`}
+            threadId={thread.id}
+          />
 
-        <ForumCommentThread
-          comments={commentTree}
-          currentUserId={currentUser?.id ?? null}
-          threadId={thread.id}
-        />
-      </section>
+          <ForumCommentThread
+            comments={commentTree}
+            currentUserId={currentUser?.id ?? null}
+            threadId={thread.id}
+            variant="inline"
+          />
+        </section>
+      </div>
     </main>
   );
 }
