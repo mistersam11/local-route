@@ -52,7 +52,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     <main className="mx-auto grid min-h-[calc(100vh-72px)] max-w-md place-items-center px-4 py-10">
       <section className="w-full rounded-lg border border-canopy-900/10 bg-[#fffdf7] p-6 shadow-panel">
         <p className="text-sm font-bold uppercase text-clay-700">Welcome back</p>
-        <h1 className="mt-2 text-3xl font-black text-ink">Log in to LocalRoute</h1>
+        <h1 className="mt-2 text-3xl font-black text-ink">Log in to Local Route</h1>
         <Link
           className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-white px-4 text-sm font-black text-ink shadow-sm ring-1 ring-canopy-900/10 transition hover:bg-canopy-50"
           href={`/api/auth/google?redirectTo=${encodeURIComponent(redirectTo)}`}

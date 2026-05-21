@@ -39,7 +39,7 @@ export default async function ListsPage({ searchParams }: ListsPageProps) {
   } satisfies Prisma.CourseListWhereInput;
   const listCoverPlaceholder = getCoursePlaceholderImage({
     id: "lists-cover",
-    name: "LocalRoute community lists",
+    name: "Local Route community lists",
     locationName: "Disc golf road trips",
     cartFriendly: true,
     hasParking: true
@@ -180,7 +180,7 @@ export default async function ListsPage({ searchParams }: ListsPageProps) {
               ))}
               {!list.items.length ? (
                 <div className="col-span-4 flex h-20 items-center justify-center rounded-lg bg-white text-sm font-bold text-ink/45">
-                  Empty list
+                  No courses saved yet
                 </div>
               ) : null}
             </div>
@@ -214,12 +214,12 @@ export default async function ListsPage({ searchParams }: ListsPageProps) {
         <section className="rounded-lg bg-white p-8 text-center shadow-sm">
           <Star className="mx-auto text-canopy-700" size={32} aria-hidden />
           <h2 className="mt-4 text-2xl font-black text-ink">
-            {query ? "No matching lists yet." : "Build the first community list."}
+            {query ? "No matching lists yet." : "No lists yet."}
           </h2>
           <p className="mt-2 text-sm font-semibold text-ink/55">
             {query
               ? "Try another list name or clear the search."
-              : "Share a starter route, road-trip loop, or tournament warmup set."}
+              : "Start by saving your favorite courses."}
           </p>
         </section>
       ) : null}

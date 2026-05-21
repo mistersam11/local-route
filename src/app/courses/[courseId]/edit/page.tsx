@@ -25,10 +25,6 @@ export default async function CourseEditPage({ params }: CourseEditPageProps) {
 
   const currentUser = await getCurrentUser();
 
-  if (!currentUser) {
-    redirect(`/login?redirectTo=/courses/${courseId}/edit`);
-  }
-
   const course = await prisma.course.findUnique({
     where: { id: courseId },
     include: {
@@ -49,17 +45,19 @@ export default async function CourseEditPage({ params }: CourseEditPageProps) {
     notFound();
   }
 
-  if (course.submittedById !== currentUser.id && !currentUser.isAdmin) {
-    notFound();
+  const isProposalMode = course.status === "approved";
+
+  if (!isProposalMode && !currentUser) {
+    redirect(`/login?redirectTo=/courses/${courseId}/edit`);
   }
 
-  const isProposalMode =
-    course.status === "approved" &&
-    course.submittedById === currentUser.id &&
-    !currentUser.isAdmin;
-
-  if (course.status === "approved" && !isProposalMode) {
-    redirect(`/courses/${course.id}`);
+  if (
+    !isProposalMode &&
+    currentUser &&
+    course.submittedById !== currentUser.id &&
+    !currentUser.isAdmin
+  ) {
+    notFound();
   }
 
   const displayHoles = course.layouts[0]?.holes ?? course.holes;
@@ -68,6 +66,7 @@ export default async function CourseEditPage({ params }: CourseEditPageProps) {
     name: course.name,
     locationName: course.locationName,
     locationAddress: course.locationAddress,
+    description: course.description,
     layoutName: course.layouts[0]?.name ?? course.layoutName,
     latitude: course.latitude,
     longitude: course.longitude,

@@ -205,7 +205,7 @@ export function ForumFeedList({
           ) : null}
           <Link
             className="inline-flex h-10 items-center justify-center rounded-full bg-ink px-4 text-sm font-black text-white transition hover:bg-canopy-700"
-            href="/"
+            href="/courses"
           >
             Find courses
           </Link>

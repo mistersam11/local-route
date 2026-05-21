@@ -50,6 +50,7 @@ export type CourseDraftEditorCourse = {
   name: string;
   locationName: string;
   locationAddress: string | null;
+  description: string | null;
   layoutName: string | null;
   latitude: number | null;
   longitude: number | null;
@@ -129,6 +130,8 @@ export function CourseDraftEditor({
   const [locationAddress, setLocationAddress] = useState(
     initialCourse.locationAddress ?? ""
   );
+  const [description, setDescription] = useState(initialCourse.description ?? "");
+  const [proposalNotes, setProposalNotes] = useState("");
   const [layoutName, setLayoutName] = useState(initialCourse.layoutName ?? "");
   const [layoutDrafts, setLayoutDrafts] = useState<LayoutDraft[]>(initialLayouts);
   const [selectedLayoutIndex, setSelectedLayoutIndex] = useState(0);
@@ -268,6 +271,8 @@ export function CourseDraftEditor({
               name,
               locationName,
               locationAddress,
+              description,
+              notes: proposalNotes,
               layoutName: layoutDrafts[0]?.name || layoutName,
               difficulty,
               ...facts,
@@ -297,7 +302,10 @@ export function CourseDraftEditor({
             return;
           }
 
-          router.push(payload.redirectTo ?? `/courses/${initialCourse.id}`);
+          router.push(
+            payload.redirectTo ??
+              `/courses/${initialCourse.id}?editProposal=submitted`
+          );
           router.refresh();
           return;
         }
@@ -413,6 +421,28 @@ export function CourseDraftEditor({
             value={locationAddress}
           />
         </label>
+
+        <label className="grid gap-2 text-sm font-bold text-ink/70">
+          Description or course notes
+          <textarea
+            className="min-h-28 rounded-lg border border-canopy-900/10 bg-white px-3 py-3 font-semibold leading-6 outline-none"
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="Course character, navigation notes, seasonal conditions, or useful local context"
+            value={description}
+          />
+        </label>
+
+        {isProposalMode ? (
+          <label className="grid gap-2 text-sm font-bold text-ink/70">
+            Other correction
+            <textarea
+              className="min-h-24 rounded-lg border border-canopy-900/10 bg-white px-3 py-3 font-semibold leading-6 outline-none"
+              onChange={(event) => setProposalNotes(event.target.value)}
+              placeholder="Anything admins should know while reviewing this proposal"
+              value={proposalNotes}
+            />
+          </label>
+        ) : null}
 
         <div className="grid gap-4 md:grid-cols-4">
           {layoutDrafts.length > 1 ? (

@@ -320,7 +320,9 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         ) : (
           <div className="rounded-lg border border-canopy-900/10 bg-white p-8 text-center shadow-sm">
             <Disc3 className="mx-auto text-canopy-700" size={32} aria-hidden />
-            <h2 className="mt-4 text-2xl font-black text-ink">Nothing here</h2>
+            <h2 className="mt-4 text-2xl font-black text-ink">
+              No courses in this queue
+            </h2>
             <p className="mt-2 text-sm font-semibold text-ink/55">
               No courses match this moderation view.
             </p>

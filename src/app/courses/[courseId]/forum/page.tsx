@@ -237,8 +237,12 @@ export default async function CourseForumPage({
               </h1>
               <p className="mt-3 flex flex-wrap items-center gap-3 text-sm font-bold">
                 <span className="flex items-center gap-2">
-                  <Stars rating={averageRating} />
-                  {reviewCount ? averageRating.toFixed(1) : "No reviews yet"}
+                  {reviewCount ? <Stars rating={averageRating} /> : null}
+                  {reviewCount
+                    ? `${averageRating.toFixed(1)} (${reviewCount} ${
+                        reviewCount === 1 ? "review" : "reviews"
+                      })`
+                    : "No reviews yet"}
                 </span>
                 <span className="flex items-center gap-1">
                   <MessageSquare size={15} aria-hidden />

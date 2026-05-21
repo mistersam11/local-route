@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import {
   courseEditToJson,
   courseEditValidationError,
+  normalizeCourseEditProposalNotes,
   normalizeCourseEditInput
 } from "@/lib/course-edit-data";
 import { getRequestUser } from "@/lib/current-user";
@@ -23,16 +24,9 @@ export async function POST(request: Request, { params }: Params) {
 
   const currentUser = await getRequestUser(request);
 
-  if (!currentUser) {
-    return NextResponse.json(
-      { error: "Log in to propose course edits" },
-      { status: 401 }
-    );
-  }
-
   const course = await prisma.course.findUnique({
     where: { id: courseId },
-    select: { id: true, status: true, submittedById: true }
+    select: { id: true, status: true }
   });
 
   if (!course) {
@@ -46,21 +40,16 @@ export async function POST(request: Request, { params }: Params) {
     );
   }
 
-  if (course.submittedById !== currentUser.id) {
-    return NextResponse.json(
-      { error: "Only the user who submitted this course can propose edits" },
-      { status: 403 }
-    );
-  }
-
-  const existingPendingProposal = await prisma.courseEditProposal.findFirst({
-    where: {
-      courseId,
-      submittedById: currentUser.id,
-      status: CourseEditProposalStatus.pending
-    },
-    select: { id: true }
-  });
+  const existingPendingProposal = currentUser
+    ? await prisma.courseEditProposal.findFirst({
+        where: {
+          courseId,
+          submittedById: currentUser.id,
+          status: CourseEditProposalStatus.pending
+        },
+        select: { id: true }
+      })
+    : null;
 
   if (existingPendingProposal) {
     return NextResponse.json(
@@ -84,6 +73,7 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const edit = normalizeCourseEditInput(body);
+  const notes = normalizeCourseEditProposalNotes(body.notes);
   const validationError = courseEditValidationError(edit, { requireHoles: true });
 
   if (validationError) {
@@ -93,8 +83,9 @@ export async function POST(request: Request, { params }: Params) {
   const proposal = await prisma.courseEditProposal.create({
     data: {
       courseId,
-      submittedById: currentUser.id,
-      proposedData: courseEditToJson(edit)
+      submittedById: currentUser?.id,
+      proposedData: courseEditToJson(edit),
+      notes
     },
     select: { id: true, status: true }
   });
@@ -102,7 +93,7 @@ export async function POST(request: Request, { params }: Params) {
   return NextResponse.json(
     {
       proposal,
-      redirectTo: `/courses/${courseId}`
+      redirectTo: `/courses/${courseId}?editProposal=submitted`
     },
     { status: 201 }
   );

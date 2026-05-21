@@ -12,7 +12,7 @@ export default async function NewCoursePage() {
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-8 px-4 py-8 sm:px-6 lg:py-10">
       <Link
-        href="/"
+        href="/courses"
         className="inline-flex w-fit items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-ink shadow-sm transition hover:bg-canopy-50"
       >
         <ArrowLeft size={16} aria-hidden />

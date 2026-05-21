@@ -44,7 +44,7 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
   });
   const forumCoverPlaceholder = getCoursePlaceholderImage({
     id: "forum-cover",
-    name: "LocalRoute disc golf conversations",
+    name: "Local Route disc golf conversations",
     locationName: "Community chains",
     dogFriendly: true,
     hasParking: true

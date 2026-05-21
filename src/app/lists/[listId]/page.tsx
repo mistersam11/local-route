@@ -183,9 +183,13 @@ export default async function ListPage({ params, searchParams }: ListPageProps) 
                     {courseDifficultyLabels[course.difficulty as CourseDifficultyValue]}
                   </p>
                   <p className="mt-4 flex items-center gap-2 text-sm font-bold">
-                    <Stars rating={averageRating} />
+                    {reviewCount ? <Stars rating={averageRating} /> : null}
                     <span className="text-ink/55">
-                      {reviewCount ? averageRating.toFixed(1) : "No reviews yet"}
+                      {reviewCount
+                        ? `${averageRating.toFixed(1)} (${reviewCount} ${
+                            reviewCount === 1 ? "review" : "reviews"
+                          })`
+                        : "No reviews yet"}
                     </span>
                   </p>
                 </div>

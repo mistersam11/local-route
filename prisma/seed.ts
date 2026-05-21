@@ -75,6 +75,8 @@ async function main() {
     data: {
       name: "Cedar Ridge Disc Golf",
       locationName: "Burlington, VT",
+      description:
+        "A wooded community course with defined landing zones, guarded greens, and a few longer holes where placement matters more than raw distance.",
       latitude: 44.47602,
       longitude: -73.21246,
       difficulty: "challenging",
@@ -144,6 +146,8 @@ async function main() {
     data: {
       name: "Pine Hollow DGC",
       locationName: "Asheville, NC",
+      description:
+        "Rolling parkland and tight woods with a friendly front stretch, a few exposed wind reads, and casual doubles traffic on weekends.",
       latitude: 35.59671,
       longitude: -82.55512,
       difficulty: "mixed",
@@ -196,6 +200,87 @@ async function main() {
       }
     },
     include: { holes: true }
+  });
+
+  await prisma.course.create({
+    data: {
+      name: "Meadowbrook Community DGC",
+      locationName: "Lancaster, PA",
+      description:
+        "A compact nine-hole loop through open park space with beginner-friendly distances, clear walking paths, and a few guarded approaches.",
+      latitude: 40.03788,
+      longitude: -76.30551,
+      difficulty: "beginner",
+      hasParking: true,
+      hasBathrooms: true,
+      hasWater: false,
+      cartFriendly: true,
+      dogFriendly: true,
+      beginnerFriendly: true,
+      isPayToPlay: false,
+      status: "approved",
+      submittedById: ellis.id,
+      coverPhotoUrl:
+        "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1400&q=80",
+      holes: {
+        create: [
+          {
+            holeNumber: 1,
+            par: 3,
+            distanceFeet: 214,
+            description: "Open starter with a basket tucked just beyond two small maples."
+          },
+          {
+            holeNumber: 2,
+            par: 3,
+            distanceFeet: 268,
+            description: "Straight fairway with a walking path OB along the right edge."
+          },
+          {
+            holeNumber: 3,
+            par: 3,
+            distanceFeet: 185,
+            description: "Short touch shot that asks for a soft landing on a raised green."
+          },
+          {
+            holeNumber: 4,
+            par: 3,
+            distanceFeet: 302,
+            description: "Slight uphill drive with room to fade safely left."
+          },
+          {
+            holeNumber: 5,
+            par: 3,
+            distanceFeet: 241,
+            description: "Low ceiling midrange shot through the older tree line."
+          },
+          {
+            holeNumber: 6,
+            par: 3,
+            distanceFeet: 336,
+            description: "Longest hole on the loop, playing across a gentle side slope."
+          },
+          {
+            holeNumber: 7,
+            par: 3,
+            distanceFeet: 197,
+            description: "Right-finishing approach with a safe bail-out short of the pin."
+          },
+          {
+            holeNumber: 8,
+            par: 3,
+            distanceFeet: 256,
+            description: "Open fairway with the basket set behind a small guardian cluster."
+          },
+          {
+            holeNumber: 9,
+            par: 3,
+            distanceFeet: 224,
+            description: "Finishing shot back toward the parking area with a sloped green."
+          }
+        ]
+      }
+    }
   });
 
   const cedarHole = (holeNumber: number) =>

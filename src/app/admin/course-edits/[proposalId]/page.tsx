@@ -155,7 +155,8 @@ export default async function AdminCourseEditPage({
               cartFriendly: edit.cartFriendly,
               dogFriendly: edit.dogFriendly,
               beginnerFriendly: edit.beginnerFriendly,
-              isPayToPlay: edit.isPayToPlay
+              isPayToPlay: edit.isPayToPlay,
+              description: edit.description
             }}
           />
         </section>
@@ -251,6 +252,14 @@ export default async function AdminCourseEditPage({
               Unknown submitter
             </p>
           )}
+          {proposal.notes ? (
+            <div className="rounded-lg bg-[#fffdf7] p-3 text-sm font-semibold leading-6 text-ink/65">
+              <p className="mb-1 text-xs font-black uppercase text-ink/40">
+                Other correction
+              </p>
+              {proposal.notes}
+            </div>
+          ) : null}
         </section>
       </aside>
     </main>
@@ -266,6 +275,7 @@ function SummaryCard({
     name: string;
     locationName: string;
     locationAddress: string | null;
+    description?: string | null;
     latitude: number | null;
     longitude: number | null;
     difficulty: string;
@@ -295,6 +305,7 @@ function SummaryCard({
       <div className="mt-3 grid gap-2 text-sm font-semibold text-ink/65">
         <p>{course.locationName}</p>
         {course.locationAddress ? <p>{course.locationAddress}</p> : null}
+        {course.description ? <p>{course.description}</p> : null}
         <p>
           {course.latitude ?? "No latitude"}, {course.longitude ?? "No longitude"}
         </p>

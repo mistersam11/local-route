@@ -40,6 +40,7 @@ export function SubmitCourseForm() {
   const [name, setName] = useState("");
   const [locationName, setLocationName] = useState("");
   const [locationAddress, setLocationAddress] = useState("");
+  const [description, setDescription] = useState("");
   const [difficulty, setDifficulty] = useState<CourseDifficultyValue>("mixed");
   const [facts, setFacts] = useState<Record<CourseFactKey, boolean>>({
     hasParking: false,
@@ -124,6 +125,7 @@ export function SubmitCourseForm() {
             name,
             locationName,
             locationAddress,
+            description,
             difficulty,
             ...facts,
             latitude,
@@ -179,6 +181,16 @@ export function SubmitCourseForm() {
             onChange={(event) => setLocationAddress(event.target.value)}
             placeholder="Optional"
             value={locationAddress}
+          />
+        </label>
+
+        <label className="grid gap-2 text-sm font-bold text-ink/70">
+          Description or course notes
+          <textarea
+            className="min-h-28 rounded-lg border border-canopy-900/10 bg-white px-3 py-3 font-semibold leading-6 outline-none"
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="Course character, navigation notes, seasonal conditions, or useful local context"
+            value={description}
           />
         </label>
 

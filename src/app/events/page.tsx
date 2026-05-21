@@ -115,7 +115,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
   );
   const eventCoverPlaceholder = getCoursePlaceholderImage({
     id: "events-cover",
-    name: "LocalRoute disc golf calendar",
+    name: "Local Route disc golf calendar",
     locationName: "League nights and tournaments",
     difficulty: "mixed",
     beginnerFriendly: true
@@ -441,10 +441,33 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
       {!events.length ? (
         <section className="rounded-lg bg-white p-8 text-center shadow-sm">
           <CalendarClock className="mx-auto text-canopy-700" size={32} aria-hidden />
-          <h2 className="mt-4 text-2xl font-black text-ink">No events found</h2>
+          <h2 className="mt-4 text-2xl font-black text-ink">
+            {query || hasAdvancedEventSearch
+              ? "No matching events found."
+              : "No events scheduled yet."}
+          </h2>
           <p className="mt-2 text-sm font-semibold text-ink/55">
-            Clear filters or create the first local listing.
+            {query || hasAdvancedEventSearch
+              ? "Try another search, clear filters, or create a local listing."
+              : "Check back soon or create one."}
           </p>
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            {query || hasAdvancedEventSearch ? (
+              <Link
+                className="inline-flex h-10 items-center justify-center rounded-full bg-canopy-50 px-4 text-sm font-black text-canopy-700 transition hover:bg-canopy-100"
+                href="/events"
+              >
+                Clear filters
+              </Link>
+            ) : null}
+            <Link
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-ink px-4 text-sm font-black text-white transition hover:bg-canopy-700"
+              href={currentUser ? "/events?create=1" : "/login?redirectTo=/events?create=1"}
+            >
+              <Plus size={15} aria-hidden />
+              Create event
+            </Link>
+          </div>
         </section>
       ) : null}
     </main>

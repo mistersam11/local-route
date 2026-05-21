@@ -20,8 +20,9 @@ import { prisma } from "@/lib/db";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "LocalRoute",
-  description: "Disc golf course and hole reviews, plus voted best lines.",
+  title: "Local Route",
+  description:
+    "Discover disc golf courses, build course lists, find events, and talk with local players.",
   icons: {
     icon: "/brand/basket-logo.png",
     apple: "/brand/basket-logo.png"
@@ -39,6 +40,7 @@ export default async function RootLayout({
         currentUser.isAdmin
           ? Promise.all([
               prisma.course.count({ where: { status: "pending" } }),
+              prisma.courseEditProposal.count({ where: { status: "pending" } }),
               prisma.contentReport.count({ where: { status: ReportStatus.open } })
             ]).then((counts) => counts.reduce((total, count) => total + count, 0))
           : Promise.resolve(0),
@@ -67,14 +69,14 @@ export default async function RootLayout({
                   width={46}
                 />
               </span>
-              <span className="brand-wordmark max-[520px]:hidden" aria-label="LocalRoute">
+              <span className="brand-wordmark max-[520px]:hidden" aria-label="Local Route">
                 <span className="brand-wordmark-local">Local</span>
                 <span className="brand-wordmark-route">Route</span>
               </span>
             </Link>
             <nav className="flex min-w-0 flex-wrap items-center justify-end gap-1 overflow-visible text-sm font-semibold text-ink/75 sm:gap-2">
               <Link
-                href="/"
+                href="/courses"
                 className="shrink-0 rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"
               >
                 Courses
@@ -98,14 +100,14 @@ export default async function RootLayout({
                 className="flex shrink-0 items-center gap-2 rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"
               >
                 <MessageSquare size={16} aria-hidden />
-                Forum
+                Chains
               </Link>
               <Link
                 href="/users"
                 className="flex shrink-0 items-center gap-2 rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700"
               >
                 <UsersRound size={16} aria-hidden />
-                Users
+                Players
               </Link>
               {currentUser ? (
                 <>
@@ -151,6 +153,48 @@ export default async function RootLayout({
           </div>
         </header>
         {children}
+        <footer className="border-t border-canopy-900/10 bg-[#fffdf7] px-4 py-8 sm:px-6">
+          <div className="mx-auto grid max-w-7xl gap-6 md:grid-cols-[1fr_auto] md:items-start">
+            <div>
+              <Link className="inline-flex items-center gap-3" href="/">
+                <span className="brand-mark" aria-hidden>
+                  <Image
+                    alt=""
+                    className="brand-mark-image"
+                    height={46}
+                    src="/brand/basket-logo.png"
+                    width={46}
+                  />
+                </span>
+                <span className="brand-wordmark" aria-label="Local Route">
+                  <span className="brand-wordmark-local">Local</span>
+                  <span className="brand-wordmark-route">Route</span>
+                </span>
+              </Link>
+              <p className="mt-3 max-w-xl text-sm font-semibold leading-6 text-ink/60">
+                Community-built course notes, lists, events, and chains for disc
+                golfers who want real local knowledge.
+              </p>
+            </div>
+            <nav className="flex flex-wrap gap-2 text-sm font-black text-ink/65 md:justify-end">
+              <Link className="rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700" href="/about">
+                About
+              </Link>
+              <Link className="rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700" href="/contact">
+                Contact
+              </Link>
+              <Link className="rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700" href="/privacy">
+                Privacy
+              </Link>
+              <Link className="rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700" href="/terms">
+                Terms
+              </Link>
+              <Link className="rounded-full px-3 py-2 transition hover:bg-canopy-50 hover:text-canopy-700" href="/contact#course-corrections">
+                Report incorrect course info / Propose edits
+              </Link>
+            </nav>
+          </div>
+        </footer>
         <PlaceholderImageAttribution />
         <MobileQuickActions isAuthenticated={Boolean(currentUser)} />
       </body>

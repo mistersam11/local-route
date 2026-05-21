@@ -18,6 +18,7 @@ export type NormalizedCourseEdit = {
   name: string;
   locationName: string;
   locationAddress: string | null;
+  description: string | null;
   layoutName: string | null;
   coverPhotoUrl: string | null;
   latitude: number | null;
@@ -47,6 +48,7 @@ export function normalizeCourseEditInput(body: Record<string, unknown>) {
   const name = String(body.name ?? "").trim();
   const locationName = String(body.locationName ?? "").trim();
   const locationAddress = String(body.locationAddress ?? "").trim();
+  const description = String(body.description ?? "").trim();
   const layoutName = String(body.layoutName ?? "").trim();
   const coverPhotoUrl = String(body.coverPhotoUrl ?? "").trim();
   const rawDifficulty = String(body.difficulty ?? "");
@@ -72,6 +74,7 @@ export function normalizeCourseEditInput(body: Record<string, unknown>) {
     name,
     locationName,
     locationAddress: locationAddress || null,
+    description: description || null,
     layoutName: primaryLayoutName || null,
     coverPhotoUrl: coverPhotoUrl || null,
     latitude,
@@ -108,6 +111,12 @@ export function courseEditToJson(edit: NormalizedCourseEdit) {
   return edit as unknown as Prisma.InputJsonValue;
 }
 
+export function normalizeCourseEditProposalNotes(value: unknown) {
+  const notes = String(value ?? "").trim();
+
+  return notes || null;
+}
+
 export function courseEditFromJson(value: Prisma.JsonValue) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new Error("Course edit proposal data is invalid.");
@@ -128,6 +137,7 @@ export async function applyCourseEdit(
       name: edit.name,
       locationName: edit.locationName,
       locationAddress: edit.locationAddress,
+      description: edit.description,
       layoutName: edit.layoutName,
       coverPhotoUrl: edit.coverPhotoUrl,
       latitude: edit.latitude,

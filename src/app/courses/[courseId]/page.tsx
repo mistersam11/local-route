@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   ArrowRight,
   CalendarClock,
+  CheckCircle2,
   Disc3,
   Flag,
   ExternalLink,
@@ -57,8 +58,26 @@ type CoursePageProps = {
     layout?: string;
     holesPage?: string;
     reviewsPage?: string;
+    editProposal?: string;
   };
 };
+
+function formatLastUpdated(date: Date) {
+  return `Last updated ${new Intl.DateTimeFormat("en", {
+    month: "long",
+    year: "numeric"
+  }).format(date)}`;
+}
+
+function reviewSummary(reviewCount: number, averageRating: number) {
+  if (!reviewCount) {
+    return "No reviews yet";
+  }
+
+  return `${averageRating.toFixed(1)} from ${reviewCount} ${
+    reviewCount === 1 ? "review" : "reviews"
+  }`;
+}
 
 export default async function CoursePage({ params, searchParams }: CoursePageProps) {
   const courseId = Number(params.courseId);
@@ -253,10 +272,7 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
   const encodedMapQuery = encodeURIComponent(mapQuery);
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedMapQuery}`;
   const appleMapsUrl = `https://maps.apple.com/?q=${encodedMapQuery}`;
-  const canProposeEdits =
-    course.status === "approved" &&
-    Boolean(currentUser) &&
-    currentUser?.id === course.submittedById;
+  const canProposeEdits = course.status === "approved";
   const pendingOwnEditProposal = currentUser
     ? course.editProposals.find(
         (proposal) => proposal.submittedById === currentUser.id
@@ -268,7 +284,7 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
     <main className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:py-10">
       <section className="flex flex-col gap-5">
         <Link
-          href="/"
+          href="/courses"
           className="inline-flex w-fit items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-ink shadow-sm transition hover:bg-canopy-50"
         >
           <ArrowLeft size={16} aria-hidden />
@@ -314,13 +330,23 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
                   {selectedLayoutName}
                 </p>
               ) : null}
-              <p className="mt-3 flex items-center gap-2 text-sm font-bold">
-                <Stars rating={averageRating} />
-                <span>{reviewCount ? averageRating.toFixed(1) : "No reviews yet"}</span>
+              <p className="mt-3 flex flex-wrap items-center gap-2 text-sm font-bold">
+                {reviewCount ? <Stars rating={averageRating} /> : null}
+                <span>{reviewSummary(reviewCount, averageRating)}</span>
+                <span className="text-white/60">
+                  {formatLastUpdated(course.updatedAt)}
+                </span>
               </p>
             </div>
           </div>
         </div>
+
+        {searchParams?.editProposal === "submitted" ? (
+          <section className="flex gap-3 rounded-lg border border-canopy-700/20 bg-canopy-50 p-4 text-sm font-bold text-canopy-700 shadow-sm">
+            <CheckCircle2 className="mt-0.5 shrink-0" size={18} aria-hidden />
+            <p>Thanks - your edit proposal has been submitted for review.</p>
+          </section>
+        ) : null}
 
         <LayoutSelector
           layouts={layoutOptions}
@@ -382,6 +408,9 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
                   </span>
                 )}
               </div>
+              <p className="mt-4 text-sm font-bold text-ink/45">
+                {formatLastUpdated(course.updatedAt)}
+              </p>
             </div>
             <div className="w-full sm:w-auto sm:min-w-80">
               <div className="grid gap-2">
@@ -407,6 +436,15 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
             </div>
           </div>
         </section>
+
+        {course.description ? (
+          <section className="grid gap-3 rounded-lg border border-canopy-900/10 bg-white p-4 shadow-sm">
+            <h2 className="text-xl font-black text-ink">Course notes</h2>
+            <p className="whitespace-pre-wrap text-sm font-semibold leading-6 text-ink/68">
+              {course.description}
+            </p>
+          </section>
+        ) : null}
 
         <section className="grid gap-3 rounded-lg border border-canopy-900/10 bg-white p-4 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -547,7 +585,7 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
             <section className="rounded-lg bg-white p-6 text-center shadow-sm">
               <Star className="mx-auto text-canopy-700" size={28} aria-hidden />
               <h3 className="mt-3 text-xl font-black text-ink">
-                Be the first to review this course.
+                No reviews yet. Be the first to review this course.
               </h3>
               <p className="mt-2 text-sm font-semibold text-ink/55">
                 Share pace, conditions, and what first-timers should know.
@@ -602,7 +640,9 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
                       );
                     })
                   ) : (
-                    <p className="text-sm font-semibold text-ink/45">No upcoming listings.</p>
+                    <p className="text-sm font-semibold text-ink/45">
+                      No events scheduled yet. Check back soon or create one.
+                    </p>
                   )}
                 </div>
               );
@@ -754,6 +794,11 @@ export default async function CoursePage({ params, searchParams }: CoursePagePro
                 </span>
               </Link>
             ))}
+            {!recentActivity.length ? (
+              <div className="rounded-lg bg-white p-4 text-sm font-bold text-ink/55 shadow-sm">
+                No recent hole reviews yet. Add a hole note after your next round.
+              </div>
+            ) : null}
           </div>
         </div>
       </section>
