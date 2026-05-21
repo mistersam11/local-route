@@ -21,13 +21,16 @@ export function ForumCommentComposerToggle({
 
   return (
     <>
-      <div className="relative h-px bg-canopy-900/15" aria-label="Conversation actions">
+      <div
+        className="relative h-[2px] bg-ink/25 dark:bg-white/35"
+        aria-label="Conversation actions"
+      >
         {isAuthenticated ? (
           <button
             aria-expanded={isOpen}
             aria-label={isOpen ? "Close comment field" : "Add comment"}
             className={clsx(
-              "absolute right-3 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-white shadow-sm ring-2 ring-[#fffdf7] transition",
+              "absolute right-3 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-white shadow-sm ring-2 ring-[#fffdf7] transition dark:ring-ink",
               isOpen ? "bg-canopy-700" : "bg-ink hover:bg-canopy-700"
             )}
             onClick={() => setIsOpen((current) => !current)}
@@ -39,7 +42,7 @@ export function ForumCommentComposerToggle({
         ) : (
           <Link
             aria-label="Log in to comment"
-            className="absolute right-3 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-ink text-white shadow-sm ring-2 ring-[#fffdf7] transition hover:bg-canopy-700"
+            className="absolute right-3 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-ink text-white shadow-sm ring-2 ring-[#fffdf7] transition hover:bg-canopy-700 dark:ring-ink"
             href={loginHref}
             title="Log in to comment"
           >

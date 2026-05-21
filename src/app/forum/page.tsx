@@ -1,15 +1,17 @@
 import Link from "next/link";
-import { LogIn, Search } from "lucide-react";
+import { LogIn } from "lucide-react";
 import {
   ForumFeedList,
   type ForumFeedClientItem
 } from "@/components/ForumFeedList";
 import { ForumComposer } from "@/components/ForumComposer";
 import { ForumRulesModal } from "@/components/ForumRulesModal";
+import { ForumSearchForm } from "@/components/ForumSearchForm";
 import { PageCoverHeader } from "@/components/PageCoverHeader";
 import { getCurrentUser } from "@/lib/current-user";
 import {
   getPersonalizedForumFeed,
+  normalizeForumFeedIncludeEvents,
   normalizeForumFeedPage,
   serializeForumFeedItem
 } from "@/lib/forum-feed";
@@ -23,15 +25,20 @@ type ForumPageProps = {
     page?: string;
     compose?: string;
     intent?: string;
+    includeEvents?: string;
   };
 };
 
 export default async function ForumPage({ searchParams }: ForumPageProps) {
   const query = searchParams?.q?.trim() ?? "";
+  const includeEvents = normalizeForumFeedIncludeEvents(
+    searchParams?.includeEvents
+  );
   const page = normalizeForumFeedPage(searchParams?.page);
   const currentUser = await getCurrentUser();
   const feed = await getPersonalizedForumFeed({
     userId: currentUser?.id,
+    includeEvents,
     query,
     page
   });
@@ -52,26 +59,7 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
         placeholder={forumCoverPlaceholder}
         title="Talk disc golf"
       >
-        <form
-          action="/forum"
-          className="flex min-h-14 overflow-hidden rounded-full border border-white/15 bg-white/95 shadow-panel backdrop-blur"
-        >
-          <label className="flex flex-1 items-center gap-3 px-5">
-            <Search size={20} className="shrink-0 text-canopy-700" aria-hidden />
-            <input
-              className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-ink/45"
-              defaultValue={query}
-              name="q"
-              placeholder="Search chains"
-            />
-          </label>
-          <button
-            className="m-1 inline-flex items-center justify-center rounded-full bg-ink px-5 text-sm font-bold text-white transition hover:bg-canopy-700"
-            type="submit"
-          >
-            Search
-          </button>
-        </form>
+        <ForumSearchForm includeEvents={includeEvents} query={query} />
       </PageCoverHeader>
 
       {currentUser ? (
@@ -99,6 +87,7 @@ export default async function ForumPage({ searchParams }: ForumPageProps) {
 
       <ForumFeedList
         hasPersonalizationSignals={feed.hasPersonalizationSignals}
+        includeEvents={includeEvents}
         initialItems={
           feed.items.map(serializeForumFeedItem) as ForumFeedClientItem[]
         }

@@ -8,6 +8,7 @@ import {
 import { prisma } from "@/lib/db";
 import {
   getPersonalizedForumFeed,
+  normalizeForumFeedIncludeEvents,
   normalizeForumFeedPage,
   normalizeForumFeedPageSize,
   serializeForumFeedItem
@@ -18,10 +19,14 @@ export async function GET(request: Request) {
   const currentUser = await getRequestUser(request);
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q")?.trim() ?? "";
+  const includeEvents = normalizeForumFeedIncludeEvents(
+    searchParams.get("includeEvents")
+  );
   const page = normalizeForumFeedPage(searchParams.get("page"));
   const pageSize = normalizeForumFeedPageSize(searchParams.get("pageSize"));
   const feed = await getPersonalizedForumFeed({
     userId: currentUser?.id,
+    includeEvents,
     query,
     page,
     pageSize

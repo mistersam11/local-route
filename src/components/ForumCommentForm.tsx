@@ -65,7 +65,8 @@ export function ForumCommentForm({
       className={clsx(
         "grid gap-3 rounded-lg",
         variant === "full" && "border border-canopy-900/10 bg-white p-4 shadow-sm",
-        variant === "compact" && "border-l border-canopy-900/15 py-2 pl-3",
+        variant === "compact" &&
+          "border-l border-ink/20 py-2 pl-3 dark:border-white/25",
         variant === "minimal" &&
           "border border-canopy-900/10 bg-[#fffdf7] p-3 shadow-sm"
       )}

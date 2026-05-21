@@ -136,7 +136,7 @@ function ForumCommentBranch({
           {canCollapse && !isCollapsed ? (
             <button
               aria-label={`Collapse replies to ${comment.user.username}`}
-              className="absolute bottom-0 top-10 flex w-6 justify-center rounded-full text-canopy-900/15 transition hover:text-canopy-700/45"
+              className="absolute bottom-0 top-10 flex w-6 justify-center rounded-full text-ink/25 transition hover:text-canopy-700/45 dark:text-white/25 dark:hover:text-white/45"
               onClick={() => onToggleCollapse(comment.id)}
               title="Collapse thread"
               type="button"

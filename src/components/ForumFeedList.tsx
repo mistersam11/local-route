@@ -59,6 +59,7 @@ type ForumFeedListProps = {
   initialItems: ForumFeedClientItem[];
   initialNextPage: number | null;
   query: string;
+  includeEvents: boolean;
   hasPersonalizationSignals: boolean;
 };
 
@@ -93,6 +94,7 @@ export function ForumFeedList({
   initialItems,
   initialNextPage,
   query,
+  includeEvents,
   hasPersonalizationSignals
 }: ForumFeedListProps) {
   const [items, setItems] = useState(initialItems);
@@ -111,6 +113,10 @@ export function ForumFeedList({
 
     if (query) {
       params.set("q", query);
+    }
+
+    if (!includeEvents) {
+      params.set("includeEvents", "0");
     }
 
     setLoading(true);
@@ -143,7 +149,7 @@ export function ForumFeedList({
         setLoading(false);
       }
     })();
-  }, [loading, nextPage, query]);
+  }, [includeEvents, loading, nextPage, query]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -165,6 +171,8 @@ export function ForumFeedList({
   }, [loadNextPage, nextPage]);
 
   if (!items.length) {
+    const hasActiveFilters = Boolean(query) || !includeEvents;
+
     return (
       <section className="rounded-lg bg-white p-8 text-center shadow-sm">
         <MessageSquare className="mx-auto text-canopy-700" size={32} aria-hidden />
@@ -179,13 +187,13 @@ export function ForumFeedList({
               : "Follow courses to see local posts first, or start the next chain."}
         </p>
         <div className="mt-5 flex flex-wrap justify-center gap-2">
-          {query ? (
+          {hasActiveFilters ? (
             <Link
               className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-canopy-50 px-4 text-sm font-black text-canopy-700 transition hover:bg-canopy-100"
               href="/forum"
             >
               <Search size={15} aria-hidden />
-              Clear search
+              {query && includeEvents ? "Clear search" : "Clear filters"}
             </Link>
           ) : null}
           <Link

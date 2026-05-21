@@ -134,6 +134,18 @@ export function normalizeForumFeedPageSize(value: unknown) {
   return Math.min(pageSize, MAX_PAGE_SIZE);
 }
 
+export function normalizeForumFeedIncludeEvents(value: unknown) {
+  const rawValue = Array.isArray(value) ? value.at(-1) : value;
+
+  if (rawValue === null || rawValue === undefined || rawValue === "") {
+    return true;
+  }
+
+  return !["0", "false", "no", "off"].includes(
+    String(rawValue).trim().toLowerCase()
+  );
+}
+
 export function isForumFeedThreadVisible(
   thread: Pick<RankableForumThread, "status" | "course" | "event">
 ) {
@@ -386,17 +398,21 @@ export function rankSuggestedForumThreads<T extends RankableForumThread>({
     );
 }
 
-function forumThreadVisibilityWhere(): Prisma.ForumThreadWhereInput {
+function forumThreadVisibilityWhere(
+  includeEvents: boolean
+): Prisma.ForumThreadWhereInput {
   return {
     status: ContentStatus.visible,
     AND: [
       { OR: [{ courseId: null }, { course: { status: CourseStatus.approved } }] },
-      {
-        OR: [
-          { eventId: null },
-          { event: { visibility: CourseEventVisibility.public } }
-        ]
-      }
+      includeEvents
+        ? {
+            OR: [
+              { eventId: null },
+              { event: { visibility: CourseEventVisibility.public } }
+            ]
+          }
+        : { eventId: null }
     ]
   };
 }
@@ -442,12 +458,15 @@ function primaryPersonalizationWhere(
   return filters.length ? { OR: filters } : null;
 }
 
-function forumFeedBaseWhere(query: string): Prisma.ForumThreadWhereInput {
+function forumFeedBaseWhere(
+  query: string,
+  includeEvents: boolean
+): Prisma.ForumThreadWhereInput {
   const queryWhere = forumThreadQueryWhere(query);
 
   return {
     AND: [
-      forumThreadVisibilityWhere(),
+      forumThreadVisibilityWhere(includeEvents),
       ...(queryWhere ? [queryWhere] : [])
     ]
   };
@@ -567,12 +586,14 @@ async function getForumFeedSignals(userId?: number | null): Promise<ForumFeedSig
 
 export async function getPersonalizedForumFeed({
   userId,
+  includeEvents = true,
   query = "",
   page: rawPage = 1,
   pageSize: rawPageSize = DEFAULT_PAGE_SIZE,
   now = new Date()
 }: {
   userId?: number | null;
+  includeEvents?: boolean;
   query?: string;
   page?: number;
   pageSize?: number;
@@ -582,7 +603,7 @@ export async function getPersonalizedForumFeed({
   const pageSize = normalizeForumFeedPageSize(rawPageSize);
   const offset = (page - 1) * pageSize;
   const signals = await getForumFeedSignals(userId);
-  const baseWhere = forumFeedBaseWhere(query.trim());
+  const baseWhere = forumFeedBaseWhere(query.trim(), includeEvents);
   const primaryScopeWhere = primaryPersonalizationWhere(signals);
   const primaryWhere = primaryScopeWhere
     ? combineForumFeedWhere(baseWhere, primaryScopeWhere)

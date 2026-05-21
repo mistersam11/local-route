@@ -7,6 +7,7 @@ import {
 import {
   composeForumFeedPage,
   isForumFeedThreadVisible,
+  normalizeForumFeedIncludeEvents,
   rankSuggestedForumThreads,
   type ForumFeedSignals,
   type RankableForumThread
@@ -58,6 +59,16 @@ function thread(overrides: Partial<RankableForumThread>): RankableForumThread {
     ...overrides
   };
 }
+
+test("forum feed event filter defaults on and recognizes off values", () => {
+  assert.equal(normalizeForumFeedIncludeEvents(undefined), true);
+  assert.equal(normalizeForumFeedIncludeEvents(""), true);
+  assert.equal(normalizeForumFeedIncludeEvents("1"), true);
+  assert.equal(normalizeForumFeedIncludeEvents("true"), true);
+  assert.equal(normalizeForumFeedIncludeEvents("0"), false);
+  assert.equal(normalizeForumFeedIncludeEvents("false"), false);
+  assert.equal(normalizeForumFeedIncludeEvents(["1", "0"]), false);
+});
 
 test("suggested feed ranking favors recency, engagement, and course similarity", () => {
   const ranked = rankSuggestedForumThreads({
