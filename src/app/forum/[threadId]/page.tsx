@@ -231,7 +231,6 @@ export default async function ForumThreadPage({ params }: ForumThreadPageProps) 
 
       <section className="grid gap-4">
         <ForumCommentComposerToggle
-          commentCount={comments.length}
           isAuthenticated={Boolean(currentUser)}
           loginHref={`/login?redirectTo=/forum/${thread.id}`}
           threadId={thread.id}

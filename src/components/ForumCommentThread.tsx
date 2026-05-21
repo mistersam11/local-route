@@ -6,8 +6,8 @@ import Link from "next/link";
 import clsx from "clsx";
 import {
   ArrowBigUp,
-  ChevronDown,
   ChevronRight,
+  ChevronUp,
   MessageCircle,
   MessageSquareReply
 } from "lucide-react";
@@ -171,7 +171,7 @@ function ForumCommentBranch({
                 {isCollapsed ? (
                   <ChevronRight size={14} aria-hidden />
                 ) : (
-                  <ChevronDown size={14} aria-hidden />
+                  <ChevronUp size={14} aria-hidden />
                 )}
               </button>
             ) : null}
@@ -289,7 +289,7 @@ function ForumCommentBranch({
                     title="Collapse thread"
                     type="button"
                   >
-                    <ChevronDown size={15} aria-hidden />
+                    <ChevronUp size={15} aria-hidden />
                   </button>
                 ) : null}
               </div>
