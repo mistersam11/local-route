@@ -126,18 +126,19 @@ export default async function LandingPage() {
           placeholderAlt=""
           sizes="100vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-ink/95 via-ink/70 to-ink/25" />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink/75 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-ink/40" />
+        <div className="absolute inset-0 bg-gradient-to-r from-ink/95 via-ink/80 to-ink/45" />
+        <div className="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/45 to-ink/30" />
 
         <div className="relative mx-auto flex min-h-[58vh] max-w-7xl flex-col justify-end gap-8">
           <div className="max-w-3xl">
             <p className="text-sm font-black uppercase tracking-normal text-clay-100">
               Local Route
             </p>
-            <h1 className="mt-4 text-5xl font-black leading-[1.02] sm:text-6xl lg:text-7xl">
-              Local disc golf knowledge, organized.
+            <h1 className="mt-4 text-5xl font-black leading-[1.02] drop-shadow-xl sm:text-6xl lg:text-7xl">
+              Local disc golf knowledge.
             </h1>
-            <p className="mt-5 max-w-2xl text-lg font-semibold leading-8 text-white/84">
+            <p className="mt-5 max-w-2xl text-lg font-semibold leading-8 text-white/95 drop-shadow-lg">
               Discover local disc golf courses, build shareable course lists, find
               nearby events, and talk with other players.
             </p>
