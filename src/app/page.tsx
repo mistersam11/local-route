@@ -213,7 +213,7 @@ export default async function LandingPage() {
                 Featured courses
               </p>
               <h2 className="mt-2 text-3xl font-black text-ink">
-                Start with real course context
+                Explore recently added courses
               </h2>
             </div>
             <Link
