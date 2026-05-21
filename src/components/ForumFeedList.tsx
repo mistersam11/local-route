@@ -103,6 +103,13 @@ export function ForumFeedList({
   const [error, setError] = useState<string | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
+  useEffect(() => {
+    setItems(initialItems);
+    setNextPage(initialNextPage);
+    setLoading(false);
+    setError(null);
+  }, [includeEvents, initialItems, initialNextPage, query]);
+
   const loadNextPage = useCallback(() => {
     if (!nextPage || loading) return;
 

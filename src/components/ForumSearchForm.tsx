@@ -25,9 +25,7 @@ export function ForumSearchForm({
     setQuery(initialQuery);
   }, [initialIncludeEvents, initialQuery]);
 
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
+  function forumHref(nextIncludeEvents: boolean) {
     const params = new URLSearchParams();
     const trimmedQuery = query.trim();
 
@@ -35,12 +33,23 @@ export function ForumSearchForm({
       params.set("q", trimmedQuery);
     }
 
-    if (!includeEvents) {
+    if (!nextIncludeEvents) {
       params.set("includeEvents", "0");
     }
 
     const queryString = params.toString();
-    router.push(queryString ? `/forum?${queryString}` : "/forum");
+    return queryString ? `/forum?${queryString}` : "/forum";
+  }
+
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    router.push(forumHref(includeEvents));
+  }
+
+  function changeIncludeEvents(nextIncludeEvents: boolean) {
+    setIncludeEvents(nextIncludeEvents);
+    setAdvancedOpen(true);
+    router.push(forumHref(nextIncludeEvents));
   }
 
   return (
@@ -85,7 +94,7 @@ export function ForumSearchForm({
             <input
               checked={includeEvents}
               className="h-5 w-5 accent-canopy-700"
-              onChange={(event) => setIncludeEvents(event.target.checked)}
+              onChange={(event) => changeIncludeEvents(event.target.checked)}
               type="checkbox"
             />
           </label>
