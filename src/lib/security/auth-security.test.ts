@@ -16,6 +16,11 @@ import {
   validateGoogleOAuthState
 } from "../oauth/google";
 import { createCsrfToken, verifyCsrfToken } from "./csrf";
+import {
+  canUseAuthSecret,
+  getAuthSecret,
+  isAuthSecretConfigured
+} from "./env";
 import { errorRedirect, safeRedirect } from "./http";
 import {
   authRateLimitConfigs,
@@ -34,6 +39,55 @@ function test(name: string, run: () => void | Promise<void>) {
 
 process.env.AUTH_SECRET = "test-auth-secret-that-is-long-enough-for-tests";
 process.env.HIBP_BREACH_CHECKS = "on";
+
+function restoreEnv(name: string, value: string | undefined) {
+  if (value === undefined) {
+    delete process.env[name];
+    return;
+  }
+
+  process.env[name] = value;
+}
+
+test("production auth secret is required before auth helpers run", () => {
+  const previousAuthSecret = process.env.AUTH_SECRET;
+  const previousNextAuthSecret = process.env.NEXTAUTH_SECRET;
+  const previousNodeEnv = process.env.NODE_ENV;
+
+  try {
+    delete process.env.AUTH_SECRET;
+    delete process.env.NEXTAUTH_SECRET;
+    process.env.NODE_ENV = "production";
+
+    assert.equal(isAuthSecretConfigured(), false);
+    assert.equal(canUseAuthSecret(), false);
+    assert.throws(() => getAuthSecret(), /AUTH_SECRET is required in production/);
+  } finally {
+    restoreEnv("AUTH_SECRET", previousAuthSecret);
+    restoreEnv("NEXTAUTH_SECRET", previousNextAuthSecret);
+    restoreEnv("NODE_ENV", previousNodeEnv);
+  }
+});
+
+test("development auth helpers keep using the local fallback secret", () => {
+  const previousAuthSecret = process.env.AUTH_SECRET;
+  const previousNextAuthSecret = process.env.NEXTAUTH_SECRET;
+  const previousNodeEnv = process.env.NODE_ENV;
+
+  try {
+    delete process.env.AUTH_SECRET;
+    delete process.env.NEXTAUTH_SECRET;
+    process.env.NODE_ENV = "development";
+
+    assert.equal(isAuthSecretConfigured(), false);
+    assert.equal(canUseAuthSecret(), true);
+    assert.equal(getAuthSecret(), "localroute-development-auth-secret");
+  } finally {
+    restoreEnv("AUTH_SECRET", previousAuthSecret);
+    restoreEnv("NEXTAUTH_SECRET", previousNextAuthSecret);
+    restoreEnv("NODE_ENV", previousNodeEnv);
+  }
+});
 
 test("password hashing uses bcrypt and verifies without plaintext storage", async () => {
   const hash = await hashPassword("Stronger-demo-password-42!");

@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { Chrome, LogIn } from "lucide-react";
+import { AuthUnavailablePanel } from "@/components/AuthUnavailablePanel";
 import { getCurrentUser } from "@/lib/current-user";
 import { createCsrfToken } from "@/lib/security/csrf";
+import { canUseAuthSecret } from "@/lib/security/env";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 const errorMessages: Record<string, string> = {
   credentials: "That email/username and password did not match.",
+  auth_config: "Log in is temporarily unavailable.",
   oauth: "Google sign-in could not be completed.",
   oauth_config: "Google sign-in is not configured yet."
 };
@@ -26,11 +29,21 @@ type LoginPageProps = {
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const currentUser = await getCurrentUser();
   const redirectTo = safeRedirect(searchParams?.redirectTo);
-  const csrfToken = createCsrfToken();
 
   if (currentUser) {
     redirect(redirectTo);
   }
+
+  if (!canUseAuthSecret()) {
+    return (
+      <AuthUnavailablePanel
+        eyebrow="Welcome back"
+        title="Log in is unavailable"
+      />
+    );
+  }
+
+  const csrfToken = createCsrfToken();
 
   const error = searchParams?.error
     ? errorMessages[searchParams.error] ?? "Something went wrong."

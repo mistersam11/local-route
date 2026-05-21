@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { Chrome, UserPlus } from "lucide-react";
+import { AuthUnavailablePanel } from "@/components/AuthUnavailablePanel";
 import { getCurrentUser } from "@/lib/current-user";
 import { createCsrfToken } from "@/lib/security/csrf";
+import { canUseAuthSecret } from "@/lib/security/env";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 const errorMessages: Record<string, string> = {
+  auth_config: "Account creation is temporarily unavailable.",
   email: "Enter a valid email address.",
   password: "Use 12+ characters with upper/lowercase letters, a number, and a symbol.",
   rate_limited: "Please wait a bit before trying again.",
@@ -29,11 +32,21 @@ type SignupPageProps = {
 export default async function SignupPage({ searchParams }: SignupPageProps) {
   const currentUser = await getCurrentUser();
   const redirectTo = safeRedirect(searchParams?.redirectTo);
-  const csrfToken = createCsrfToken();
 
   if (currentUser) {
     redirect(redirectTo);
   }
+
+  if (!canUseAuthSecret()) {
+    return (
+      <AuthUnavailablePanel
+        eyebrow="Join the card"
+        title="Sign up is unavailable"
+      />
+    );
+  }
+
+  const csrfToken = createCsrfToken();
 
   const error = searchParams?.error
     ? errorMessages[searchParams.error] ?? "Something went wrong."

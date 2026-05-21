@@ -8,6 +8,7 @@ import {
   validatePasswordStrength
 } from "@/lib/password";
 import { verifyCsrfToken } from "@/lib/security/csrf";
+import { canUseAuthSecret } from "@/lib/security/env";
 import { normalizeEmail, normalizeUsername } from "@/lib/security/identity";
 import { errorRedirect, safeRedirect } from "@/lib/security/http";
 import {
@@ -27,6 +28,10 @@ async function signupError(
 }
 
 export async function POST(request: Request) {
+  if (!canUseAuthSecret()) {
+    return errorRedirect(request, "/signup", "auth_config");
+  }
+
   const formData = await request.formData();
   const username = normalizeUsername(String(formData.get("username") ?? ""));
   const email = normalizeEmail(String(formData.get("email") ?? ""));

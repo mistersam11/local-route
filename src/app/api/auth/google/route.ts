@@ -9,9 +9,14 @@ import {
   consumeAuthRateLimit,
   recordAuthFailure
 } from "@/lib/security/rate-limit";
+import { canUseAuthSecret } from "@/lib/security/env";
 import { errorRedirect } from "@/lib/security/http";
 
 export async function GET(request: NextRequest) {
+  if (!canUseAuthSecret()) {
+    return errorRedirect(request, "/login", "auth_config");
+  }
+
   const rateLimitKeys = authRateLimitKeys("googleOAuth", request);
   const rateLimit = await consumeAuthRateLimit("googleOAuth", rateLimitKeys);
 

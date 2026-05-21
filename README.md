@@ -138,6 +138,25 @@ For public access from other networks, deploy it instead of running it from your
 - Prisma Postgres, Neon, Supabase, or Railway Postgres for the database
 - Cloudinary for durable image uploads
 
+Set production environment variables in the hosting dashboard before deploying.
+`AUTH_SECRET` is required for login, signup, CSRF protection, Google OAuth state,
+and private rate-limit hashes. Generate it with:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+```
+
+Then set:
+
+```bash
+AUTH_SECRET="generated-random-value"
+AUTH_BASE_URL="https://your-production-domain.example"
+DATABASE_URL="your-production-postgres-url"
+```
+
+After changing production environment variables, redeploy the app so the server
+functions pick them up.
+
 After Prisma schema changes, run `npx prisma db push` against the production
 database before using the newly deployed app.
 

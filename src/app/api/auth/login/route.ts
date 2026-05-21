@@ -7,6 +7,7 @@ import {
 import { prisma } from "@/lib/db";
 import { hashPassword, needsPasswordRehash, verifyPassword } from "@/lib/password";
 import { verifyCsrfToken } from "@/lib/security/csrf";
+import { canUseAuthSecret } from "@/lib/security/env";
 import { normalizeIdentifier } from "@/lib/security/identity";
 import { errorRedirect as redirectWithError, safeRedirect } from "@/lib/security/http";
 import {
@@ -21,6 +22,10 @@ function errorRedirect(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (!canUseAuthSecret()) {
+    return redirectWithError(request, "/login", "auth_config");
+  }
+
   const formData = await request.formData();
   const identifier = normalizeIdentifier(String(formData.get("identifier") ?? ""));
   const password = String(formData.get("password") ?? "");

@@ -1,6 +1,17 @@
+function readAuthSecret() {
+  return process.env.AUTH_SECRET?.trim() || process.env.NEXTAUTH_SECRET?.trim();
+}
+
+export function isAuthSecretConfigured() {
+  return Boolean(readAuthSecret());
+}
+
+export function canUseAuthSecret() {
+  return isAuthSecretConfigured() || process.env.NODE_ENV !== "production";
+}
+
 export function getAuthSecret() {
-  const secret =
-    process.env.AUTH_SECRET?.trim() || process.env.NEXTAUTH_SECRET?.trim();
+  const secret = readAuthSecret();
 
   if (secret) {
     return secret;

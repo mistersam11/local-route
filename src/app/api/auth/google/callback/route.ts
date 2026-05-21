@@ -8,6 +8,7 @@ import {
   googleOAuthCookieOptions,
   validateGoogleOAuthState
 } from "@/lib/oauth/google";
+import { canUseAuthSecret } from "@/lib/security/env";
 import { errorRedirect } from "@/lib/security/http";
 import {
   authRateLimitKeys,
@@ -23,13 +24,17 @@ function clearGoogleCookie(response: NextResponse) {
   });
 }
 
-function oauthError(request: Request) {
-  const response = errorRedirect(request, "/login", "oauth");
+function oauthError(request: Request, code = "oauth") {
+  const response = errorRedirect(request, "/login", code);
   clearGoogleCookie(response);
   return response;
 }
 
 export async function GET(request: NextRequest) {
+  if (!canUseAuthSecret()) {
+    return oauthError(request, "auth_config");
+  }
+
   const rateLimitKeys = authRateLimitKeys("googleOAuth", request);
   const rateLimit = await consumeAuthRateLimit("googleOAuth", rateLimitKeys);
 

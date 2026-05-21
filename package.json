@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "node scripts/verify-production-env.mjs && prisma generate && next build",
     "start": "next start",
     "test": "tsx src/lib/importers/udisc.test.ts && tsx src/lib/security/auth-security.test.ts && tsx src/lib/forum-comments.test.ts && tsx src/lib/course-communities.test.ts && tsx src/lib/forum-feed.test.ts && tsx src/lib/events.test.ts && tsx src/lib/placeholder-images.test.tsx",
     "lint": "next lint",
