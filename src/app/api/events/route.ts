@@ -88,9 +88,7 @@ async function eventListQuery() {
           id: true,
           name: true,
           locationName: true,
-          locationAddress: true,
-          latitude: true,
-          longitude: true
+          locationAddress: true
         }
       },
       rsvps: { select: { status: true } }
@@ -112,11 +110,7 @@ export async function GET(request: Request) {
       : null;
   const type = normalizeCourseEventType(searchParams.get("type"));
   const rawSort = searchParams.get("sort");
-  const sort =
-    rawSort === "popularity" || rawSort === "distance" ? rawSort : "date";
-  const originLatitude = numberParam(searchParams.get("lat"));
-  const originLongitude = numberParam(searchParams.get("lng"));
-  const maxDistanceMiles = numberParam(searchParams.get("distance"));
+  const sort = rawSort === "popularity" ? rawSort : "date";
   const events = await eventListQuery();
   const filteredEvents = filterAndSortEvents(
     events.map((event) => ({
@@ -129,10 +123,7 @@ export async function GET(request: Request) {
       date,
       courseId,
       type,
-      sort,
-      originLatitude,
-      originLongitude,
-      maxDistanceMiles
+      sort
     }
   );
   const sortedEvents =

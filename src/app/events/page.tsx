@@ -37,9 +37,6 @@ type EventsPageProps = {
     courseId?: string;
     type?: string;
     sort?: string;
-    lat?: string;
-    lng?: string;
-    distance?: string;
     create?: string;
   };
 };
@@ -108,22 +105,13 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
       ? selectedCourseId
       : null;
   const type = normalizeCourseEventType(searchParams?.type);
-  const sort =
-    searchParams?.sort === "popularity" || searchParams?.sort === "distance"
-      ? searchParams.sort
-      : "date";
-  const originLatitude = numberParam(searchParams?.lat);
-  const originLongitude = numberParam(searchParams?.lng);
-  const maxDistanceMiles = numberParam(searchParams?.distance);
+  const sort = searchParams?.sort === "popularity" ? searchParams.sort : "date";
   const hasAdvancedEventSearch = Boolean(
     location ||
       date ||
       courseId ||
       type ||
-      sort !== "date" ||
-      searchParams?.lat ||
-      searchParams?.lng ||
-      searchParams?.distance
+      sort !== "date"
   );
   const eventCoverPlaceholder = getCoursePlaceholderImage({
     id: "events-cover",
@@ -151,9 +139,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
             id: true,
             name: true,
             locationName: true,
-            locationAddress: true,
-            latitude: true,
-            longitude: true
+            locationAddress: true
           }
         },
         discussionThread: {
@@ -181,10 +167,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
       date,
       courseId,
       type,
-      sort,
-      originLatitude,
-      originLongitude,
-      maxDistanceMiles
+      sort
     }
   );
   const events =
@@ -198,9 +181,6 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
     courseId,
     type,
     sort,
-    lat: searchParams?.lat,
-    lng: searchParams?.lng,
-    distance: searchParams?.distance,
     create: 1
   });
   const showCreateForm = searchParams?.create === "1";
@@ -269,7 +249,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
               Advanced search
             </summary>
             <div className="grid gap-3 rounded-lg border border-canopy-900/10 bg-[#fffdf7] p-3 sm:col-span-3">
-              <div className="grid gap-3 lg:grid-cols-[1fr_150px_1fr_170px_150px]">
+              <div className="grid gap-3 lg:grid-cols-[1fr_150px_1fr_170px_150px_auto_auto]">
                 <label className="flex min-h-11 items-center gap-3 rounded-full border border-canopy-900/10 bg-white px-4">
                   <MapPin size={18} className="shrink-0 text-canopy-700" aria-hidden />
                   <input
@@ -327,35 +307,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
                   >
                     <option value="date">Date</option>
                     <option value="popularity">Popularity</option>
-                    <option value="distance">Distance</option>
                   </select>
-                </label>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-[130px_130px_130px_auto_auto]">
-                <label className="grid gap-1 text-xs font-black uppercase text-ink/45">
-                  Lat
-                  <input
-                    className="h-10 rounded-lg border border-canopy-900/10 bg-white px-3 text-sm font-semibold normal-case text-ink outline-none"
-                    defaultValue={searchParams?.lat ?? ""}
-                    name="lat"
-                  />
-                </label>
-                <label className="grid gap-1 text-xs font-black uppercase text-ink/45">
-                  Lng
-                  <input
-                    className="h-10 rounded-lg border border-canopy-900/10 bg-white px-3 text-sm font-semibold normal-case text-ink outline-none"
-                    defaultValue={searchParams?.lng ?? ""}
-                    name="lng"
-                  />
-                </label>
-                <label className="grid gap-1 text-xs font-black uppercase text-ink/45">
-                  Miles
-                  <input
-                    className="h-10 rounded-lg border border-canopy-900/10 bg-white px-3 text-sm font-semibold normal-case text-ink outline-none"
-                    defaultValue={searchParams?.distance ?? ""}
-                    name="distance"
-                    type="number"
-                  />
                 </label>
                 <button
                   className="mt-auto inline-flex h-10 items-center justify-center gap-2 rounded-full bg-canopy-700 px-4 text-sm font-black text-white transition hover:bg-canopy-900"
