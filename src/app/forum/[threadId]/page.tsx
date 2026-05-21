@@ -1,9 +1,9 @@
 import { ContentStatus, CourseEventVisibility } from "@prisma/client";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CalendarClock, MessageSquare, Tag } from "lucide-react";
+import { ArrowLeft, CalendarClock, Tag } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
-import { ForumCommentForm } from "@/components/ForumCommentForm";
+import { ForumCommentComposerToggle } from "@/components/ForumCommentComposerToggle";
 import {
   ForumCommentThread,
   type ForumCommentView
@@ -230,24 +230,12 @@ export default async function ForumThreadPage({ params }: ForumThreadPageProps) 
       </article>
 
       <section className="grid gap-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-black text-ink">Comments</h2>
-          <span className="flex items-center gap-2 rounded-full bg-water-100 px-3 py-1 text-sm font-black text-water-700">
-            <MessageSquare size={15} aria-hidden />
-            {comments.length}
-          </span>
-        </div>
-
-        {currentUser ? (
-          <ForumCommentForm threadId={thread.id} />
-        ) : (
-          <Link
-            className="inline-flex h-11 w-fit items-center justify-center rounded-full bg-ink px-5 text-sm font-black text-white transition hover:bg-canopy-700"
-            href={`/login?redirectTo=/forum/${thread.id}`}
-          >
-            Log in to comment
-          </Link>
-        )}
+        <ForumCommentComposerToggle
+          commentCount={comments.length}
+          isAuthenticated={Boolean(currentUser)}
+          loginHref={`/login?redirectTo=/forum/${thread.id}`}
+          threadId={thread.id}
+        />
 
         <ForumCommentThread
           comments={commentTree}
